@@ -132,6 +132,7 @@ LINEF:	.EQU 	$0A
 FORMF:	.EQU 	$0C
 CRET:	.EQU 	$0D
 SPACE:	.EQU 	$20
+SEMICO	.EQU	$3B	; semicolin. Note ';' in code; was breaking some assemblers
 ;
 ; ======================================================================
 ;   START OF PROGRAM CODE
@@ -386,7 +387,7 @@ INIT2:	ld	de,FDIVC	;0075
 	ld	(BUFPNT),hl	;008b
 ; Fills the RAM locations pointing to all 28 DOS BASIC commands,
 ; set them to point to ?L3 ERROR,
-	ld	de,NAVERR	;008e
+	ld	de,L3ERR	;008e
 	ld	b,$1C		;0091
 	ld	hl,ERCALL	;0093
 ERLOPS:	ld	(hl),$C3	;0096
@@ -489,9 +490,9 @@ HDGMSG:	.DB	"RADIO SHACK LEVEL II BASIC",CRET,0
 #ENDIF
 ;
 ; ----------------------------------------------------------------------
-; 012DH-0131H – ?L3 ERROR ROUTINE – "NAVERR"
+; 012DH-0131H – ?L3 ERROR ROUTINE – "L3ERR"
 ; ----------------------------------------------------------------------
-NAVERR:	ld	e,ERRL3		;012d - Load Register E with the ?L3 ERROR code of 2CH
+L3ERR:	ld	e,ERRL3		;012d - Load Register E with the ?L3 ERROR code of 2CH
 	jp	ERROR		;012f
 ;
 ; ----------------------------------------------------------------------
@@ -520,13 +521,13 @@ RESET:	ld	a,$01		;0138
 ;
 ; 013AH-019CH GRAPHICS ROUTINE
 	push	af		;013a
-	rst	8		;013b
+	rst	08h		;013b
 	.DB	"("		;013c
 	call	GETBYT		;013d
 	cp	$80		;0140
 	jp	nc,FCERR	;0142
 	push	af		;0145
-	rst	8		;0146
+	rst	08h		;0146
 	.DB	','		;0147
 	call	GETBYT		;0148
 	cp	$30		;014b
@@ -577,7 +578,7 @@ FND4:	ld	b,a		;017c
 	ld	a,(de)		;0189
 	and	c		;018a
 FINSTB:	ld	(de),a		;018b
-FINPTB:	rst	8		;018c
+FINPTB:	rst	08h		;018c
 	.DB	")"		;018d
 	ret			;018e
 SBIT:	or	c		;018f
@@ -672,7 +673,7 @@ CTON:	ld	a,(hl)		;01fe
 	ld	a,$00		;0201
 	jr	nz,DEFDRV	;0203
 	call	GETINT		;0205
-	rst	8		;0208
+	rst	08h		;0208
 	.DB	','		;0209
 	ld	a,e		;020a
 	and	d		;020b
@@ -1612,16 +1613,15 @@ INIT:	out	(vidcmt),a
 INITA1:	ld	hl,INITR	;0676
 	ld	de,RAM		;0679 - starting address of the communications region
 	ld	bc,$0036	;067c
-	ldir
+	ldir			;067f - Move 6D2-707 to 4000-4035
 	dec	a		;0681
 	dec	a		;0682
-;           jr   nz,INIT
 	jr	nz,INITA1	;Changes from ROM v1.0 to v1.1
 ;
 	ld	b,$27		;0685
 CLRAM:	ld	(de),a		;0687
 	inc	de		;0688
-	djnz	CLRAM
+	djnz	CLRAM		;0689 - Copy 0 to $4036 - $4062
 ; ----------------------------------------------------------------------
 ; 068BH – INITIALIZATION ROUTINE – "CHKMAN"
 ;  Check for a manual override
@@ -5041,7 +5041,7 @@ STMDSP:
 	.DW	RETURN		; RETURN
 	.DW	REM		; REM
 	.DW	STOP		; STOP
-	.DW	REM		; REM
+	.DW	REM		; ELSE (ELSE is not a standalone command)
 	.DW	TON		; TRON
 	.DW	TOFF		; TROFF
 	.DW	DEFSTR		; DEFSTR
@@ -5575,7 +5575,7 @@ SCNLINE: ld	de,$0000	;1b10
 	call	LINSPC		;1b17
 	push	de		;1b1a
 	jr	z,SNGLIN	;1b1b
-	rst	8		;1b1d
+	rst	08h		;1b1d
 	.DB	$CE
 	ld	de,$FFFA	;1b1f
 	call	nz,LINSPC	;1b22
@@ -5913,7 +5913,7 @@ NOTOL:	ex	de,hl		;1cb5
 	push	hl		;1cc0
 	ld	hl,(CURLIN)	;1cc1
 	ex	(sp),hl		;1cc4
-	rst	8		;1cc5
+	rst	08h		;1cc5
 	.DB	TKTO
 	rst	20h		;1cc7
 	jp	z,TMERR		;1cc8
@@ -6431,7 +6431,7 @@ REMER:	ld	a,(hl)		;1f0e
 ; 1F21-1F6B - LEVEL II BASIC LET ROUTINE - "LET"
 ; ----------------------------------------------------------------------
 LET:	call	PTRGET		;1f21
-	rst	8		;1f24
+	rst	08h		;1f24
 	.DB	TKEQL		;1f25 - Test if the variable name is followed by a = token
 	ex	de,hl		;1f26
 	ld	(TEMP),hl	;1f27
@@ -6483,7 +6483,7 @@ COPNUM:	call	VMOVE		;1f66
 ONGOTO:	cp	$9E		;1f6c
 	jr	nz,NTOERR	;1f6e
 	rst	10h		;1f70
-	rst	8		;1f71
+	rst	08h		;1f71
 	.DB	TKGOTO
 	call	LINGET		;1f73
 	ld	a,d		;1f76
@@ -6511,7 +6511,7 @@ NTOERR:	call	GETBYT		;1f95
 	ld	b,a		;1f99
 	cp	$91		;1f9a
 	jr	z,ISGOSU	;1f9c
-	rst	8		;1f9e
+	rst	08h		;1f9e
 	.DB	TKGOTO
 	dec	hl		;1fa0
 ISGOSU:	ld	c,e		;1fa1
@@ -6604,7 +6604,7 @@ AUTO:	ld	de,000AH	;2008
 ; being processed, “10” is in HL, and the initial number is on the STACK.
 	jr	z,SNGAU1	;2013
 	ex	de,hl		;2015
-	rst	8		;2016
+	rst	08h		;2016
 	.DB	','		;2017
 	ex	de,hl		;2018
 	ld	hl,(AUTINC)	;2019
@@ -6701,7 +6701,7 @@ PRINTD:	ld	a,(hl)		;20A5 Reload next element from code string
 	push	hl		;20B0  Save current code string addr
 	cp	','		;20B1 Test for a comma
 	jr	z,COMPRT	;20B3 Go get next item if a comma
- 	cp	';'		;20B5 Not comma, test for semi-colon
+ 	cp	SEMICO		;20B5 Not comma, test for semi-colon
 	jr	z,NTCAS0	;20B7 Go get next item if semi-colon
 	call	FRMEVL		;20B9 Evaluate next item to be printed
  	ex	(sp),hl		;20BC Save current code string addr HL = addr of current item
@@ -6722,10 +6722,10 @@ PRINT:	call	FILGET		;206f
 	and	$3F		;2087
 	ld	(TTYPOS),a	;2089
 	pop	hl		;208c
-	rst	8		;208d
+	rst	08h		;208d
 	.DB	','
-PNOTAT:	cp	$23		;208f
-	jr	nz,NEWCHR	;2091
+PNOTAT:	cp	'#'		;208f
+	jr	nz,NEWCHR	;2091 - Jump if not PRINT#
 	call	CWRTON		;2093
 	ld	a,$80		;2096
 	ld	(PRTFLG),a	;2098
@@ -6740,7 +6740,7 @@ PRINTC:	jp	z,FINPRT	;20a0
 	push	hl		;20ad
 	cp	','		;20ae
 	jp	z,COMPRT	;20b0
-	cp	';'		;20b3
+	cp	SEMICO		;20b3 - compare with semicolin ';'
 	jp	z,NOTABR	;20b5
 	pop	bc		;20b8
 	call	FRMEVL		;20b9
@@ -6829,7 +6829,7 @@ TABER:	call	GTBYTC		;2137 - evaluate the tab number, and return with the result 
 #ENDIF
 ;
 	ld	e,a		;213c
-	rst	8		;213d
+	rst	08h		;213d
 	.DB	')'
 	dec	hl		;213f
 ; ----------------------------------------------------------------------
@@ -6919,8 +6919,8 @@ INTCAS:	ld	bc,NOTQTI	;21c9
 	cp	$22		;21cd
 	ret	nz		;21cf
 	call	STRLTI		;21d0
-	rst	8		;21d3
-	.DB	';'		;21d4
+	rst	08h		;21d3
+	.DB	SEMICO		;21d4 - compare with semicolin ';'
 	push	hl		;21d5
 	call	STRPRT		;21d6
 	pop	hl		;21d9
@@ -6950,7 +6950,7 @@ INPCON:	xor	a		;21f4
 	ld	(FLGINP),a	;21f5
 	ex	(sp),hl		;21f8
 	jr	LOPDAT		;21f9
-LOPDT2:	rst	8		;21fb
+LOPDT2:	rst	08h		;21fb
 	.DB	','		;21fc
 LOPDAT:	call	PTRGET		;21fd
 	ex	(sp),hl		;2200
@@ -7163,7 +7163,7 @@ LOOPDN:	ld	sp,hl		;2324
 ;   HL points to the terminator, and ACC holds the result. Important to
 ;   note that on exit Register A does not necessarily reflect the term char
 ; ----------------------------------------------------------------------
-FRMPRN:	rst	8		;2335
+FRMPRN:	rst	08h		;2335
 	.DB	'('		;2336
 FRMEVL:	dec	hl		;2337
 FRMCHK:	ld	d,$00		;2338
@@ -7480,10 +7480,10 @@ NTERC:	cp	TKERL		;24d9 - ERL token
 NTERL:	cp	TKVARP		;24e7 - varptr
 	jr	nz,NTVARP	;24e9
 	rst	10h		;24eb
-	rst	8		;24ec
+	rst	08h		;24ec
 	.DB	'('
 	call	PTRGET		;24ee
-VARRET:	rst	8		;24f1
+VARRET:	rst	08h		;24f1
 	.DB	')'
 	push	hl		;24f3
 	ex	de,hl		;24f4
@@ -7520,7 +7520,7 @@ NTVARP:	cp	TKUSR		;24ff - USR Function
 ; other possibility is that it is a function in parenthesis – “PARCHK”
 ; ----------------------------------------------------------------------
 PARCHK:	call	FRMPRN		;252c
-	rst	8		;252f
+	rst	08h		;252f
 	.DB	')'
 	ret			;2531
 ; ----------------------------------------------------------------------
@@ -7557,7 +7557,7 @@ ISFUN:	ld	b,$00		;254e
 	jr	c,OKNORM	;2557
 	call	FRMPRN		;2559
 ; ----------------------------------------------------------------------
-	rst	8		;255c
+	rst	08h		;255c
 	.DB	','		;255d
 	call	CHKSTR		;255e
 	ex	de,hl		;2561
@@ -7718,7 +7718,7 @@ NOTOR:	ld	a,e		;25fd
 DIMCON:	dec	hl		;2603
 	rst	10h		;2604
 	ret	z		;2605
-	rst	8		;2606
+	rst	08h		;2606
 	.DB	','		;2607
 ;
 ; ----------------------------------------------------------------------
@@ -7910,7 +7910,7 @@ INDLOP:	push	de		;26ef
 	ld	a,(hl)		;26fc
 	cp	','		;26fd
 	jr	z,INDLOP	;26ff
-	rst	8		;2701
+	rst	08h		;2701
 	.DB	')'
 	ld	(TEMP2),hl	;2703
 	pop	hl		;2706
@@ -8551,14 +8551,14 @@ FINBCK:	pop	bc		;2a2b
 ; 2A2F-2A60 – LEVEL II BASIC STRING$ ROUTINE – “STRNGS”
 ; ----------------------------------------------------------------------
 STRNGS:	rst	10h		;2a2f
-	rst	8		;2a30
+	rst	08h		;2a30
 	.DB	'('		;2a31
 	call	GETBYT		;2a32
 	push	de		;2a35
-	rst	8		;2a36
+	rst	08h		;2a36
 	.DB	','		;2a37
 	call	FRMEVL		;2a38
-	rst	8		;2a3b
+	rst	08h		;2a3b
 	.DB	')'		;2a3c
 	ex	(sp),hl		;2a3d
 	push	hl		;2a3e
@@ -8645,10 +8645,10 @@ FNMID:	ex	de,hl		;2a9a
 	ld	e,$FF		;2aa5
 	cp	$29		;2aa7
 	jr	z,MID2		;2aa9
-	rst	8		;2aab
+	rst	08h		;2aab
 	.DB	','
 	call	GETBYT		;2aad
-MID2:	rst	8		;2ab0
+MID2:	rst	08h		;2ab0
 	.DB	')'
 	pop	af		;2ab2
 	ex	(sp),hl		;2ab3
@@ -8697,7 +8697,7 @@ FNVAL:	call	LEN1		;2ac5
 ;   DE and B each have the byte count.
 ; ----------------------------------------------------------------------
 PREAM:	ex	de,hl		;2adf
-	rst	8		;2ae0
+	rst	08h		;2ae0
 	.DB	')'		;2ae1
 PREAM2:	pop	bc		;2ae2
 	pop	de		;2ae3
@@ -8755,7 +8755,7 @@ SETIO:	call	GETBYT		;2b0e
 ; 2B17-2B1A – CHECK SYNTAX ROUTINE – This checks to see if the next character
 ; is a “ and contnues on to 2B1CH if it is, and errors out if it isn’t.
 ; ----------------------------------------------------------------------
-	rst	8		;2b17
+	rst	08h		;2b17
 	.DB	','		;2b18
 	jr	GETBYT		;2b19
 ;
@@ -9053,7 +9053,7 @@ DOCSMR:	call	CASIN		;2c61
 NOGOOD:	ld	hl,NOOKCS	;2c8a
 	call	STROUT		;2c8d
 	jp	STPRDY		;2c90
-SKPFIL:	ld	(vidmem + $3E),a;2c93
+SKPFIL:	ld	(vidmem+$3E),a	;2c93
 ZERSRF:	ld	b,$03		;2c96
 GETCHZ:	call	CASIN		;2c98
 	or	a		;2c9b
@@ -9084,7 +9084,7 @@ PEEK:	call	FRCINT		;2caa
 ; ----------------------------------------------------------------------
 POKE:	call	GETIN2		;2cb1
 	push	de		;2cb4
-	rst	8		;2cb5
+	rst	08h		;2cb5
 	.DB	','		;2cb6
 	call	GETBYT		;2cb7
 	pop	de		;2cba
@@ -9101,8 +9101,8 @@ POKE:	call	GETIN2		;2cb1
 ; ----------------------------------------------------------------------
 PRINUS:	call	FRMCHK		;2cbd
 	call	CHKSTR		;2cc0
-	rst	8		;2cc3
-	.DB	';'		;2cc4
+	rst	08h		;2cc3
+	.DB	SEMICO		;2cc4 - compare with semicolin ';'
 	ex	de,hl		;2cc5
 	ld	hl,(FACLO)	;2cc6
 	jr	INIUS		;2cc9
@@ -9303,7 +9303,7 @@ FNSTRF:	pop	hl		;2dd3
 	scf			;2dd6
 	jr	z,CRDNUS	;2dd7
 	ld	(FLGINP),a	;2dd9
-	cp	';'		;2ddc
+	cp	SEMICO		;2ddc - compare with semicolin ';'
 	jr	z,SEMUSN	;2dde
 	cp	','		;2de0
 	jp	nz,SNERR	;2de2
@@ -9735,9 +9735,6 @@ disksect:	.EQU $37EE	; disk sector select
 diskdata:	.EQU $37EF	; disk data byte
 kbdmatrix:	.EQU $3800	; keyboard matrix start (100H bytes)
 vidmem:		.EQU $3C00	; start of video RAM (400H bytes)
-
-
-RAM:	.EQU	$4000		; Start of RAM Communications area
 ;
 ; ----------------------------------------------------------------------
 ;  Memory Map
@@ -9775,7 +9772,7 @@ OUTWRD:	.EQU	RAM+$96		; Output port routine OUT A,(00)
 CHARC:	.EQU	RAM+$99		; Last key pressed on the keyboard
 ERRFLG:	.EQU	RAM+$9A		; Current Error Code. See ERR function
 LPTPOS:	.EQU	RAM+$9B		; No. Of chars. In current print line
-PRTFLG:	.EQU	RAM+$9C		; This is the current device output flag.
+PRTFLG:	.EQU	RAM+$9C		; This is the current device output flag. 0=vid, 1=print $80=cas
 LINLEN:	.EQU	RAM+$9D		; Number of chars on video display line.
 CLMLST:	.EQU	RAM+$9E		; Number of chars on printed line.
 ;
