@@ -28,7 +28,11 @@ On the last point I was unaware of these optimisations until I worked on this co
 
 ### Build and Test
 
-This source code has been compiled with Telemark assembler, and tested using a DIFF tool to ensure binary compatibility of the generated output.
+This source code has been compiled with Telemark Assembler, and tested using a DIFF tool to ensure binary compatibility of the generated output.
+
+### Contributing
+
+If you wish to improve the quality of this source code (better documentation) wuld be happy to accept Pull Requests, please ensure you test that the build works using Telemark Assembler.
 
 ### Legal
 
