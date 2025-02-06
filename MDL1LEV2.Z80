@@ -116,7 +116,8 @@ LDDNN:	.EQU 	$16	; LD D,nn - skipping next byte
 LDHLNN:	.EQU 	$21	; LD HL,nnnn - skip 2 bytes
 LDLNN:	.EQU 	$2E	; LD L,nn - skip 1 byte
 LDANN:	.EQU 	$3E	; LD A,nn - skip 1 byte
-JPNN:	.EQU 	$C3	; JP nnnn
+OPJPNN:	.EQU 	$C3	; JP nnnn (Opcode)
+OPRET:	.EQU	$C9	; RET (Opcode)
 JPZNN:	.EQU 	$CA	; JP Z,nnnn - skip 2 bytes
 JPNCNN:	.EQU 	$D2	; JP NC,nnnn - skip 2 bytes
 JPCNN:	.EQU 	$DA	; JP C,nnnn - skips 2 bytes
@@ -384,13 +385,14 @@ NMI:	ld	sp,$0600	;0066
 ; ----------------------------------------------------------------------
 ; 0075H-0104H – INITIALIZATION ROUTINE – "INIT2"
 ; ----------------------------------------------------------------------
-;  This is part of the Level II initialization procedure.
-;  It moves a block of memory from 18F7H to 191EH up to 4080H to 40A7H. (reserved RAM. area).
-;  Note: 4080H-408DH is a division support routine.
+;  This is part of the Level II initialization procedure. It moves
+;  division support routine from 18F7H to 191EH up to 4080H to 40A7H.
 INIT2:	ld	de,FDIVC	;0075
 	ld	hl,CONSTR	;0078
 	ld	bc,$0027	;007b
 	ldir			;007e
+;
+;  Initialises String Buffer
 	ld	hl,BUFINI	;0080
 	ld	(hl),':'	;0083
 	inc	hl		;0085
@@ -398,6 +400,7 @@ INIT2:	ld	de,FDIVC	;0075
 	inc	hl		;0087
 	ld	(hl),','	;0088
 	inc	hl		;008a
+;
 ; This loads 40A7H with the I/O buffer location address 41E8H.
 ; (40A7H is the I/O buffer pointer and can be changed to relocate the buffer.)
 	ld	(BUFPNT),hl	;008b
@@ -407,7 +410,7 @@ INIT2:	ld	de,FDIVC	;0075
 	ld	de,L3ERR	;008e - address of L3 error code
 	ld	b,28		;0091 - there are 28 DOS BASIC commands
 	ld	hl,ERCALL	;0093 - address in RAM of lookup table
-ERLOPS:	ld	(hl),JPNN	;0096 - opcode (1st byte) for JP nnnn
+ERLOPS:	ld	(hl),OPJPNN	;0096 - opcode (1st byte) for JP nnnn
 	inc	hl		;0098
 	ld	(hl),e		;0099 - address low order
 	inc	hl		;009a
@@ -415,40 +418,44 @@ ERLOPS:	ld	(hl),JPNN	;0096 - opcode (1st byte) for JP nnnn
 	inc	hl		;009c
 	djnz	ERLOPS		;009d
 ;
-	ld	b,$15		;009f
-LOPRTS:	ld	(hl),$C9	;00a1
+; Set DOS Exit links to RET instructions (41A6-41E2)
+	ld	b,21		;009f - 21 Does Exits
+LOPRTS:	ld	(hl),OPRET	;00a1 - Store RET OpCode
 	inc	hl		;00a3
 	inc	hl		;00a4
 	inc	hl		;00a5
 	djnz	LOPRTS		;00a6
+;
 ; The rest of the initialization routine. Asks MEMORY SIZE ?,
 ; sets the memory pointers accordingly and prints RADIO SHACK LEVEL II BASIC ,
-	ld	hl,MEMEND+$E8	;00a8
+	ld	hl,MEMEND+$E8	;00a8 - starting address of user RAM (which is 42E8H)
 	ld	(hl),b		;00ab
 	ld	sp,SMPSTK	;00ac
 	call	STKINI		;00af - Go initialize the Level II BASIC variables and pointers
 	call	CLS		;00b2 - clears the screen, changes to 64 characters, and homes the screen)
-
-MEMGET:	ld	hl,MEMMSG	;00b5
-	call	STROUT		;00b8
-	call	QINLIN		;00bb
-	jr	c,MEMGET	;00be
+;
+MEMGET:	ld	hl,MEMMSG	;00b5 - MEMORY SIZE? message
+	call	STROUT		;00b8 - print it
+	call	QINLIN		;00bb - Print a “?” and get input from the keyboard
+	jr	c,MEMGET	;00be - If the BREAK key was pressed, ask again.
 	rst	10h		;00c0
 	or	a		;00c1
-	jr	nz,TYPMEM	;00c2
-	ld	hl,MEMEND+$14C	;00c4 - starting address for the memory size check, which is 100 bytes (064H) after ENBINI
+	jr	nz,TYPMEM	;00c2 - was a response to the MEMORY SIZE?
+;
+; start testing RAM at 434CH towards FFFFH
+	ld	hl,MEMEND+$14C	;00c4 - starting address for the memory size check (434C)
 LOOPMM:	inc	hl		;00c7
 	ld	a,h		;00c8
 	or	l		;00c9
-	jr	z,USEDEF	;00ca
+	jr	z,USEDEF	;00ca - if the current memory pointer HL is equal to zero
 	ld	a,(hl)		;00cc
 	ld	b,a		;00cd
 	cpl			;00ce
 	ld	(hl),a		;00cf
 	cp	(hl)		;00d0
 	ld	(hl),b		;00d1
-	jr	z,LOOPMM	;00d2
-	jr	USEDEF		;00d4
+	jr	z,LOOPMM	;00d2 - loop back until the end of memory is found
+	jr	USEDEF		;00d4 - If the address didn’t exist, have reached HIMEM
 TYPMEM:	call	LINGET		;00d6
 	or	a		;00d9
 	jp	nz,SNERR	;00da
@@ -9896,7 +9903,7 @@ DVINST:	.EQU	ERCALL+75	; INSTR $419D
 DVSAVE:	.EQU	ERCALL+78	; SAVE  $41A0
 DVLINE:	.EQU	ERCALL+81	; LINE  $41A3
 ;
-; DOS Exits, Pass control between Level II BASIC and Disk BASIC (41AC-41E2)
+; DOS Exits, Pass control between Level II BASIC and Disk BASIC (41A6-41E2)
 DEXT:	.EQU	RAM+$1A6	; Base Address for DOS Exits
 EXDSKR:	.EQU	DEXT+0		; (19EC) Disk Basic ERROR handling
 USROUT:	.EQU	DEXT+3		; (27FE) USR N - to expand function to provide up to ten USR calls
