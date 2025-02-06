@@ -3752,7 +3752,7 @@ FOUFRV:	cp	$05		;103d
 	ld	d,a		;1043
 	inc	d		;1044
 	call	FONTINV		;1045
-	ld	bc,$3000	;1048 - B=3 (decimal point count), C=0 (comma count)
+	ld	bc,$0300	;1048 - B=3 (decimal point count), C=0 (comma count)
 	add	a,d		;104b
 	jp	m,FOFRS1	;104c
 	inc	d		;104f
@@ -6889,7 +6889,7 @@ TRYAGN:	.DB	"?REDO"
 	.DB	CRET
 	.DB	0
 ; ----------------------------------------------------------------------
-; 217F-2285 – LEVEL II BASIC INPUT AND READ ROUTINES– “TRMNOK”
+; 217F-2285 – INPUT AND READ ROUTINES– “TRMNOK”
 ; ----------------------------------------------------------------------
 TRMNOK:	ld	a,(FLGINP)	;217f
 	or	a		;2182
@@ -6905,19 +6905,19 @@ TRMNOK:	ld	a,(FLGINP)	;217f
 	ret			;2199
 ;
 ; ----------------------------------------------------------------------
-; 219A – INPUT logic – “INPUT”
+; 219A-21EE – LEVEL II BASIC INPUT ROUTINE – “INPUT”
 ; ----------------------------------------------------------------------
 INPUT:	call	ERRDIR		;219a
 	ld	a,(hl)		;219d
 	call	EXUNKN		;219e
-	sub	$23		;21a1
+	sub	$23		;21a1 ; compare with #
 	ld	(CASFLG),a	;21a3
 	ld	a,(hl)		;21a6
 	jr	nz,INTCAS	;21a7
 	call	CSRDON		;21a9
 	push	hl		;21ac
-	ld	b,$FA		;21ad
-	ld	hl,(BUFPNT)	;21af
+	ld	b,$FA		;21ad ; 250, max characters which can be read
+	ld	hl,(BUFPNT)	;21af ; input buffer
 FILBUF:	call	CASIN		;21b2
 	ld	(hl),a		;21b5
 	inc	hl		;21b6
@@ -6942,7 +6942,7 @@ INTCAS:	ld	bc,NOTQTI	;21c9
 	pop	hl		;21d9
 	ret			;21da
 NOTQTI:	push	hl		;21db
-	call	QINLIN		;21dc
+	call	QINLIN		;21dc - Print '?' - and get the input from the keyboard
 	pop	bc		;21df
 	jp	c,STPEND	;21e0
 	inc	hl		;21e3
