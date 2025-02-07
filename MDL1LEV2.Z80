@@ -17,7 +17,7 @@
 ;     INFORMATION
 ; ----------------------------------------------------------------------
 ;
-; Original Souce Code obtained from:
+; Original disassembled souce code obtained from:
 ;   https://gitlab.com/retroabandon/trs80i34-re
 ;
 ; With Following Additions
@@ -26,18 +26,20 @@
 ;   * Replaced $3xxx hardware references with EQU defintions
 ;   * Replaced $4xxx buffere references with EQU definitions
 ;   * Replaced op-code with Byte definitions for Data Segments
-;   * Replaced incorrect op-codes, where code "Trick" was was used.
+;   * Replaced incorrect op-codes, where Better Else code "Trick" was was used.
+;   * Added V1.3 modifications into the source code, with use of #IFDEF
 ;   * Added code Documentation from various sources
+;
+; This source code has been compiled with Telemark Assembler, and tested
+; using a DIFF tool to ensure binary compatibility of the generated output.
 ;
 ; ======================================================================
 ;      REFERENCES
 ; ----------------------------------------------------------------------
 ;
-;   • Ira Goldlang, Model I ROM Explained – Part 1, Part 2, Part 3
-;     https://www.trs-80.com/wordpress/roms/mod-1-rom-disassembled-page-1/
-;     https://www.trs-80.com/wordpress/roms/mod-1-rom-disassembled-page-2/
-;     https://www.trs-80.com/wordpress/roms/mod-1-rom-disassembled-page-3/
-;
+;   • Ira Goldlang, TRS-80 ROM Information - [https://www.trs-80.com/wordpress/roms/]
+;   • Model I Level II BASIC ROM Versions - [http://www.trs-80.org/model-1-level-2-basic-rom-versions/]
+;   • Telemark Assembler - [https://www.cpcalive.com/docs/TASMMAN.HTM]
 ;   • Microsoft BASIC Decoded & Other Mysteries - James Farvour
 ;
 ; ======================================================================
@@ -1640,7 +1642,8 @@ KLNCR:	push	af		;0662
 ;   - Enter with CMT/Video port init value in A.
 ;     On reset, A=0: 64 char video mode, CMT motor relay off, CMT out = 0.85 V.
 ; ----------------------------------------------------------------------
-INIT:	out	(vidcmt),a
+INIT:
+	out	(vidcmt),a	;0674 - reset the Vido cassette latch
 ;
 INITA1:	ld	hl,INITR	;0676
 	ld	de,RAM		;0679 - starting address of the communications region
