@@ -151,7 +151,8 @@ ELINE:	.EQU	$1E	; erase from cursor to end of line
 EFRAM:	.EQU	$1F	; erase from Cursor to end of frame (CLEAR Key)
 ;
 SPACE:	.EQU 	$20
-SEMICO	.EQU	$3B	; semicolin. Note ';' in code; was breaking some assemblers
+SEMICO	.EQU	$3B	; Note ';' in code; was breaking some assemblers
+CURCHR  .EQU	$5F	; _ cursor character
 ;
 ; ======================================================================
 ; MACROS
@@ -648,7 +649,7 @@ BUFCIN:	push	af		;01ab
 	jp	PUTNEW		;01b9
 NULRT:	ld	hl,m_REDDY-1	;01bc
 	ld	(FACLO),hl	;01bf
-	ld	a,$03		;01c2
+	ld	a,VTSTR		;01c2 - String Value Type
 	ld	(VALTYP),a	;01c4
 	pop	hl		;01c7
 	ret			;01c8
@@ -961,21 +962,22 @@ OUTDO:	push	bc		;032a
 OUT2D:	push	de		;033a
 	call	_DSP		;033b
 	push	af		;033e
-	call	DSPPOS		;033f
-	ld	(TTYPOS),a	;0342
+	call	DSPPOS		;033f - Compute Line pos based on Vid Ram Cursor
+	ld	(TTYPOS),a	;0342 - store current line pos
 	pop	af		;0345
 	pop	de		;0346
 	ret			;0347
 ; ----------------------------------------------------------------------
 ; 0348H-0357H – VIDEO ROUTINE – “DSPPOS”
+;   Works out horizontal cursor position based on (CURSOR) vid ram pointer
 ; ----------------------------------------------------------------------
 DSPPOS:	ld	a,(CAST)	;0348
-	and	$08		;034b
-	ld	a,(CURSOR)	;034d
-	jr	z,NT32PS	;0350
-	rrca			;0352
-	and	$1F		;0353
-NT32PS:	and	$3F		;0355
+	and	CAST32		;034b - 32 char mode
+	ld	a,(CURSOR)	;034d - LSB of the current cursor position
+	jr	z,NT32PS	;0350 - 64 characters per line mode?
+	rrca			;0352 - divide by 2
+	and	$1F		;0353 - Mask cursor position for 32 character
+NT32PS:	and	$3F		;0355 - Mask cursor position for 64 character
 	ret			;0357
 ; ----------------------------------------------------------------------
 ; 0358H-0360H – KEYBOARD ROUTINE – “ISCHAR”
@@ -1002,20 +1004,20 @@ INLIN:	xor	a		;0361
 	ld	(TTYPOS),a	;0365
 	call	INLINE		;0368 - Go call the DOS link at 41AFH
 	push	bc		;036b
-	ld	hl,(BUFPNT)	;036c - address of the input buffer
+	ld	hl,(BUFPNT)	;036c - starting address of the input buffer
 	ld	b,240		;036f - length of the input buffer
 	call	KEYIN		;0371 - keyboard input routine, until a CR, a BREAK
 	push	af		;0374
-	ld	c,b		;0375
-	ld	b,$00		;0376
-	add	hl,bc		;0378
+	ld	c,b		;0375 - Move lenght of Input to C
+	ld	b,0		;0376 - zero B, so BC has has lenght of Input
+	add	hl,bc		;0378 - end of the Input
 	ld	(hl),$00	;0379 - Save an end of the input terminator
-	ld	hl,(BUFPNT)	;037b
+	ld	hl,(BUFPNT)	;037b - back to start of the input buffer
 	pop	af		;037e
 	pop	bc		;037f
 	dec	hl		;0380 - Decrement the input buffer pointer
-	ret	c		;0381
-	xor	a		;0382
+	ret	c		;0381 - Return if the BREAK key was pressed
+	xor	a		;0382 - Signal success
 	ret			;0383
 ; ----------------------------------------------------------------------
 ; 0384H-038AH – KEYBOARD ROUTINE – “INCHR”
@@ -1089,8 +1091,8 @@ CIO:	push	hl		;03c2
 	cp	b		;03d0
 	jp	nz,CIOSS	;03d1 - jump to DOS device Driver (4033)
 	cp	$02		;03d4
-	ld	l,(ix+$01)	;03d6
-	ld	h,(ix+$02)	;03d9
+	ld	l,(ix+1)	;03d6
+	ld	h,(ix+2)	;03d9
 	jp	(hl)		;03dc - Call driver entry address in HL
 CIORTN:	pop	de		;03dd - Device driver returns here
 	pop	ix		;03de
@@ -1209,12 +1211,17 @@ KEYRT2:	ld	bc,$0DAC	;044c - delay count (3500)
 ;   This is the video driver. On entry, the character to be displayed
 ;   should be in the C register. On exit, A would contain the character
 ;   at the cursor (if called for an INPUT). This routine handles scrolling etc.
+;
+;   Register IX points to the DCB, so IX+0 = the DCB type, IX+1 = LSB of the
+;   Driver Address, IX+2 = MSB of the Driver Address, IX+3 = LSB of the Cursor
+;   Position, IX+4 = MSB of the Cursor Position, IX+5 = Cursor Character,
+;   IX+6 = “D”, and IX+7=”O”
 ; ----------------------------------------------------------------------
 DSPDRV:
-	ld	l,(ix+$03)	;0458
-	ld	h,(ix+$04)	;045b
+	ld	l,(ix+3)	;0458
+	ld	h,(ix+4)	;045b
 	jr	c,DSPRD		;045e
-	ld	a,(ix+$05)	;0460
+	ld	a,(ix+5)	;0460
 	or	a		;0463
 	jr	z,DSPGRP	;0464
 	ld	(hl),a		;0466
@@ -1235,19 +1242,19 @@ DSPSKP:	ld	a,h		;0480
 	or	$3C		;0483
 	ld	h,a		;0485
 	ld	d,(hl)		;0486
-	ld	a,(ix+$05)	;0487
+	ld	a,(ix+5)	;0487
 	or	a		;048a
 	jr	z,DSPRTN	;048b
-	ld	(ix+$05),d	;048d
-	ld	(hl),$5F	;0490
-DSPRTN:	ld	(ix+$03),l	;0492
-	ld	(ix+$04),h	;0495
+	ld	(ix+5),d	;048d
+	ld	(hl),CURCHR	;0490 - Display the cursor character
+DSPRTN:	ld	(ix+3),l	;0492 - Save current cursor position
+	ld	(ix+4),h	;0495
 	ld	a,c		;0498
 	ret			;0499
 ; ----------------------------------------------------------------------
 ; 049AH – Read the character at the current position of the display – “DSPRD”
 ; ----------------------------------------------------------------------
-DSPRD:	ld	a,(ix+$05)	;049a
+DSPRD:	ld	a,(ix+5)	;049a
 	or	a		;049d
 	ret	nz		;049e
 	ld	a,(hl)		;049f
@@ -1278,7 +1285,7 @@ DSPSPC:	ld	a,SPACE		;04af
 ; 04B8H – Turn the cursor on – “DSPCON”
 ; ----------------------------------------------------------------------
 DSPCON:	ld	a,(hl)		;04b8
-DSPCN2:	ld	(ix+$05),a	;04b9
+DSPCN2:	ld	(ix+5),a	;04b9
 	ret			;04bc
 ; ----------------------------------------------------------------------
 ; 04BDH – Turn the cursor off – “DSPCOF”
@@ -1290,16 +1297,16 @@ DSPCOF:	xor	a		;04bd
 ; ----------------------------------------------------------------------
 DSPHOM:	ld	hl,vidmem	;04c0
 	ld	a,(CAST)	;04c3
-	and	$F7		;04c6
+	and	~CAST32		;04c6 ; $F7 - Not $08 - ie turn the bit off
 	ld	(CAST),a	;04c8
-	out	(vidcmt),a
+	out	(vidcmt),a	;04cb
 	ret			;04cd
 ; ----------------------------------------------------------------------
 ; 04CEH – Backspace – “DSPBSP”
 ; ----------------------------------------------------------------------
 DSPBSP:	dec	hl		;04ce
 	ld	a,(CAST)	;04cf
-	and	$08		;04d2
+	and	CAST32		;04d2 - 32 char mode
 	jr	z,DSPBS2	;04d4
 	dec	hl		;04d6
 DSPBS2:	ld	(hl),' '	;04d7
@@ -1308,7 +1315,7 @@ DSPBS2:	ld	(hl),' '	;04d7
 ; 04DAH – Cursor Left – “DSPLFT”
 ; ----------------------------------------------------------------------
 DSPLFT:	ld	a,(CAST)	;04da
-	and	$08		;04dd
+	and	CAST32		;04dd - 32 char mode
 	call	nz,DSPLF2	;04df
 DSPLF2:	ld	a,l		;04e2
 	and	$3F		;04e3
@@ -1337,9 +1344,9 @@ DSPUP:	ld	de,$FFC0	;04f1
 ; 04F6H – Set up 32-Character mode – “DSPETB”
 ; ----------------------------------------------------------------------
 DSPETB:	ld	a,(CAST)	;04f6
-	or	$08		;04f9
+	or	CAST32		;04f9 - 32 char mode
 	ld	(CAST),a	;04fb
-	out	(vidcmt),a
+	out	(vidcmt),a	;04fd
 	inc	hl		;0500
 	ld	a,l		;0501
 	and	$FE		;0502
@@ -1386,7 +1393,7 @@ DSPCTL:	ld	de,DSPSKP	;0506
 DSPOUT:	ld	(hl),a		;0541
 	inc	hl		;0542
 	ld	a,(CAST)	;0543
-	and	$08		;0546
+	and	CAST32		;0546 - 32 char mode
 	jr	z,DSPOT2	;0548
 	inc	hl		;054a
 DSPOT2:	ld	a,h		;054b
@@ -1402,7 +1409,7 @@ DSPOT2:	ld	a,h		;054b
 DSPROL:	ld	de,vidmem	;0554
 	ld	hl,vidmem+$40	;0557 - second line of vid memory
 	push	bc		;055a
-	ld	bc,1024-64	;055b - move 15 lines
+	ld	bc,15*64	;055b - move 15 lines
 	ldir			;055e
 	pop	bc		;0560
 	ex	de,hl		;0561
@@ -1466,10 +1473,10 @@ PRTDRV:	ld	a,c		;058d
 	cp	FORMF		;0595
 	jr	nz,PRTIT	;0597
 	xor	a		;0599
-	or	(ix+$03)	;059a
+	or	(ix+3)		;059a
 	jr	z,PRTIT		;059d
-PRTVT:	ld	a,(ix+$03)	;059f
-	sub	(ix+$04)	;05a2
+PRTVT:	ld	a,(ix+3)	;059f
+	sub	(ix+4)		;05a2
 	ld	b,a		;05a5
 PRTFF:	call	PRTSA		;05a6
 	jr	nz,PRTFF	;05a9
@@ -1484,12 +1491,12 @@ PRTIT2:	call	PRTSA		;05b5
 	ld	(prtstat),a	;05bb
 	cp	CRET		;05be
 	ret	nz		;05c0
-	inc	(ix+$04)	;05c1
-	ld	a,(ix+$04)	;05c4
-	cp	(ix+$03)	;05c7
+	inc	(ix+4)		;05c1
+	ld	a,(ix+4)	;05c4
+	cp	(ix+3)		;05c7
 	ld	a,c		;05ca
 	ret	nz		;05cb
-PRTOP:	ld	(ix+$04),0	;05cc
+PRTOP:	ld	(ix+4),0	;05cc
 	ret			;05d0
 ;
 ; ======================================================================
@@ -2363,7 +2370,7 @@ INXHRT:	inc	hl		;09c9
 ; 09CBH-09D1H – SINGLE PRECISION MATH ROUTINE – “MOVMF”
 ; ----------------------------------------------------------------------
 MOVMF:	ld	de,FACLO	;09cb
-MOVE:	ld	b,$04		;09ce
+MOVE:	ld	b,VTSNG		;09ce - Move 4 bytes
 	jr	MOVE1		;09d0
 ; ----------------------------------------------------------------------
 ; 09D2H-09DEH – MOVE VALUE FROM HL TO THE LOCATION POINTED TO BY DE - “MOVVFM”
@@ -2565,7 +2572,7 @@ CONIS1:	pop	de		;0a99
 ; ----------------------------------------------------------------------
 ; ----------------------------------------------------------------------
 MAKINT:	ld	(FACLO),hl	;0a9a
-	ld	a,$02		;0a9d
+	ld	a,VTINT		;0a9d - Value type INTeger
 CONISD:	ld	(VALTYP),a	;0a9f
 	ret			;0aa2
 ; ----------------------------------------------------------------------
@@ -2637,7 +2644,7 @@ FRCDBL:	TSTDAT			;0adb
 CONDS:	ld	hl,$0000	;0ae3
 	ld	(DFACLO),hl	;0ae6
 	ld	(DFACLO+2),hl	;0ae9
-VALDBL:	ld	a,$08		;0aec
+VALDBL:	ld	a,VTDBL		;0aec - Double Value Type
 ;
 ; ----------------------------------------------------------------------
 ; 0AEEH-0AF3H – MATH ROUTINE – “VALSNG”
@@ -2645,7 +2652,7 @@ VALDBL:	ld	a,$08		;0aec
 ;
 	.DB	LDBCNN		;0aee - Z80 Trick LD BC,nnnn - skip next 2 byte instruction
 ;
-VALSNG:	ld	a,$04		;0aef - single precision number type flag (of 4)
+VALSNG:	ld	a,VTSNG		;0aef - single precision number type flag (of 4)
 	jp	CONISD		;0af1
 ;
 ; ----------------------------------------------------------------------
@@ -3723,8 +3730,8 @@ FOUT2:	inc	hl		;0fd9
 	ld	a,(VALTYP)	;0fe1
 	jp	c,FOUTFX	;0fe4
 	jp	z,FOUTZR	;0fe7
-	cp	$04		;0fea
-	jp	nc,FOUFRV	;0fec
+	cp	VTSNG		;0fea - compare with Single Precsion
+	jp	nc,FOUFRV	;0fec - Not single or Double precision
 	ld	bc,$0000	;0fef
 	call	FOUTCI		;0ff2
 FOUTZS:	ld	hl,FBUFFR	;0ff5
@@ -5383,7 +5390,7 @@ REERR:	ld	e,ERRRW		;19A0 - ?RW ERROR
 ERROR:	ld	hl,(CURLIN)	;19a2
 	ld	(ERRLIN),hl	;19a5
 	ld	(DOT),hl	;19a8
-ERRESM:	ld	bc,ERRMOR	;19ab
+ERRESM:	ld	bc,ERRMOR	;19ab - ret addr - continuation address after reinit
 ERESET:	ld	hl,(SAVSTK)	;19ae
 	jp	STKERR		;19b1
 ;
@@ -6205,25 +6212,25 @@ POPAHT:	pop	af		;1dfd
 ; ----------------------------------------------------------------------
 ; 1E00-1E02 - DEFSTR ENTRY POINT - "DEFSTR"
 ; ----------------------------------------------------------------------
-DEFSTR:	ld	e,$03		;1e00
+DEFSTR:	ld	e,VTSTR		;1e00
 	.DB	LDBCNN		; 80 Trick (LD BC,nnnn) skip next 2 byte instruction
 ;
 ; ----------------------------------------------------------------------
 ; 1E03-1E05 - DEFINT ENTRY POINT - "DEFINT"
 ; ----------------------------------------------------------------------
-DEFINT:	ld	e,$02		;1e03
+DEFINT:	ld	e,VTINT		;1e03
 	.DB	LDBCNN		; 80 Trick (LD BC,nnnn) skip next 2 byte instruction
 ;
 ; ----------------------------------------------------------------------
 ; 1E06-1E08 - DEFSNG ENTRY POINT - "DEFREA" (DEFSNG)
 ; ----------------------------------------------------------------------
-DEFREA:	ld	e,$04		;1e06
+DEFREA:	ld	e,VTSNG		;1e06
 	.DB	LDBCNN		; 80 Trick (LD BC,nnnn) skip next 2 byte instruction
 ;
 ; ----------------------------------------------------------------------
 ; 1E09-1E0A - DEFDBL ENTRY POINT - "DEFDBL"
 ; ----------------------------------------------------------------------
-DEFDBL:	ld	e,$08		;1e09
+DEFDBL:	ld	e,VTDBL		;1e09
 ;
 ; ----------------------------------------------------------------------
 ; 1E0B-1E3C - COMMON CODE SHARED BY DEFSTR/DEFINT/DEFSNG/DEFDBL - "DEFCON".
@@ -6755,9 +6762,9 @@ PRINTD:	ld	a,(hl)		;20A5 Reload next element from code string
 #ELSE
 ;
 PRINT:	call	FILGET		;206f
-	cp	'@'		;2072
-	jr	nz,PNOTAT	;2074
-	call	GETINT		;2076
+	cp	'@'		;2072 - IS it a PRINT@
+	jr	nz,PNOTAT	;2074 - Jump if not PRINT@, otherwise continue
+	call	GETINT		;2076 - Evaluate and get Integer into DE
 	cp	$04		;2079
 	jp	nc,FCERR	;207b
 	push	hl		;207e
@@ -6769,7 +6776,7 @@ PRINT:	call	FILGET		;206f
 	ld	(TTYPOS),a	;2089
 	pop	hl		;208c
 	SYNTAX	(',')		;208d - rst 08h
-PNOTAT:	cp	'#'		;208f
+PNOTAT:	cp	'#'		;208f - Is it PRINT#
 	jr	nz,NEWCHR	;2091 - Jump if not PRINT#
 	call	CWRTON		;2093
 	ld	a,$80		;2096
@@ -6811,11 +6818,11 @@ PRINTC:	jp	z,FINPRT	;20a0
 ;   Jumped here if we are sure we are using the display
 ; ----------------------------------------------------------------------
 ISTTY:	ld	a,(LINLEN)	;20dd
-	ld	b,a		;20e0
-	ld	a,(TTYPOS)	;20e1
-	add	a,(hl)		;20e4
-	cp	b		;20e5
-LINCHK:	call	nc,CRDO		;20e6
+	ld	b,a		;20e0 - the video line size
+	ld	a,(TTYPOS)	;20e1 - current video line position
+	add	a,(hl)		;20e4 - Add the len of string to be displayed
+	cp	b		;20e5 - compare with line size
+LINCHK:	call	nc,CRDO		;20e6 - the new line will overflow the buffer -> CR
 LINCH2:	call	STRPRT		;20e9
 	ld	a,SPACE		;20ec
 	call	OUTDO		;20ee
@@ -7161,8 +7168,8 @@ INTNXT:	inc	hl		;22ea
 	ld	h,b		;22f8
 	call	IADD		;22f9
 	ld	a,(VALTYP)	;22fc
-	cp	$04		;22ff
-	jp	z,OVERR		;2301
+	cp	VTSNG		;22ff - Compare with Single Precision
+	jp	z,OVERR		;2301 - Is it Single precision
 	ex	de,hl		;2304
 	pop	hl		;2305
 	ld	(hl),d		;2306
@@ -7244,9 +7251,9 @@ ENDREL:	ld	a,d		;2364
 	ret	nc		;2372
 	ld	e,a		;2373
 	ld	a,(VALTYP)	;2374
-	sub	$03		;2377
-	or	e		;2379
-	jp	z,CAT		;237a
+	sub	VTSTR		;2377 - Adjust Type -1 INT, 0 STR, 1 SP, 5 DP.
+	or	e		;2379 - Combine with operator value in Register E
+	jp	z,CAT		;237a - If String addition.
 	ld	hl,OPTAB	;237d - operation precidence table
 	add	hl,de		;2380
 	ld	a,b		;2381
@@ -7270,7 +7277,7 @@ NUMREL:	ld	hl,FACLO	;2395
 	ld	a,(VALTYP)	;2399
 	dec	a		;239c
 	dec	a		;239d
-	dec	a		;239e
+	dec	a		;239e - Now A will be -1=Int, 0=Str, 1=SP, 5=DP
 	jp	z,TMERR		;239f
 	ld	c,(hl)		;23a2
 	inc	hl		;23a3
@@ -7370,19 +7377,19 @@ APPLOP:	pop	bc		;2406
 	ld	a,c		;2407
 	ld	(DORES),a	;2408
 	ld	a,b		;240b
-	cp	$08		;240c
-	jr	z,STKDBL	;240e
+	cp	VTDBL		;240c - Is type of the number in the STACK Double
+	jr	z,STKDBL	;240e - force the number in the ACC to Double
 	ld	a,(VALTYP)	;2410
-	cp	$08		;2413
+	cp	VTDBL		;2413 - Is it a Double Precision
 	jp	z,FACDBL	;2415
 	ld	d,a		;2418
 	ld	a,b		;2419
-	cp	$04		;241a
+	cp	VTSNG		;241a ; number type in the STACK is single precision
 	jp	z,STKSNG	;241c
-	ld	a,d		;241f
-	cp	$03		;2420
-	jp	z,TMERR		;2422
-	jp	nc,FACSNG	;2425
+	ld	a,d		;241f ; number type for ACCumulator
+	cp	VTSTR		;2420 ; Compare with String
+	jp	z,TMERR		;2422 ; If String Then TM ERR
+	jp	nc,FACSNG	;2425 ; If Single or Double Precsion
 	ld	hl,INTDSP	;2428 - Integer Function lookup table
 	ld	b,$00		;242b
 	add	hl,bc		;242d
@@ -7434,7 +7441,7 @@ FACDBL:	push	bc		;2460
 	call	VMOVAF		;2461
 	pop	af		;2464
 	ld	(VALTYP),a	;2465
-	cp	$04		;2468
+	cp	VTSNG		;2468 - compare with single precision
 	jr	z,SNGDBL	;246a
 	pop	hl		;246c
 	ld	(FACLO),hl	;246d
@@ -7709,14 +7716,14 @@ RETAPG:	jp	RETAOP		;25d6
 ;      DBL     08     NZ     NC      P      E          5
 ; ----------------------------------------------------------------------
 GETYPR:	ld	a,(VALTYP)	;25d9
-	cp	$08		;25dc
-	jr	nc,NCASE	;25de
-	sub	$03		;25e0
-	or	a		;25e2
-	scf			;25e3
+	cp	VTDBL		;25dc - compare with Double Precision
+	jr	nc,NCASE	;25de - If double precision
+	sub	VTSTR		;25e0 - adjust -1=Int, 0=String, 1=Single
+	or	a		;25e2 - Set the status flags of the adjusted number type flag
+	scf			;25e3 - and Set Carry
 	ret			;25e4
-NCASE:	sub	$03		;25e5
-	or	a		;25e7
+NCASE:	sub	VTSTR		;25e5 - If Double adjust = 5
+	or	a		;25e7 - And set DBL Flags
 	ret			;25e8
 ; ----------------------------------------------------------------------
 ; 25E9 – AND and OR Routines – “DANDOR”
@@ -7791,33 +7798,33 @@ EATEM:	GETCHR			;2623 - rst 10h
 	call	ISLET		;2626
 	jr	nc,EATEM	;2629
 NOSEC:	ld	de,HAVTYP	;262b
-	push	de		;262e
-	ld	d,$02		;262f
-	cp	$25		;2631
+	push	de		;262e - Save return address HAVTYP to stack
+	ld	d,VTINT		;262f - Integer Value Type
+	cp	'%'		;2631 - % Integer data type
 	ret	z		;2633
-	inc	d		;2634
-	cp	$24		;2635
+	inc	d		;2634 - String Value type
+	cp	'$'		;2635 - $ String data type
 	ret	z		;2637
-	inc	d		;2638
-	cp	$21		;2639
+	inc	d		;2638 - Single Precision Value type
+	cp	'!'		;2639 - ! Single precision
 	ret	z		;263b
-	ld	d,$08		;263c
-	cp	$23		;263e
+	ld	d,VTDBL		;263c - double value type = 8
+	cp	'#'		;263e - # Double data type
 	ret	z		;2640
-	ld	a,b		;2641
-	sub	$41		;2642
-	and	$7F		;2644
+	ld	a,b		;2641 - first character of the variable name
+	sub	'A'		;2642 - Adjust so that it is 0 to 25 for a table offset
+	and	$7F		;2644 - Get rid of the user-defined function bit
 	ld	e,a		;2646
-	ld	d,$00		;2647
+	ld	d,$00		;2647 - DE now contains the table offset
 	push	hl		;2649
-	ld	hl,DEFTBL	;264a
-	add	hl,de		;264d
-	ld	d,(hl)		;264e
+	ld	hl,DEFTBL	;264a - address of the variable declaration table.
+	add	hl,de		;264d - Add the offset to the top of the table
+	ld	d,(hl)		;264e - the number type from the variable declaration table
 	pop	hl		;264f
 	dec	hl		;2650
 	ret			;2651
-HAVTYP:	ld	a,d		;2652
-	ld	(VALTYP),a	;2653
+HAVTYP:	ld	a,d		;2652 - the number type
+	ld	(VALTYP),a	;2653 - save the num type flag
 	GETCHR			;2656 - rst 10h
 	ld	a,(SUBFLG)	;2657
 	or	a		;265a
@@ -8091,8 +8098,8 @@ INLPNM:	pop	hl		;279a
 	ld	b,h		;27b2
 	ld	c,l		;27b3
 	add	hl,hl		;27b4
-	sub	$04		;27b5
-	jr	c,DMLVAL	;27b7
+	sub	VTSNG		;27b5 - Compare with Single Precision
+	jr	c,DMLVAL	;27b7 - If it is an Integer or String
 	add	hl,hl		;27b9
 	jr	z,DONMUL	;27ba
 	add	hl,hl		;27bc
@@ -8159,7 +8166,7 @@ USRFN:	call	USROUT		;27fe - dos usr n handling
 	push	hl		;2809
 	ld	a,(VALTYP)	;280a
 	push	af		;280d
-	cp	$03		;280e
+	cp	VTSTR		;280e - Compare value type - is it a String
 	call	z,FREFAC	;2810
 	pop	af		;2813
 	ex	de,hl		;2814
@@ -8265,7 +8272,7 @@ PUTNEW:	ld	de,DSCTMP	;2884
 	ld	a,$D5		;2887
 	ld	hl,(TEMPPT)	;2889
 	ld	(FACLO),hl	;288c
-	ld	a,$03		;288f
+	ld	a,VTSTR		;288f - value type String
 	ld	(VALTYP),a	;2891
 	call	VMOVE		;2894
 	ld	de,FRETOP	;2897
@@ -9710,7 +9717,7 @@ DELED:	ld	a,b		;2fd2
 	ret	z		;2fd4
 	dec	b		;2fd5
 	dec	hl		;2fd6
-	ld	a,$08		;2fd7
+	ld	a,BACKS		;2fd7
 	call	OUTDO		;2fd9
 	dec	d		;2fdc
 	jr	nz,DELED	;2fdd
@@ -9783,7 +9790,9 @@ mPDCB:	.EQU	RAM+$25		; Printer Device Block
 ;
 CIOSS:	.EQU	RAM+$33		; call device driver ala dos - CIO$
 KYBTSS:	.EQU	RAM+$36		; Keyboard driver work area (to 403C) - KYB$
-CAST:	.EQU	RAM+$3D		; Video Display Control Attributes (shadow IO Port 0)
+CAST:	.EQU	RAM+$3D		; Video Display Control Attributes (shadow IO Port $FF)
+;
+CAST32	.EQU	$08		; Cassette 32 Character Mode Bit
 ;
 TMPSTK:	.EQU	RAM+$7D		; Stack pointer for initial DISK, bootstrap.
 ;
@@ -9813,6 +9822,12 @@ CASFLG:	.EQU	RAM+$A9		; contains 00H if INPUT from cassette
 RNDX:	.EQU	RAM+$AA		; Random number seed
 DIMFLG:	.EQU	RAM+$AE		; locate or create variable routine flag
 VALTYP:	.EQU	RAM+$AF		; Work Register Value Type flag
+;
+; bitmask $08 in (??) which indicates 32bit mode
+VTINT:	.EQU	$02		; Integer - (Value Types stored in (VALTYP)
+VTSTR	.EQU	$03		; String - These numbers indicate the number
+VTSNG	.EQU	$04		; Single Precision - of bytes used to store value
+VTDBL	.EQU	$08		; Double Precision
 ;
 DORES:	.EQU	RAM+$B0		; Intermediate value during expression eval
 MEMSIZ:	.EQU	RAM+$B1		; Top of memory pointer
