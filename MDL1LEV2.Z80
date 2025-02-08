@@ -152,6 +152,7 @@ EFRAM:	.EQU	$1F	; erase from Cursor to end of frame (CLEAR Key)
 ;
 SPACE:	.EQU 	$20
 SEMICO	.EQU	$3B	; Note ';' in code; was breaking some assemblers
+UPARRW	.EQU	$5B	; Special Up Arrow ↑ Character in TRS Charset
 CURCHR  .EQU	$5F	; _ cursor character
 ;
 ; ======================================================================
@@ -358,19 +359,19 @@ _KEY:	call	_KBD		;0049
 ;   XXX in 1.3, Shift-↓ is $00 to act as a Ctrl key
 ;                Std    Shifted
 ; ----------------------------------------------------------------------
-KEYTAB:	.DB	CRET,   CRET	; RETURN
-	.DB	EFRAM,  EFRAM	; CLEAR
-	.DB	BREAK,  BREAK	; BREAK
-	.DB	$5B,    MOVEU	; ↑ Up Arrow
+KEYTAB:	.DB	CRET,	CRET	; RETURN
+	.DB	EFRAM,	EFRAM	; CLEAR
+	.DB	BREAK,	BREAK	; BREAK
+	.DB	UPARRW,	MOVEU	; ↑ Up Arrow
 #IFDEF VER13
-	.DB	LINEF,  $00	; ↓ Down Arrow
+	.DB	LINEF,	$00	; ↓ Down Arrow
 				; to permit Shift-Down-Arrow to act as a control key
 #ELSE
-	.DB	LINEF,  MOVED	; LF, ↓ Down Arrow
+	.DB	LINEF,	MOVED	; LF, ↓ Down Arrow
 #ENDIF
-	.DB	BACKS,  MOVEL	; BS, ← Left arrow
-	.DB	TAB,    MOVER	; Tab, -> right arrow
-	.DB	SPACE,  SPACE	; Space
+	.DB	BACKS,	MOVEL	; BS, ← Left arrow
+	.DB	TAB,	MOVER	; Tab, -> right arrow
+	.DB	SPACE,	SPACE	; Space
 ;
 ; ----------------------------------------------------------------------
 ; 0060H-0065H – DELAY ROUTINE – "$PAUSE"
@@ -567,7 +568,7 @@ RESET:	ld	a,$01		;0138
 	push	af		;0145
 	SYNTAX	(',')		;0146 - rst 08h
 	call	GETBYT		;0148
-	cp	$30		;014b
+	cp	'0'		;014b - test to see if the character was alphabetic or alphanumeric
 	jp	nc,FCERR	;014d
 	ld	d,$FF		;0150
 LOPMD3:	inc	d		;0152
@@ -3760,7 +3761,7 @@ FOTZS1:	ld	(hl),c		;100a
 	cp	'.'		;101e
 	jr	nz,FOTZS2	;1020
 FOTZS4:	dec	hl		;1022
-	ld	(hl),$30	;1023
+	ld	(hl),'0'	;1023
 FOTZS2:	ld	a,e		;1025
 	and	$10		;1026
 	jr	z,FOTZS3	;1028
@@ -5793,10 +5794,10 @@ KLOOP:	ld	a,(hl)		;1bcc
 	ld	a,TKPRNT	;1be6
 	jp	z,STUFFH	;1be8
 	ld	a,(hl)		;1beb
-	cp	$30		;1bec
-	jr	c,MUSTCR	;1bee
-	cp	$3C		;1bf0
-	jp	c,STUFFH	;1bf2
+	cp	'0'		;1bec - if less than a zero character (alpha numeric)
+	jr	c,MUSTCR	;1bee - meaning it is not a digit or letter
+	cp	'<'		;1bf0 - is less than < character (if it is 0–9, :, ;, <)
+	jp	c,STUFFH	;1bf2 - char is 0–9, :, ;, <, constant or special character
 MUSTCR:	push	de		;1bf5
 	ld	de,RESLST-1	;1bf6 - reserved words list (first instruction in the LOPSKP is to INC)
 	push	bc		;1bf9
@@ -5804,11 +5805,11 @@ MUSTCR:	push	de		;1bf5
 	push	bc		;1bfd
 	ld	b,$7F		;1bfe
 	ld	a,(hl)		;1c00
-	cp	$61		;1c01
+	cp	'a'		;1c01 - if the character is lower-case
 	jr	c,TRYAGA	;1c03
-	cp	$7B		;1c05
+	cp	'z'+1		;1c05 - is within the lower-case range
 	jr	nc,TRYAGA	;1c07
-	and	$5F		;1c09
+	and	$5F		;1c09 - Covert the lowercase to upper-case
 	ld	(hl),a		;1c0b
 TRYAGA:	ld	c,(hl)		;1c0c
 	ex	de,hl		;1c0d
@@ -5878,7 +5879,7 @@ STUFFH:	inc	hl		;1c5b
 	ld	(de),a		;1c5c
 	inc	de		;1c5d
 	inc	c		;1c5e
-	sub	$3A		;1c5f
+	sub	':'		;1c5f ;  is a : to flag a multi-statement line
 	jr	z,COLIS		;1c61
 	cp	$4E		;1c63
 	jr	nz,NODATT	;1c65
@@ -6071,7 +6072,7 @@ GONE1:	GETCHR			;1d5a - rst 10h
 GONE3:	ret	z		;1d5f
 GONE2:	sub	$80		;1d60
 	jp	c,LET		;1d62
-	cp	$3C		;1d65
+	cp	TKTAB-$80	;1d65 - if the token is below the TAB( token
 	jp	nc,ISMID	;1d67
 	rlca			;1d6a
 	ld	c,a		;1d6b
@@ -6282,8 +6283,8 @@ LPDCHG:	ld	(hl),e		;1e30
 ISLET:	ld	a,(hl)		;1e3d
 	cp	$41		;1e3e
 	ret	c		;1e40
-	cp	$5B		;1e41
-	ccf			;1e43
+	cp	'Z'+1		;1e41 - is greater than a "Z"
+	ccf			;1e43 - Complement the value of the Carry flag
 	ret			;1e44
 ;
 ; ----------------------------------------------------------------------
@@ -6948,7 +6949,7 @@ TRMNOK:	ld	a,(FLGINP)	;217f
 INPUT:	call	ERRDIR		;219a
 	ld	a,(hl)		;219d
 	call	EXUNKN		;219e
-	sub	$23		;21a1 ; compare with #
+	sub	'#'		;21a1 ; compare with #
 	ld	(CASFLG),a	;21a3
 	ld	a,(hl)		;21a6
 	jr	nz,INTCAS	;21a7
@@ -7830,7 +7831,7 @@ HAVTYP:	ld	a,d		;2652 - the number type
 	or	a		;265a
 	jp	nz,NOARYS	;265b
 	ld	a,(hl)		;265e
-	sub	$28		;265f
+	sub	'('		;265f - '(' - test for an array
 	jp	z,ISARY		;2661
 NOARYS:	xor	a		;2664
 	ld	(SUBFLG),a	;2665
@@ -8685,7 +8686,7 @@ FNMID:	ex	de,hl		;2a9a
 	jp	z,FCERR		;2aa1
 	push	bc		;2aa4
 	ld	e,$FF		;2aa5
-	cp	$29		;2aa7
+	cp	')'		;2aa7
 	jr	z,MID2		;2aa9
 	SYNTAX	(',')		;2aab - rst 08h
 	call	GETBYT		;2aad
@@ -9234,9 +9235,9 @@ NUMNUM:	inc	e		;2d4c
 	jr	z,ENDNUS	;2d50
 	ld	a,(hl)		;2d52
 	inc	hl		;2d53
-	cp	$2E		;2d54
+	cp	'.'		;2d54 - is a . (i.e., a trailing digit).
 	jr	z,AFTDOT	;2d56
-	cp	$23		;2d58
+	cp	'#'		;2d58 - is a # (i.e., a leading digit).
 	jr	z,NUMNUM	;2d5a
 	cp	','		;2d5c
 	jr	nz,FINNUM	;2d5e
@@ -9258,7 +9259,7 @@ AFTDOT:	inc	c		;2d70
 	jr	z,ENDNUS	;2d72
 	ld	a,(hl)		;2d74
 	inc	hl		;2d75
-	cp	$23		;2d76
+	cp	'#'		;2d76 - is a #; that there are more digits after the decimal point
 	jr	z,AFTDOT	;2d78
 ; ----------------------------------------------------------------------
 ; 2D7A – Part of the PRINT USING Routine – “FINNUM”
@@ -9268,7 +9269,7 @@ FINNUM:	push	de		;2d7a
 	push	de		;2d7e
 	ld	d,h		;2d7f
 	ld	e,l		;2d80
-	cp	$5B		;2d81
+	cp	UPARRW		;2d81 - is an up arrow ↑
 	ret	nz		;2d83
 	cp	(hl)		;2d84
 	ret	nz		;2d85
@@ -9484,7 +9485,7 @@ LENLP:	inc	c		;2e91
 	ld	b,a		;2e98
 DISPED:	ld	d,$00		;2e99
 DISPI:	call	INCHR		;2e9b
-	sub	$30		;2e9e
+	sub	'0'		;2e9e - test to see if the character was alphabetic or alphanumeric
 	jr	c,NOTDGI	;2ea0
 	cp	$0A		;2ea2
 	jr	nc,NOTDGI	;2ea4
