@@ -128,31 +128,33 @@ JPMNN:	.EQU 	$FA	; JP M,nnnn - skip 2 bytes
 CPNN:	.EQU 	$FE	; CP nn - skip next bytye
 ;
 ; ----------------------------------------------------------------------
-;   MISC
+;   ASCII Codes for Keyboard and Display
+; Comments (In Brackets) are the Keyboard mappings,
 ; ----------------------------------------------------------------------
-BACKS:	.EQU 	$08	; Standard ASCII Control Codes
-TAB:	.EQU 	$09
-LINEF:	.EQU 	$0A
+BREAK:	.EQU	$01	; (BREAK Key)
+;
+BACKS:	.EQU 	$08	; (LEFT  Arrow) - Backspace
+TAB:	.EQU 	$09	; (RIGHT Arrow) - Tab
+LINEF:	.EQU 	$0A	; (DOWN  Arrow)
 FORMF:	.EQU 	$0C
-CRET:	.EQU 	$0D
+ENTER:	.EQU 	$0D	; (ENTER Key)
 ;
 ; Following are special meaning CHR codes, not ASCII standard
-BREAK:	.EQU	$01	; (BREAK Key)
 CURON:	.EQU	$0E	; turn on cursor.
 CUROFF:	.EQU	$0F 	; turn off cursor.
 MODE32:	.EQU	$17	; select line size of 32 char/line.
-MOVEL:	.EQU	$18	; backspace one character (LEFT Arrow Key)
-MOVER:	.EQU	$19	; skip forward one character (RIGHT Arrow Key)
-MOVED:	.EQU	$1A	; skip down one line (DOWN Arrow Key).
-MOVEU:	.EQU	$1B	; skip up one line (UP Arrow Key).
+ARLEFT:	.EQU	$18	; (Shift-LEFT Arrow) backspace one character
+ARIGHT:	.EQU	$19	; (Shift-RIGHT Arrow) skip forward one character
+ARDOWN:	.EQU	$1A	; (Shift-DOWN Arrow) skip down one line
+ARUP:	.EQU	$1B	; (Shift-UP  Arrow) skip up one line
 CHOME:	.EQU	$1C	; home cursor. select 64 char/line.
 CLINE:	.EQU	$1D	; position cursor to Start of current line
 ELINE:	.EQU	$1E	; erase from cursor to end of line
-EFRAM:	.EQU	$1F	; erase from Cursor to end of frame (CLEAR Key)
+CLRKEY:	.EQU	$1F	; (CLEAR Key) erase from Cursor to end of frame
 ;
 SPACE:	.EQU 	$20
 SEMICO	.EQU	$3B	; Note ';' in code; was breaking some assemblers
-UPARRW	.EQU	$5B	; Special Up Arrow ↑ Character in TRS Charset
+UPARRW	.EQU	$5B	; (UP Arrow) Special Up Arrow ↑ Character in TRS Charset
 CURCHR  .EQU	$5F	; _ cursor character
 ;
 ; ======================================================================
@@ -359,18 +361,18 @@ _KEY:	call	_KBD		;0049
 ;   XXX in 1.3, Shift-↓ is $00 to act as a Ctrl key
 ;                Std    Shifted
 ; ----------------------------------------------------------------------
-KEYTAB:	.DB	CRET,	CRET	; RETURN
-	.DB	EFRAM,	EFRAM	; CLEAR
+KEYTAB:	.DB	ENTER,	ENTER	; ENTER
+	.DB	CLRKEY,	CLRKEY	; CLEAR
 	.DB	BREAK,	BREAK	; BREAK
-	.DB	UPARRW,	MOVEU	; ↑ Up Arrow
+	.DB	UPARRW,	ARUP	; ↑ Up Arrow
 #IFDEF VER13
 	.DB	LINEF,	$00	; ↓ Down Arrow
 				; to permit Shift-Down-Arrow to act as a control key
 #ELSE
-	.DB	LINEF,	MOVED	; LF, ↓ Down Arrow
+	.DB	LINEF,	ARDOWN	; LF, ↓ Down Arrow
 #ENDIF
-	.DB	BACKS,	MOVEL	; BS, ← Left arrow
-	.DB	TAB,	MOVER	; Tab, -> right arrow
+	.DB	BACKS,	ARLEFT	; BS, ← Left arrow
+	.DB	TAB,	ARIGHT	; Tab, -> right arrow
 	.DB	SPACE,	SPACE	; Space
 ;
 ; ----------------------------------------------------------------------
@@ -525,7 +527,7 @@ KEYBOU	push	bc		;01CC Save Row Address in BC into the STACK
 ; ----------------------------------------------------------------------
 ;
 MEMMSG:	.DB	"MEMORY SIZE",0
-HDGMSG:	.DB	"RADIO SHACK LEVEL II BASIC",CRET,0
+HDGMSG:	.DB	"RADIO SHACK LEVEL II BASIC",ENTER,0
 ;
 #ENDIF
 ;
@@ -663,7 +665,7 @@ NULRT:	ld	hl,m_REDDY-1	;01bc
 ; ----------------------------------------------------------------------
 CLS:	ld	a,CHOME		;01c9 - cursor Home
 	call	OUT2D		;01cb
-	ld	a,EFRAM		;01ce - erase to end of frame
+	ld	a,CLRKEY		;01ce - erase to end of frame
 	jp	OUT2D		;01d0
 ;
 ; ======================================================================
@@ -1036,7 +1038,7 @@ FINLPT:	xor	a		;038b
 	ld	a,(LPTPOS)	;038f
 	or	a		;0392
 	ret	z		;0393
-	ld	a,CRET		;0394
+	ld	a,ENTER		;0394
 	push	de		;0396
 	call	OUTLPT		;0397
 	pop	de		;039a
@@ -1057,9 +1059,9 @@ OUTLPT:	push	af		;039c
 	jr	z,LZRPOS	;03a4
 	cp	LINEF		;03a6
 	jr	nz,LZRNOT	;03a8
-	ld	a,CRET		;03aa
+	ld	a,ENTER		;03aa
 	ld	c,a		;03ac
-LZRNOT:	cp	CRET		;03ad
+LZRNOT:	cp	ENTER		;03ad
 	jr	z,LZRPOS	;03af
 	ld	a,(LPTPOS)	;03b1
 	inc	a		;03b4
@@ -1149,7 +1151,7 @@ KEYDLP:	ld	a,c		;0402
 ; 040BH-0428H – Part of the Keyboard routine – “KEYFND”
 ;   We now have identified the key. Next we need to see if it is shifted
 ; ----------------------------------------------------------------------
-KEYFND:	ld	a,(kbdmatrix + $80);040b
+KEYFND:	ld	a,(kbdmatrix+$80);040b
 	ld	b,a		;040e
 	ld	a,d		;040f
 	add	a,$40		;0410
@@ -1369,13 +1371,13 @@ DSPCTL:	ld	de,DSPSKP	;0506
 	jr	z,DSPCOF	;0519
 	cp	MODE32		;051b - turn on the 32 character per line mode
 	jr	z,DSPETB	;051d
-	cp	MOVEL		;051f - move cursor left
+	cp	ARLEFT		;051f - move cursor left
 	jr	z,DSPLFT	;0521
-	cp	MOVER		;0523 - move cursor right
+	cp	ARIGHT		;0523 - move cursor right
 	jr	z,DSPRHT	;0525
-	cp	MOVED		;0527 - move cursor down
+	cp	ARDOWN		;0527 - move cursor down
 	jr	z,DSPDWN	;0529
-	cp	MOVEU		;052b - move cursor up
+	cp	ARUP		;052b - move cursor up
 	jr	z,DSPUP		;052d
 	cp	CHOME		;052f - cursor home, top left
 	jr	z,DSPHOM	;0531
@@ -1383,7 +1385,7 @@ DSPCTL:	ld	de,DSPSKP	;0506
 	jp	z,DSPBOL	;0535
 	cp	ELINE		;0538 - erase to EOL
 	jr	z,DSPEOL	;053a
-	cp	EFRAM		;053c - erase to EOF
+	cp	CLRKEY		;053c - erase to EOF
 	jr	z,DSPEOF	;053e
 	ret			;0540
 ; ----------------------------------------------------------------------
@@ -1490,7 +1492,7 @@ PRTIT2:	call	PRTSA		;05b5
 	jr	nz,PRTIT2	;05b8
 	pop	af		;05ba
 	ld	(prtstat),a	;05bb
-	cp	CRET		;05be
+	cp	ENTER		;05be
 	ret	nz		;05c0
 	inc	(ix+4)		;05c1
 	ld	a,(ix+4)	;05c4
@@ -1534,25 +1536,28 @@ KEYIN:	push	hl		;05d9
 KLNNXT:	call	_KEY		;05e0
 	cp	SPACE		;05e3
 	jr	nc,KLNCHR	;05e5
-	cp	CRET		;05e7
+	cp	ENTER		;05e7 - ENTER
 	jp	z,KLNCR		;05e9
-	cp	$1F		;05ec
+	cp	CLRKEY		;05ec - CLEAR
 	jr	z,KLNCLR	;05ee
-	cp	$01		;05f0
+	cp	BREAK		;05f0 - BREAK
 	jr	z,KLNBRK	;05f2
 	ld	de,KLNNXT	;05f4
 	push	de		;05f7
-	cp	BACKS		;05f8
+	cp	BACKS		;05f8 - Backspace (left arrow)
 	jr	z,KLNBSP	;05fa
-	cp	$18		;05fc
+	cp	ARLEFT		;05fc - Shifted left arrow
 	jr	z,KLNCAN	;05fe
-	cp	TAB		;0600
+	cp	TAB		;0600 - TAB (right arrow)
 	jr	z,KLNHT		;0602
-	cp	$19		;0604
+	cp	ARIGHT		;0604 - Shifted Right Arrow
 	jr	z,KLNETB	;0606
 	cp	LINEF		;0608
 	ret	nz		;060a
 	pop	de		;060b
+; ----------------------------------------------------------------------
+; Printable Character
+; ----------------------------------------------------------------------
 KLNCHR:	ld	(hl),a		;060c
 	ld	a,b		;060d
 	or	a		;060e
@@ -1607,7 +1612,7 @@ KLNBSP:	ld	a,b		;0630
 ; 0641H – Part of the Display routine – “KLNETB”
 ;   Turn on 32 Character Mode
 ; ----------------------------------------------------------------------
-KLNETB:	ld	a,MODE32		;0641 - turn on the 32 character per line mode character
+KLNETB:	ld	a,MODE32	;0641 - turn on the 32 character per line mode character
 	jp	_DSP		;0643
 ; ----------------------------------------------------------------------
 ; 0646H – Part of the Display routine – “KLNHT”
@@ -1638,7 +1643,7 @@ KLNHTL:	ld	a,b		;0650
 ; ----------------------------------------------------------------------
 KLNBRK:	scf			;0661
 KLNCR:	push	af		;0662
-	ld	a,CRET		;0663
+	ld	a,ENTER		;0663
 	ld	(hl),a		;0665
 	call	_DSP		;0666
 	ld	a,CUROFF		;0669 - turn off the cursor character
@@ -5258,7 +5263,7 @@ m_INTX:	.DB	" in "
 ;
 ; 1929-192F – MESSAGE STORAGE LOCATION – "REDDY"
 m_REDDY: .DB	"READY"
-	.DB	CRET
+	.DB	ENTER
 	.DB	0
 ;
 ; 1930-1935 – MESSAGE STORAGE LOCATION – "BRKTXT"
@@ -6838,7 +6843,7 @@ CRDONZ:	ld	a,(TTYPOS)	;20f9
 ; 20FE – This routine outputs a carriage return (0DH)
 ;   to a device determined by flag stored at (409CH) – “CRDO”
 ; ----------------------------------------------------------------------
-CRDO:	ld	a,CRET		;20fe
+CRDO:	ld	a,ENTER		;20fe
 	call	OUTDO		;2100
 CRFIN:	call	EXDSCR		;2103
 	xor	a		;2106
@@ -6925,7 +6930,7 @@ FINPRT:
 ; 2178-217E – MESSAGE STORAGE LOCATION FOR REDO MESSAGE – “TRYAGN”
 ; ----------------------------------------------------------------------
 TRYAGN:	.DB	"?REDO"
-	.DB	CRET
+	.DB	ENTER
 	.DB	0
 ; ----------------------------------------------------------------------
 ; 217F-2285 – INPUT AND READ ROUTINES– “TRMNOK”
@@ -6960,7 +6965,7 @@ INPUT:	call	ERRDIR		;219a
 FILBUF:	call	CASIN		;21b2
 	ld	(hl),a		;21b5
 	inc	hl		;21b6
-	cp	CRET		;21b7
+	cp	ENTER		;21b7
 	jr	z,ENDREC	;21b9
 	djnz	FILBUF		;21bb
 ENDREC:	dec	hl		;21bd
@@ -7091,7 +7096,7 @@ TRMOK:	ex	(sp),hl		;2263
 ; 2286-2295 – MESSAGE STORAGE LOCATION – “EXIGNT”
 ; ----------------------------------------------------------------------
 EXIGNT:	.DB	"?Extra ignored"
-	.DB	CRET, $00
+	.DB	ENTER, $00
 ; ----------------------------------------------------------------------
 ; 2296-22B5 – FIND THE NEXT DATA STATEMENT ROUTINE – “DATLOP”
 ;   The original ROM source notes that the search is mad by uising
@@ -8311,7 +8316,7 @@ STRPR2:	dec	d		;28b1
 	ret	z		;28b2
 	ld	a,(bc)		;28b3
 	call	OUTDO		;28b4
-	cp	CRET		;28b7
+	cp	ENTER		;28b7
 	call	z,CRFIN		;28b9
 	inc	bc		;28bc
 	jr	STRPR2		;28bd
@@ -9104,7 +9109,7 @@ GETCHZ:	call	CASIN		;2c98
 ; 2CA5-2CA9 – MESSAGE STORAGE LOCATION – “NOOKCS”
 ; ----------------------------------------------------------------------
 NOOKCS:	.DB	"BAD"		;2ca5
-	.DB	CRET , $00	;2ca8
+	.DB	ENTER , $00	;2ca8
 ;
 ; ----------------------------------------------------------------------
 ; 2CAA-2CB0 – LEVEL II BASIC PEEK ROUTINE – “PEEK”
@@ -9649,9 +9654,9 @@ IED:	call	INCHR		;2f7d
 	jp	z,IED		;2f81
 	cp	BACKS		;2f84
 	jr	z,TYPARW	;2f86
-	cp	CRET		;2f88
+	cp	ENTER		;2f88
 	jp	z,CRED		;2f8a
-	cp	MOVEU		;2f8d - Up arrow
+	cp	ARUP		;2f8d - Up arrow
 	ret	z		;2f8f
 	jr	nz,NTARRW	;2f90
 ; ----------------------------------------------------------------------
