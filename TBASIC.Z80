@@ -1,0 +1,417 @@
+;
+;==============================================================================
+; TANDY (RADIO SHACK) MODEL 1 LEVEL 2 BASIC FOR CPM
+; Version 1.0 Feb 2025
+;==============================================================================
+; Author: Mark Pruden
+;------------------------------------------------------------------------------
+; Change Log:
+;   2025-02-11 [MAP] Initial release of version 1.0
+;===============================================================================
+;
+; INFORMATION
+;   * SYSTEM command now perform exit from basic.
+;   * Video Driver replaced, supports ANSI escapes for most control characters
+;   * keyboard Driver replaced implmentng ANSI arrow keys
+;   * Hi memory check is established from CP/M, not physical ram size
+; KEYBOARD
+;   * BREAK - <CTRL-A> - Mapped to ?
+;   * CLEAR - Mapped to ?
+; LANGUAGE
+;   * SYSTEM command (monitor) replacd - now perform exit from basic
+;   * Cassette All commands removed CLOAD, CSAVE or disabled PRINT#, INPUT#
+;   * Graphics All commands removed SET, RESET, POINT,
+; TECHNICAL
+;   * Removed all support for Cassette
+;   * Removed support for 32 Character Mode
+;   * Removed Disk Boot startup from ROM
+;   * Removed ALL HW dependancies
+;   * RAM (communications area) is fully supported, but starts at $3000, not $4000.
+;   * ROM subroutine addresses no longer valid, but will work (different addresses)
+;   * RST commands not supported, must be replaced wiht CALL's
+; TODO
+;   * PRINT@[0-1023] command, uses HW address, needs fixing
+;   * Disk Routines need writing SAVE LOAD, then others
+;   * Line Printer Driver need implemting
+; ISSUES
+;   * Graphics charater not nativly supported, requires terminal font to be installed
+;     this may or may not work.
+;   * Video ram does not exist POKES to video ram will cause failures
+;   * INSTR$ will not detect a contious key press, (i.e. no held keys)
+;     it will respond to Key repeat (multiple presses) if supported in HW
+;
+;===============================================================================
+;
+restart		.equ	$0000		; CP/M restart vector
+bdos		.equ	$0005		; BDOS invocation vector
+;
+ESC		.equ	$1B
+;
+;===============================================================================
+; Main Program
+;===============================================================================
+;
+	.org	$0100			; standard CP/M TPA executable
+;
+	ld	(stksav),sp		; save old stack value
+	xor	a			; clear accumulator (for INIT)
+	jp	INIT			; run the Rom from INIT
+cleanup:
+	ld	sp,(stksav)		; restore stack from saved stack
+	jp	restart			; return to CP/M via restart
+;
+;===============================================================================
+; TANDY EMBEDDED ROUTINES
+;   (these are new embedded routines)
+;===============================================================================
+;
+MEMORY:
+	; determinate and return upper RAM address in HL
+	; called during startup instead of ROM detecting RAM manually.
+	ld	hl,(bdos+1)		; load from page 0; todo constant
+	push	bc
+	ld	bc,$46			; arbtrary abount of space to reduce by
+	ccf
+	sbc	hl,bc
+	pop	bc
+	ret
+;
+INIT3:
+	; called after full initialisation, but before READY prompt
+	; allows additional setup tasks to be performed
+	; todo setup disk basic Vector's - e.g.load and save
+	ld	a,OPJPNN		; opcode for JP nnnn
+	;
+	ld	hl,DLOAD		; address of our Disk Save
+	ld	(DVLOAD),a		; set the JP instruction
+	ld	(DVLOAD+1),hl		; set the vector
+	;
+	ld	hl,DSAVE		; address of our Disk Load
+	ld	(DVSAVE),a		; set the JP Instruction
+	ld	(DVSAVE+1),hl		; set the vector
+	;
+	ret
+;
+DSPCUR:
+	; part of Display Routines - to signal cursor movement
+	; called DE=screen location (0-1023) to move cursor to
+
+	ld	(CURSOR),de	; update the cursor address from DE
+	; todo send characters to display to do the update
+	ret
+;
+;===============================================================================
+; TANDY COMMAND REPLACEMENTS
+;   (these are command replacements)
+;===============================================================================
+;
+SYSTEM:
+	jp 	cleanup		; when the system routine is called EXIT
+;
+CLOAD:
+CSAVE:
+SET:
+RESET:
+POINT:
+	jp	L3ERR		;Commands that are ?L3 Error
+;
+;===============================================================================
+; DISK SAVE AND LOAD
+;===============================================================================
+;
+DLOAD:
+	; load sectors into memory starting at TXTTAB
+	; check first byte is FF - meaning basic program.
+	; error if not a basic program
+	; update TXTTAB with TXTTAB + 1
+	; scan all the bytes looking for 00 00 00 - store (VARTAB) = +1
+	; update the
+	jp	FINI		; Finish Up, same as CLOAD (this code based on)
+;
+DSAVE:
+	ret
+;
+;                        TXTTAB 32E9 -- VV
+; 00 32E0 -- - - - - - - - - - - - - -  F4 32 0A 00 41 24 20   <.5K..2*...2..A$ >
+; 00 32F0 -- D5 20 C9 00 05 33 0F 00 8F 20 41 24 D5 22 22 20   <. ...3... A$."" >
+; 00 3300 -- 8D 20 31 30 00 18 33 11 00 8F 20 41 24 D5 22 20   <. 10..3... A$." >
+; 00 3310 -- 22 20 8D 20 31 30 30 00 38 33 15 00 8F 20 F6 28   <" . 100.83... .(>
+; 00 3320 -- 41 24 29 D4 D5 33 32 20 B2 20 41 24 2C 20 3A 95   <A$)..32 . A$, :.>
+; 00 3330 -- 20 B2 20 22 20 22 2C 00 44 33 16 00 B2 20 F6 28   < . " ",.D3... .(>
+; 00 3340 -- 41 24 29 00 4D 33 32 00 8D 20 31 30 00 59 33 64   <A$).M32.. 10.Y3d>
+; 00 3350 -- 00 B2 20 22 42 59 45 22 00 00 00 EB CD FB 35 EB   <.. "BYE"......5.>
+;                              VARTAB 335B -- ^^
+; 10 A$ = INKEY$
+;  15 IF A$="" GOTO 10
+;  17 IF A$=" " GOTO 100
+;  21 IF ASC(A$)>=32 PRINT A$, ELSE PRINT " ",
+;  22 PRINT ASC(A$)
+;  50 GOTO 10
+;  100 PRINT "BYE"
+;
+;===============================================================================
+; TANDY DRIVER ROUTINES
+;===============================================================================
+;
+DSPDRV:
+	; This is the video driver. On entry, the character to be displayed should
+	; be in the C register. On exit, A would contain the character at the cursor
+	; (if called for an INPUT). This routine handles scrolling etc.
+        ; Register IX points to the DCB, so IX+0 = the DCB type, IX+1 = LSB of the
+        ; Driver Address, IX+2 = MSB of the Driver Address, IX+3 = LSB of the Cursor
+        ; Position, IX+4 = MSB of the Cursor Position, IX+5 = Cursor Character,
+        ; IX+6 = “D”, and IX+7=”O”
+	push	af
+	push	hl
+	ld	a,c		; char in A
+	call	prtspc		; print special char
+	jr	z,dspfin	; nothing further to print
+	call	prtchr		; print it.
+	ld	hl,(CURSOR)	; update cursor
+	inc	hl
+	ld	(CURSOR),hl
+dspfin:	pop	hl		; restore registers
+	pop	af
+	ret
+;
+spchrtab:
+	; Table is mapping from TRS-80 charater to ANSI terminal codes
+	;    TRS-CHR, CTL, Terminal String (6 bytes)
+	.db	BACKS,  2, $08, $20, $08,   0, 0, 0
+	.db	ENTER,  1, $0D, $0A,   0,   0, 0, 0
+	.db	CURON,  0,   0,   0,   0,   0, 0, 0
+	.db	CUROFF, 0,   0,   0,   0,   0, 0, 0
+	.db	MODE32, 0,   0,   0,   0,   0, 0, 0
+	.db	ARLEFT, 2, $1B, '[', '1', 'D', 0, 0
+	.db	ARIGHT, 3, $1B, '[', '1', 'C', 0, 0
+	.db	ARDOWN, 0, $1B, '[', '1', 'B', 0, 0
+	.db	ARUP,   0, $1B, '[', '1', 'A', 0, 0
+	.db	CHOME,  1, $1B, '[', 'H',   0, 0, 0
+;	.db	CLINE,  1, $1B, '[', '?',   0, 0, 0
+	.db	ELINE,  0, $1B, '[', 'K',   0, 0, 0
+	.db	CLRKEY, 0, $1B, '[', 'J',   0, 0, 0
+	.db	0 ; table terminator
+;
+; CTL - Defines effective cursor Pos
+;   0 = Do Noting
+;   1 = Set pos to ZERO
+;   2 = Subtract 1 from current pos
+;   3 = Add 1 from current pos
+;
+prtspc:
+	ld	b,a
+	ld	hl,spchrtab	; start of table
+	dec	h		; reversal of next statement
+prtspc1:
+	inc	h
+prtspc2:
+	ld	a,(hl)
+	cp	0
+	jr	z,prtspcfin	; detect end of table
+	cp	b
+	jr	z,prtspcfound	; found mathch in table
+	ld	a,8
+	add	a,l
+	ld	l,a		; hl = hl + 8, with carry
+	jr	c,prtspc1	; if carry loop and inc H
+	jr	prtspc2		; loop without carry
+prtspcfin:
+	ld	a,b		; restore the original byte
+	or	a		; set status - Thus print it.
+	ret
+
+prtspcfound:
+	inc	hl
+	ld	de,(CURSOR)	; ld the cursor
+	ld	a,(hl)		; get the control byte
+	or	a		; zero test
+	jr	z,writechar	; nothing to do
+	cp	2		; check
+	jr	z,cursorsub	; =2
+	jr	nc,cursoradd	; >2
+	; fallthrught 		; <2
+cursorzero
+	ld	de,0
+	jr	writechar
+cursoradd:
+	inc	de
+	jr	writechar
+cursorsub:
+	dec	de
+writechar:
+	ld	(CURSOR),de	; save the cursor
+	inc	hl		; start of string
+	call	prtstr		; print it
+	xor	a
+	ret
+;
+;===============================================================================
+;
+KBDDRV:
+	; This is the keyboard driver. It scans the keyboard and converts the bit
+	; pattern obtained to ASCII and stores it in the A register.
+        ; On entry, [IX] should point to the DCB, which is laid out as follows:
+        ; On exit, Register A to hold the data byte received (or 0 if none).
+	push	bc
+	push	hl
+	;
+	call	getchr
+	;
+	or	a		; set flags
+	jr	z,kbdret	; nothing to process return NOW.
+	;
+	ld	hl,kbdesc	; address of ESC Flags
+	bit	0,(hl)		; test if prior char was an escape
+	jr	nz,prioresc	; we got a ESC in previous char
+	;
+	cp	ESC		; test if this char was an ESC
+	jr	z,newesc	; we received an ESC
+	;
+	jr	kbdret		; return char we received unmodified
+newesc:
+	set	0,(hl)		; set flag indicating we recied ESC
+	jr	kbdretzero	; and respond with 0
+prioresc:
+	;
+	; the following is a hack to discard extra [ char's while in ESC
+	cp	ESC+$40		; was it a [ character
+	jr	z,kbdretzero	; then discard it
+	;
+	res	0,(hl)		; clear flag indicating we recieved ESC
+	;
+	ld	hl,esckeymap	; now replace hl with the lookup table
+	ld	b,a		; save char in B
+prioresc1:
+	ld	a,(hl)		; get the 1st val from lookup table
+	inc	hl		; second column, result char
+	cp 	0		; end of table marker
+	jr	z,kbdretzero	; reached table end, return a ZERO character
+	cp	b		; match to our saved kbd char
+	jr	z,escmatch	; if matched then process it.
+	inc	hl		; next table entry
+	jr	prioresc1	; loop
+escmatch:
+	ld	a,(hl)		; get the NEW ascii char from lookup
+	jr	kbdret		; return this new value
+kbdretzero:
+	xor	a		; clear result
+kbdret:
+	or	a		; set flags
+	pop	hl
+	pop	bc
+	ret			; and return
+;
+esckeymap:
+	; received eSC chr mapping to TRS ASCII Key
+	.db	'A', ARUP
+	.db	'B', ARDOWN
+	.db	'C', ARIGHT
+	.db	'D', ARLEFT
+	.db	'F', BREAK	; not working (END)
+	.db	'H', CLRKEY	; not working (HOME)
+	.db	0
+;
+; SYSTEM 80
+; Up arrow was called ESC,
+; down arrow key was CNTL
+; Left Arrow key was called BACK SPACE.
+; MISTER FPGA
+; Clear is simulated by the PC keyboard’s Home key
+; Break is the PC keyboard’s Escape key.
+;
+;===============================================================================
+;
+PRTDRV:
+	; According to the original ROM notes, this is the Printer Driver.
+	; On entry, Register C to hold the character to be sent to the printer,
+	; and [IX] should point to the DCB,
+	call	lstchr		; BDOS call to output to LST device
+	ret
+;
+;===============================================================================
+; Utility Routines
+;===============================================================================
+;
+; Print a zero terminated string at (HL) without destroying any registers
+;
+prtstr:
+	push	af
+prtstr1:
+	ld	a,(hl)		; get next char
+	or	a
+	jr	z,prtstr2
+	call	prtchr
+	inc	hl
+	jr	prtstr1
+prtstr2:
+	pop	af
+	ret
+;
+; Print character in A
+prtchr:
+	push	af
+	push	bc		; save registers
+	push	de
+	push	hl
+	ld	e,a		; character to print in E
+	ld	c,$02		; BDOS function to output a character
+	call	bdos		; do it
+	pop	hl		; restore registers
+	pop	de
+	pop	bc
+	pop	af
+	ret
+;
+; Get a character from console, return in A
+; returs zero if nothing available
+;
+getchr:
+	push	bc		; save registers
+	push	de
+	push	hl
+	ld	e,$FF		; read a character
+	ld	c,$06		; BDOS direct i/o function
+	call	bdos		; do it
+	pop	hl		; restore registers
+	pop	de
+	pop	bc
+	ret
+;
+; Print character in A
+lstchr:
+	push	af
+	push	bc		; save registers
+	push	de
+	push	hl
+	ld	e,a		; character to print in E
+	ld	c,$05		; BDOS function to output a character
+	call	bdos		; do it
+	pop	hl		; restore registers
+	pop	de
+	pop	bc
+	pop	af
+	ret
+;
+;===============================================================================
+; Constants
+;===============================================================================
+;
+HDGMSG:	.DB	"RADIO SHACK LEVEL II BASIC",ENTER
+	.DB	"for CP/M (M.Pruden) Alpha1",ENTER,0
+;
+;===============================================================================
+; Working data
+;===============================================================================
+;
+stksav	.dw	0		; stack pointer saved at start
+kbdesc	.db	0		; have we recieved an KBD escape character
+;
+;===============================================================================
+; TANDY EMBEDDED BASIC
+;===============================================================================
+;
+RAM:		.equ	$3000	; defines the Start of working RAM, after ROM
+#define 	_EMBED		; defines embedded use of the ROM
+;
+#include 	"MDL1LEV2.Z80"	; INCLUDE the ROM file itself.
+;
