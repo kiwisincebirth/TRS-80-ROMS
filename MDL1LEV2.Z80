@@ -137,7 +137,7 @@ BACKS:	.EQU 	$08	; (LEFT  Arrow) - Backspace
 TAB:	.EQU 	$09	; (RIGHT Arrow) - Tab
 LINEF:	.EQU 	$0A	; (DOWN  Arrow)
 FORMF:	.EQU 	$0C
-ENTER:	.EQU 	$0D	; (ENTER Key)
+ENTER:	.EQU 	$0D	; (ENTER Key) - Return
 ;
 ; Following are special meaning CHR codes, not ASCII standard
 CURON:	.EQU	$0E	; turn on cursor.
@@ -165,16 +165,13 @@ CURCHR  .EQU	$5F	; _ cursor character
 #DEFINE	GETCHR		rst 10h
 #DEFINE	CPDEHL		rst 18h
 #DEFINE	TSTDAT		rst 20h
-#DEFINE	DOSCAL		rst 28h
-#DEFINE	LDEBUG		rst 30h
-#DEFINE	INTERR		rst 38h
 ;
 ; ======================================================================
 ;   START OF PROGRAM CODE
 ; ----------------------------------------------------------------------
+;
 	.ORG	$0000	; Start of ROM Code Base
 RAM:	.EQU	$4000	; Start of RAM Communications area
-; ======================================================================
 ;
 ; ----------------------------------------------------------------------
 ; 0000H-0004H – POWER UP ROUTINE – "_START"
@@ -290,7 +287,7 @@ _KBD:	ld	de,mKDCB	;002b
 ;
 ; ======================================================================
 ; 0030 (RST 30H) - Load DEBUG - LDEBUG
-
+;
 ;   This CALL loads the DEBUG program and transfers
 ;   control to it. When DEBUG processing is complete, control
 ;   is returned to the original caller. For non-disk systems
@@ -436,7 +433,7 @@ ERLOPS:	ld	(hl),OPJPNN	;0096 - opcode (1st byte) for JP nnnn
 	djnz	ERLOPS		;009d
 ;
 ; Set DOS Exit links to RET instructions (41A6-41E2)
-	ld	b,21		;009f - 21 Does Exits
+	ld	b,21		;009f - 21 DOS Exits
 LOPRTS:	ld	(hl),OPRET	;00a1 - Store RET OpCode
 	inc	hl		;00a3
 	inc	hl		;00a4
@@ -1205,7 +1202,7 @@ KEYRT2:	ld	bc,$0DAC	;044c - delay count (3500)
 	ld	a,d		;0452
 	cp	$01		;0453
 	ret	nz		;0455
-	DOSCAL			;0456
+	rst	28h		;0456
 	ret			;0457
 ;
 ; ======================================================================
@@ -9830,7 +9827,7 @@ DIMFLG:	.EQU	RAM+$AE		; locate or create variable routine flag
 VALTYP:	.EQU	RAM+$AF		; Work Register Value Type flag
 ;
 ; bitmask $08 in (??) which indicates 32bit mode
-VTINT:	.EQU	$02		; Integer - (Value Types stored in (VALTYP)
+VTINT:	.EQU	$02		; Integer - Value Types stored in VALTYP
 VTSTR	.EQU	$03		; String - These numbers indicate the number
 VTSNG	.EQU	$04		; Single Precision - of bytes used to store value
 VTDBL	.EQU	$08		; Double Precision
@@ -9886,6 +9883,7 @@ FMLTT1:	.EQU	RAM+$14F	; continued.
 FMLTT2:	.EQU	RAM+$150	; continued.
 ;
 ; Disk BASIC Function Exits - Basic Functions (4152-41A5)
+; initially these are all populated with JP L3ERR statements by code at (008E)
 ERCALL:	.EQU	RAM+$152	; Base Address for Disk Basic Functions
 DVCVI:	.EQU	ERCALL+0	; CVI - $4152
 DVFN:	.EQU	ERCALL+3	; FN  - $4155
@@ -9917,6 +9915,7 @@ DVSAVE:	.EQU	ERCALL+78	; SAVE  $41A0
 DVLINE:	.EQU	ERCALL+81	; LINE  $41A3
 ;
 ; DOS Exits, Pass control between Level II BASIC and Disk BASIC (41A6-41E2)
+; initially these are all populated with RET statements by code at (009F)
 DEXT:	.EQU	RAM+$1A6	; Base Address for DOS Exits
 EXDSKR:	.EQU	DEXT+0		; (19EC) Disk Basic ERROR handling
 USROUT:	.EQU	DEXT+3		; (27FE) USR N - to expand function to provide up to ten USR calls
