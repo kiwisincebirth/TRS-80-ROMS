@@ -5675,7 +5675,7 @@ MLOOPR:	ld	a,(de)		;1ae1
 	or	a		;1ae5
 	jr	nz,MLOOPR	;1ae6
 FINI:	pop	de		;1ae8
-	call	CHEAD		;1ae9
+FINIDE:	call	CHEAD		;1ae9 - Alternate entry, taking parameter in DE
 	call	EXFIND		;1aec
 	call	RUNC		;1aef
 	call	EXFIN2		;1af2

@@ -44,6 +44,11 @@
 ;
 restart		.equ	$0000		; CP/M restart vector
 bdos		.equ	$0005		; BDOS invocation vector
+sysfcb1		.equ	$005C		; System FCB 1
+comtail		.equ	$0080		; 128byte buffer
+;
+bd_open		.equ	15		; open file
+bd_read		.equ	20		; read sequential
 ;
 ESC		.equ	$1B
 ;
@@ -68,12 +73,16 @@ cleanup:
 MEMORY:
 	; determinate and return upper RAM address in HL
 	; called during startup instead of ROM detecting RAM manually.
-	ld	hl,(bdos+1)		; load from page 0; todo constant
-	push	bc
-	ld	bc,$46			; arbtrary abount of space to reduce by
-	ccf
-	sbc	hl,bc
-	pop	bc
+	;
+	ld	hl,(bdos+1)		; load from BDOS address
+	dec	h			; previous page
+	ld	l,$E0			; end of Page, less 32 bytes (buffer?)
+	; Because the BDOS, like the BIOS, starts on a page boundary, the most
+        ; significant byte of the address of the BDOS entry tells you in which page the
+        ; BDOS starts. You must subtract 1 from the value in TOPRAM to get the highest
+        ; page number that you can use in your program. Note that when you use this
+        ; technique, you assume that the CCP will be overwritten since it resides in memory
+        ; just below the BOOS.
 	ret
 ;
 INIT3:
@@ -82,13 +91,13 @@ INIT3:
 	; todo setup disk basic Vector's - e.g.load and save
 	ld	a,OPJPNN		; opcode for JP nnnn
 	;
-	ld	hl,DLOAD		; address of our Disk Save
-	ld	(DVLOAD),a		; set the JP instruction
-	ld	(DVLOAD+1),hl		; set the vector
+	ld	hl,DLOAD		; address of our Disk LOAD function
+	ld	(DVLOAD),a		; set the JP Instruction into Vector Table
+	ld	(DVLOAD+1),hl		; set the vector to function
 	;
-	ld	hl,DSAVE		; address of our Disk Load
-	ld	(DVSAVE),a		; set the JP Instruction
-	ld	(DVSAVE+1),hl		; set the vector
+	ld	hl,DSAVE		; address of our Disk SAVE function
+	ld	(DVSAVE),a		; set the JP Instruction into Vector Table
+	ld	(DVSAVE+1),hl		; set the vector to function
 	;
 	ret
 ;
@@ -120,13 +129,94 @@ POINT:
 ;===============================================================================
 ;
 DLOAD:
-	; load sectors into memory starting at TXTTAB
-	; check first byte is FF - meaning basic program.
-	; error if not a basic program
-	; update TXTTAB with TXTTAB + 1
-	; scan all the bytes looking for 00 00 00 - store (VARTAB) = +1
-	; update the
-	jp	FINI		; Finish Up, same as CLOAD (this code based on)
+;	call	FRMEVL		; evaluate the string expression at the location HL
+;	call	FRESTR		; check and get string pointer in HL
+;	;
+;	ld	a,(hl)		; length byte, need to check it
+;	or	a
+;	jp	z,FCERR		; ensure it isnt 0 length
+;;	cp	8
+;;	jp	nc,FCERR	; >= 8 so report the erro
+;	;
+;	inc	hl		; the string pointer
+;	ld	e,(hl)		; dereference the string pointer
+;	inc	hl
+;	ld	d,(hl)
+;	ex	de,hl		; move DE (string pointr) into HL
+;	; TODO All above code could be removed, HL already contains pointer to String, excepting we may want to skip " ?
+
+	; The HL pointer already comes with pointer to input string.
+	ld	de,sysfcb1	; target FCB
+	call	convert		; convert filename to FCB
+	;
+	;ld	de,sysfcb1+1	; target address is FCB NAME field
+	;call	MOVREG		; move String from HL (VARPTR) to DE (simple)
+	;
+	ld	de,sysfcb1
+	ld	c,bd_open	; open file
+	call	bdos
+	;
+	inc	a		; ie Z if file not open
+	jp	z,FCERR		; file not opened.
+	;
+	ld	de,sysfcb1	; read first sector
+	ld	c,bd_read	; read sequential
+	call	bdos
+	jp	nz,FCERR	; check read worked
+	;
+	ld	a,(comtail)	; CPM read buffer address
+	cp	$FF		; check first byte is $FF - meaning basic program.
+	jp	nz,FCERR	; error if not a $FF basic program
+	;
+	call	SCRTCH		; basic NEW, initialize system vars
+	;
+	ld	de,(TXTTAB)	; starting address of PST to load data to
+	or	$FF		; signal NZ - first loop for Z test below
+DLLOP1:
+	; init the transfer 128 bytes loop
+	ld	hl,comtail	; source address in CPM buffer
+	ld	c,$80		; main loop counter - copy 128 bytes
+	jr	z,DLLOP3	; NOT the first timearound, skip
+	inc	hl		; first time we skip first byte $FF
+	dec	c		; copying 1 less byte
+	;
+DLLOP3:
+	; start of loop - reseting zero counter
+	ld	b,3		; looking for 3 zeros for termination
+DLLOP4:
+	; start of loop
+	ld	a,(hl)		; transfer a byte from source
+	ld	(de),a		; transfer to the destination
+	inc	hl		; inc the memory pointers
+	inc	de
+	or	a		; was the byte a transferred a ZERO
+	jr	nz,DLLOP6	; if received a != 0, continue loop
+	dec	b		; the zero counter 3->0
+	jr	z,DLLOP9	; received 3 $00 so finish here
+	dec	c		; the actual loop counter
+	jr	nz,DLLOP4	; main loop not reseting zero counter
+	jr	DLLOP7		; finished transfer
+DLLOP6:
+	dec	c		; the actual loop counter
+	jr	nz,DLLOP3	; main loop reseting the zero counter
+DLLOP7:
+	; read next secor
+	push	bc		; save the zero counter
+	push	de		; save the target address
+	ld	de,sysfcb1	; read first sector
+	ld	c,bd_read	; read sequential
+	call	bdos
+	pop	de
+	pop	bc
+	;
+	jr	z,DLLOP1	; success read, loop round and move data
+	dec	a		; fail read adjust error=1 (end of file)
+	jp	nz,FCERR	; Not EOF error - some other error hard fail
+DLLOP9:
+	ld	(VARTAB),de	; After three 000 - Save the new end of the BASIC program pointer.
+	;
+	ld	de,(TXTTAB)	; pointer to Prog Statement Table
+	jp	FINIDE		; Finish Up, same as CLOAD (this code based on)
 ;
 DSAVE:
 	ret
@@ -148,6 +238,112 @@ DSAVE:
 ;  22 PRINT ASC(A$)
 ;  50 GOTO 10
 ;  100 PRINT "BYE"
+;
+; ---------------------------
+; ORIGINALLY FROM SYSCOPY.ASM
+; Convert a filename at (HL) into an FCB at (DE).
+; Includes wildcard expansion.
+; On return, A=0 if unambiguous name specified, and
+; (HL) points to character following filename spec
+;
+convert:
+	ex	de,hl		; DE: file name ; HL: target FCB
+	ld	a,(de)		; get first character.
+	or	a
+	jp	z,convrt1
+	sbc	a,'A'-1		; might be a drive name, convert to binary.
+	ld	b,a		; and save.
+	inc	de		; check next character for a ':'.
+	ld	a,(de)
+	cp	':'
+	jp	z,convrt2
+	dec	de		; nope, move pointer back to the start of the line.
+convrt1:
+	ld	a,0		; 0 is default drive, was from BDOS Function 25 (+1)
+	ld	(hl),a
+	jp	convrt3
+convrt2:
+	ld	a,b		; assign drive letter specifically
+	ld	(hl),b
+	inc	de
+	; Convert the base file name.
+convrt3:ld	b,08h
+convrt4:ld	a,(de)
+	call	delim
+	jp	z,convrt8
+	inc	hl
+	cp	'*'		; note that an '*' will fill the remaining
+	jp	nz,convrt5	; field with '?'
+	ld	(hl),'?'
+	jp	convrt6
+convrt5:ld	(hl),a
+	inc	de
+convrt6:dec	b
+	jp	nz,convrt4
+convrt7:ld	a,(de)
+	call	delim		; get next delimiter
+	jp	z,getext
+	inc	de
+	jp	convrt7
+convrt8:inc	hl		; blank fill the file name
+	ld	(hl),' '
+	dec	b
+	jp	nz,convrt8
+getext:	ld	b,03h		; Chars in Extension we need to populate
+	cp	'.'
+	jp	nz,getex4a	; didnt find a ".", so set to default
+	inc	de
+getext1:ld	a,(de)
+	call	delim
+	jp	z,getext5
+	inc	hl
+	cp	'*'		; ???
+	jp	nz,getext2
+	ld	(hl),'?'
+	jp	getext3
+getext2:ld	(hl),a
+	inc	de
+getext3:dec	b
+	jp	nz,getext1	; loop processing the EXT
+getext4:ld	a,(de)
+	call	delim
+	jp	z,getext6	; found a delimiter so finish
+	inc	de
+	jp	getext4		; loop round until we have delim
+getex4a:inc	hl		; Fill in .BAS
+	ld	(hl),'B'
+	inc	hl
+	ld	(hl),'A'
+	inc	hl
+	ld	(hl),'S'
+	jr	getext6		; continue
+getext5:inc	hl		; Fill in remainder with blanks
+	ld	(hl),' '
+	dec	b
+	jp	nz,getext5
+getext6:ld	b,24
+getext7:inc	hl		; Fill 24 bytes after extension with 0
+	ld	(hl),0
+	dec	b
+	jp	nz,getext7
+	ret
+delim:	or	a		; Check character at (DE) for delimiter.
+	ret	z
+	cp	' '		; blank
+	ret	z
+	jr	c,delim1	; handle control characters
+	cp	'.'		; FILE.EXT
+	ret	z
+	cp	':'		; A:
+	ret	z
+	cp	'"'		; end of string " in basic
+	ret	z
+	cp	'*'		; wildcard STAR* - first matching ???
+	ret
+delim1:
+	; treat control chars as delimiters
+	xor	a		; set Z
+	ret			; return
 ;
 ;===============================================================================
 ; TANDY DRIVER ROUTINES
@@ -176,20 +372,20 @@ dspfin:	pop	hl		; restore registers
 ;
 spchrtab:
 	; Table is mapping from TRS-80 charater to ANSI terminal codes
-	;    TRS-CHR, CTL, Terminal String (6 bytes)
-	.db	BACKS,  2, $08, $20, $08,   0, 0, 0
-	.db	ENTER,  1, $0D, $0A,   0,   0, 0, 0
-	.db	CURON,  0,   0,   0,   0,   0, 0, 0
-	.db	CUROFF, 0,   0,   0,   0,   0, 0, 0
-	.db	MODE32, 0,   0,   0,   0,   0, 0, 0
-	.db	ARLEFT, 2, $1B, '[', '1', 'D', 0, 0
-	.db	ARIGHT, 3, $1B, '[', '1', 'C', 0, 0
-	.db	ARDOWN, 0, $1B, '[', '1', 'B', 0, 0
-	.db	ARUP,   0, $1B, '[', '1', 'A', 0, 0
-	.db	CHOME,  1, $1B, '[', 'H',   0, 0, 0
-;	.db	CLINE,  1, $1B, '[', '?',   0, 0, 0
-	.db	ELINE,  0, $1B, '[', 'K',   0, 0, 0
-	.db	CLRKEY, 0, $1B, '[', 'J',   0, 0, 0
+	;    TRS-CHR, CTL, Terminal String (5 bytes)
+	.db	BACKS,  2, $08, $20, $08,   0, 0
+	.db	ENTER,  1, $0D, $0A,   0,   0, 0
+	.db	CURON,  0,   0,   0,   0,   0, 0
+	.db	CUROFF, 0,   0,   0,   0,   0, 0
+	.db	MODE32, 0,   0,   0,   0,   0, 0
+	.db	ARLEFT, 2, $1B, '[', '1', 'D', 0
+	.db	ARIGHT, 3, $1B, '[', '1', 'C', 0
+	.db	ARDOWN, 0, $1B, '[', '1', 'B', 0
+	.db	ARUP,   0, $1B, '[', '1', 'A', 0
+	.db	CHOME,  1, $1B, '[', 'H',   0, 0
+;	.db	CLINE,  1, $1B, '[', '?',   0, 0
+	.db	ELINE,  0, $1B, '[', 'K',   0, 0
+	.db	CLRKEY, 0, $1B, '[', 'J',   0, 0
 	.db	0 ; table terminator
 ;
 ; CTL - Defines effective cursor Pos
@@ -210,9 +406,9 @@ prtspc2:
 	jr	z,prtspcfin	; detect end of table
 	cp	b
 	jr	z,prtspcfound	; found mathch in table
-	ld	a,8
+	ld	a,7		; num bytes in each entry
 	add	a,l
-	ld	l,a		; hl = hl + 8, with carry
+	ld	l,a		; hl = hl + 7, with carry
 	jr	c,prtspc1	; if carry loop and inc H
 	jr	prtspc2		; loop without carry
 prtspcfin:
@@ -405,6 +601,18 @@ HDGMSG:	.DB	"RADIO SHACK LEVEL II BASIC",ENTER
 ;
 stksav	.dw	0		; stack pointer saved at start
 kbdesc	.db	0		; have we recieved an KBD escape character
+;
+;FCB:
+;fcbDRV:	.db	0		; drive
+;fcbFIL:	.db	"        "	; 8 char filename
+;fcbTYP	.db	"BAS"		; file type
+;fcbEXT	.db	0		;
+;fcbRES	.dw	0		; reserved
+;fcbREC	.db	0		; record count
+;fcbABU	.dw	0,0,0,0		; Image of the second half of the directory entry
+;	.dw	0,0,0,0
+;fcbCUR	.db	0		; current record
+;fcbRRN	.db	0,0,0		; random record number
 ;
 ;===============================================================================
 ; TANDY EMBEDDED BASIC
