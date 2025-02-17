@@ -421,7 +421,7 @@ PAUSE:	dec	bc		;0060
 ; is pressed (Non Maskable Interrupt address)
 ; The RESET button generates an NMI, not an actual reset.
 ; ----------------------------------------------------------------------
-NMI:	ld	sp,$0600	;0066
+NMI:	ld	sp,$0600	;0066 - wrong Stack Pointer. Replaced
 	ld	a,(diskstat)	; $FF if no expansion interface present
 	inc	a		;006C
 	cp	$02		; disk present?
@@ -477,7 +477,7 @@ LOPRTS:	ld	(hl),OPRET	;00a1 - Store RET OpCode
 ; sets the memory pointers accordingly and prints RADIO SHACK LEVEL II BASIC ,
 	ld	hl,MEMEND+$E8	;00a8 - starting address of user RAM (which is 42E8H)
 	ld	(hl),b		;00ab
-	ld	sp,SMPSTK	;00ac
+	ld	sp,SMPSTK	;00ac - STACK pointer to 41F8H, temporary until call STKINI
 	call	STKINI		;00af - Go initialize the Level II BASIC variables and pointers
 	call	CLS		;00b2 - clears the screen, changes to 64 characters, and homes the screen)
 ;
@@ -525,10 +525,10 @@ USEDEF:	dec	hl		;00e7
 	ld	de,MEMEND+$214	;00e8 - the minimum MEMORY SIZE? response, which is 300 bytes (012CH) past ENBINI
 	CPDEHL			;00eb
 	jp	c,OMERR		;00ec
-	ld	de,$FFCE	;00ef
-	ld	(MEMSIZ),hl	;00f2
+	ld	de,$FFCE	;00ef - Subtract 32 Bytes
+	ld	(MEMSIZ),hl	;00f2 - Save the MEMORY SIZE? amount
 	add	hl,de		;00f5
-	ld	(STKTOP),hl	;00f6
+	ld	(STKTOP),hl	;00f6 - start of string space pointer MEMSIZE-32
 ;
 #IFDEF _EMBED
 	call	INIT3		; Embedded Post Init Setup.
@@ -1755,7 +1755,7 @@ CLRAM:	ld	(de),a		;0687
 	jp	nz,INIT2	;0690
 ;
 ; This is the beginning of the routine which boots a diskette
-	ld	sp,TMPSTK	;0693
+	ld	sp,TMPSTK	;0693 - $407D since Disk load will overite > $4200
 	ld	a,(diskstat)
 	inc	a		;0699
 	cp	$02		;069a
@@ -5216,16 +5216,16 @@ STMDSP:
 	.DW	SCRATH		; NEW - ID = $BB
 ;
 ; ----------------------------------------------------------------------
-; 1892-18A0 - Operation Precedent Table
+; 189A-18A0 - Operation Precedent Table
 ; ----------------------------------------------------------------------
 OPTAB:
-	.DB	$79
-	.DB	$79
-	.DB	$7C
-	.DB	$7C
-	.DB	$7F
-	.DB	$50
-	.DB	$46
+	.DB	$79		; -
+	.DB	$79		; +
+	.DB	$7C		; /
+	.DB	$7C		; *
+	.DB	$7F		; EXPONENT (up arrow)
+	.DB	$50		; AND
+	.DB	$46		; OR
 ;
 ; ----------------------------------------------------------------------
 ; 18A1-18AA - Conversion functions
@@ -5809,31 +5809,31 @@ LOFDPT:	ld	(hl),$04	;1b69
 	call	CLSALL		;1b8c
 ;
 ; ----------------------------------------------------------------------
-; 1B8F – Subroutine which initializes a lot of stuff – "STKINI"
+; 1B8F – Subroutine which initializes Stack and others – "STKINI"
 ;   this routine resets the STACK point, which will also destroy all GOSUBs and FORs.
 ;   String temporaries are freed, SUBFLG is reset, CONT is forbidden,
 ;   and a dummy entry is put on the STACK, so that FNDFOR will always find a NON-"FOR"
 ;   entry at the bottom of the STACK. A will be reset to 0 and Register Pair DE is preserved.
 ; ----------------------------------------------------------------------
-STKINI:	pop	bc		;1b8f
-	ld	hl,(STKTOP)	;1b90
+STKINI:	pop	bc		;1b8f - get return address off stack
+	ld	hl,(STKTOP)	;1b90 - MEMSIZE-32
 	dec	hl		;1b93
-	dec	hl		;1b94
-	ld	(SAVSTK),hl	;1b95
+	dec	hl		;1b94 - now room for a FNDFOR stopper value to be put on the STACK
+	ld	(SAVSTK),hl	;1b95 - save pointer
 	inc	hl		;1b98
-	inc	hl		;1b99
-STKERR:	ld	sp,hl		;1b9a
-	ld	hl,TEMPST	;1b9b
-	ld	(TEMPPT),hl	;1b9e
-	call	FINLPT		;1ba1
-	call	FINPRT		;1ba4
+	inc	hl		;1b99 - back to being the start of the string space pointer
+STKERR:	ld	sp,hl		;1b9a - MAIN SET SP with the start of the string space pointer
+	ld	hl,TEMPST	;1b9b - start of the string work area
+	ld	(TEMPPT),hl	;1b9e - init string temps - the next available location in the string work area
+	call	FINLPT		;1ba1 - set the current output device to the video display
+	call	FINPRT		;1ba4 - turn off the cassette recorder
 	xor	a		;1ba7
 	ld	h,a		;1ba8
 	ld	l,a		;1ba9
-	ld	(SUBFLG),a	;1baa
-	push	hl		;1bad
-	push	bc		;1bae
-	ld	hl,(TEMP)	;1baf
+	ld	(SUBFLG),a	;1baa - Clear the FOR statement flag.
+	push	hl		;1bad - put FNDFOR stopper value on the STACK
+	push	bc		;1bae - Save the RETURN ADDRESS back on the STACK
+	ld	hl,(TEMP)	;1baf - Restore Register Pair HL so it is preserved
 	ret			;1bb2
 ;
 ; ======================================================================
@@ -8611,15 +8611,18 @@ CAT:	push	bc		;298f
 	push	hl		;29c2
 	jp	PUTNEW		;29c3
 ; ----------------------------------------------------------------------
-; 29C6-29D6 – STRING ROUTINE – This will move strings using the STACK – “MOVINS”
+; 29C6 – STRING ROUTINE – This will move strings using the STACK – “MOVINS”
+; ----------------------------------------------------------------------
+MOVINS:	pop	hl		;29c6
+	ex	(sp),hl		;29c7
+; ----------------------------------------------------------------------
+; 29C8-29D6 – STRING ROUTINE - This will move string using registers - 'MOVREG'
 ;   On entry HL points to the string control block for the string to be moved,
 ;   and DE contains the destination address. All registers are used.
 ;   The string length and address are not moved. String control blocks
 ;   have the format: X=String Length; ADDR = String Address.
 ; ----------------------------------------------------------------------
-MOVINS:	pop	hl		;29c6
-	ex	(sp),hl		;29c7
-	ld	a,(hl)		;29c8
+MOVREG:	ld	a,(hl)		;29c8
 	inc	hl		;29c9
 	ld	c,(hl)		;29ca
 	inc	hl		;29cb
@@ -9182,27 +9185,27 @@ NONAMC:	ld	hl,(TXTTAB)	;2c5c
 ; write	(or overwrite) that byte to memory, check for a zero, and loop
 ; back	IF no zero was found.
 ; ----------------------------------------------------------------------
-DOCRS:	ld	b,$03		;2c5f
+DOCRS:	ld	b,$03		;2c5f - number of zeros to look for to stop the load
 DOCSMR:	call	CASIN		;2c61
 	ld	e,a		;2c64
 	sub	(hl)		;2c65
 	and	d		;2c66
-	jr	nz,NOGOOD	;2c67
-	ld	(hl),e		;2c69
-	call	REASON		;2c6a
+	jr	nz,NOGOOD	;2c67 - if CLOAD? was selected but the bytes don’t match
+	ld	(hl),e		;2c69 - save the character we read to memory pointer in HL
+	call	REASON		;2c6a - Make sure there is more room, if not a ?OM ERROR
 	ld	a,(hl)		;2c6d
 	or	a		;2c6e
 	inc	hl		;2c6f
-	jr	nz,DOCRS	;2c70
+	jr	nz,DOCRS	;2c70 - Loop if the byte in Register A isn’t equal to zero
 	call	BCASIN		;2c72
-	djnz	DOCSMR		;2c75
-	ld	(VARTAB),hl	;2c77
+	djnz	DOCSMR		;2c75 - Do that loop until three zeros in a row have been read
+	ld	(VARTAB),hl	;2c77 - Save the new end of the BASIC program pointer.
 	ld	hl,m_REDDY	;2c7a
 	call	STROUT		;2c7d
 	call	CTOFF		;2c80
-	ld	hl,(TXTTAB)	;2c83
-	push	hl		;2c86
-	jp	FINI		;2c87
+	ld	hl,(TXTTAB)	;2c83 - the start of the BASIC program pointer.
+	push	hl		;2c86 - Save the BASIC program pointer to the STACK, for FINI
+	jp	FINI		;2c87 - reinitialize the BASIC interpreter and continue
 NOGOOD:	ld	hl,NOOKCS	;2c8a
 	call	STROUT		;2c8d
 	jp	STPRDY		;2c90
@@ -9934,7 +9937,7 @@ PRTFLG:	.EQU	RAM+$9C		; This is the current device output flag. 0=vid, 1=print $
 LINLEN:	.EQU	RAM+$9D		; Number of chars on video display line.
 CLMLST:	.EQU	RAM+$9E		; Number of chars on printed line.
 ;
-STKTOP:	.EQU	RAM+$A0		; Start of String Storage Area. Pointer
+STKTOP:	.EQU	RAM+$A0		; Start of String Storage Area (Stack). initial MEMSIZE-32
 CURLIN:	.EQU	RAM+$A2		; Current Line Number in a BASIC Program
 TXTTAB:	.EQU	RAM+$A4		; Start of Basic Program Storage. Pointer
 TTYPOS:	.EQU	RAM+$A6		; Cursor pos on VDU line. See POS function.
