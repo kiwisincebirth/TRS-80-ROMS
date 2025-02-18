@@ -551,8 +551,6 @@ MEMMSG:	.DB	"MEM SIZE",0
 ;
 HDGMSG:	.DB	"R/S L2 BASIC",ENTER,0
 ;
-#ENDIF
-;
 ; ----------------------------------------------------------------------
 ; 01CCH-01ECH – KEYBOUNCE V1.3
 ; ----------------------------------------------------------------------
@@ -567,6 +565,8 @@ KEYBOU	push	bc		;01CC Save Row Address in BC into the STACK
 	rlca			;01E8 Multiply the row index by 2. twice.
 	rlca			;01E9 This code previously existed at the calling site
 	jp	KYDRES		;01EA Resume the keyboard driver routine
+;
+#ENDIF
 ;
 #ELSE
 ; ----------------------------------------------------------------------
