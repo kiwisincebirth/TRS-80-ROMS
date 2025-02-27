@@ -161,6 +161,8 @@ CURCHR  .EQU	$5F	; _ cursor character
 ; MACROS
 ; ======================================================================
 ;
+#IFNDEF _EMBED
+;
 #DEFINE	SYNTAX(char)	rst 08h\ .DB char
 #DEFINE	GETCHR		rst 10h
 #DEFINE	CPDEHL		rst 18h
@@ -223,12 +225,27 @@ _BOOT:	jp	BOOT		;000d
 ; ----------------------------------------------------------------------
 rst10:	jp	mRST2		;0010
 ;
+#ELSE
+;
+; For Embedded use of RST -> replaced with CALL's
+; and rst00 - rst07 is not needed  (commented below)
+; Use jp INIT for initial startup
+;
+#DEFINE	SYNTAX(char)	call mRST1\ .DB char
+#DEFINE	GETCHR		call mRST2
+#DEFINE	CPDEHL		call mRST3
+#DEFINE	TSTDAT		call mRST4
+;
+#ENDIF
+;
 ; ----------------------------------------------------------------------
 ; 0013H-0017H – IN_PUT ROUTINE – _GET
 ; ----------------------------------------------------------------------
 _GET:	push	bc		;0013
 	ld	b,$01		;0014
 	jr	COIJ		;0016
+;
+#IFNDEF _EMBED
 ;
 ; ======================================================================
 ; 0018H (RST 18H) Compare DE:HL - CPDEHL
@@ -243,12 +260,16 @@ _GET:	push	bc		;0013
 ; ----------------------------------------------------------------------
 rst18:	jp	mRST3		;0018
 ;
+#ENDIF
+;
 ; ----------------------------------------------------------------------
 ; 001BH-001EH – DRIVER ENTRY ROUTINE – Part 1 – "_PUT"
 ; ----------------------------------------------------------------------
 _PUT:	push	bc		;001b
 	ld	b,$02		;001c
 	jr	COIJ		;001e
+;
+#IFNDEF _EMBED
 ;
 ; ======================================================================
 ; 0020H (RST 20H) - Test Data Mode - TSTDAT
@@ -276,6 +297,8 @@ _CTL:	push	bc		;0023
 ; ----------------------------------------------------------------------
 rst28:	jp	mRST5		;0028
 ;
+#ENDIF
+;
 ; ======================================================================
 ; 002BH – KEYBOARD ROUTINE – "_KBD" - Scan Keyboard
 ;
@@ -284,6 +307,8 @@ rst28:	jp	mRST5		;0028
 ; ----------------------------------------------------------------------
 _KBD:	ld	de,mKDCB	;002b
 	jr	_GET		;002e
+;
+#IFNDEF _EMBED
 ;
 ; ======================================================================
 ; 0030 (RST 30H) - Load DEBUG - LDEBUG
@@ -297,6 +322,8 @@ _KBD:	ld	de,mKDCB	;002b
 ; ----------------------------------------------------------------------
 rst30:	jp	mRST6		;0030
 ;
+#ENDIF
+;
 ; ======================================================================
 ; 0033H – VIDEO ROUTINE – "_DSP" - Character print routine.
 ;
@@ -308,6 +335,8 @@ rst30:	jp	mRST6		;0030
 _DSP:	ld	de,mDDCB	;0033 - video device control block.
 	jr	_PUT		;0036
 ;
+#IFNDEF _EMBED
+;
 ; ======================================================================
 ; 0038 (RST 38H) - Interrupt Entry Point - INTERR
 ;
@@ -318,6 +347,8 @@ _DSP:	ld	de,mDDCB	;0033 - video device control block.
 ;  (returns to the point of interrupt) for non-disk systems
 ; ----------------------------------------------------------------------
 rst38:	jp	mRST7		;0038
+;
+#ENDIF
 ;
 ; ======================================================================
 ; 003BH – PRINTER ROUTINE – "$PRT"
@@ -384,6 +415,7 @@ PAUSE:	dec	bc		;0060
 	jr	nz,PAUSE	;0063
 	ret			;0065
 ;
+#IFNDEF _EMBED
 ; ----------------------------------------------------------------------
 ; 0066 is the location to which program control jumps when the RESET button
 ; is pressed (Non Maskable Interrupt address)
@@ -395,6 +427,7 @@ NMI:	ld	sp,$0600	;0066 - wrong Stack Pointer. Replaced
 	cp	$02		; disk present?
 	jp	nc,_START	;   yes: re_START as if power-up
 	jp	RESETR		;    no: go to BASIC prompt
+#ENDIF
 ;
 ; ----------------------------------------------------------------------
 ; 0075H-0104H – INITIALIZATION ROUTINE – "INIT2"
@@ -456,6 +489,8 @@ MEMGET:	ld	hl,MEMMSG	;00b5 - MEMORY SIZE? message
 	or	a		;00c1
 	jr	nz,TYPMEM	;00c2 - was a response to the MEMORY SIZE?
 ;
+#IFNDEF _EMBED
+;
 ; start testing RAM at 434CH towards FFFFH
 	ld	hl,MEMEND+$14C	;00c4 - starting address for the memory size check (434C)
 LOOPMM:	inc	hl		;00c7
@@ -469,6 +504,11 @@ LOOPMM:	inc	hl		;00c7
 	cp	(hl)		;00d0
 	ld	(hl),b		;00d1
 	jr	z,LOOPMM	;00d2 - loop back until the end of memory is found
+;
+#ELSE
+	call	MEMORY		;Embedded. External Memory Detection. Must return mem in HL
+#ENDIF
+;
 	jr	USEDEF		;00d4 - If the address didn’t exist, have reached HIMEM
 TYPMEM:	call	LINGET		;00d6
 	or	a		;00d9
@@ -489,6 +529,11 @@ USEDEF:	dec	hl		;00e7
 	ld	(MEMSIZ),hl	;00f2 - Save the MEMORY SIZE? amount
 	add	hl,de		;00f5
 	ld	(STKTOP),hl	;00f6 - start of string space pointer MEMSIZE-32
+;
+#IFDEF _EMBED
+	call	INIT3		; Embedded Post Init Setup.
+#ENDIF
+;
 	call	SCRTCH		;00f9
 	ld	hl,HDGMSG	;00fc
 	call	STROUT		;00ff
@@ -501,6 +546,9 @@ USEDEF:	dec	hl		;00e7
 ; ----------------------------------------------------------------------
 ;
 MEMMSG:	.DB	"MEM SIZE",0
+;
+#IFNDEF _EMBED
+;
 HDGMSG:	.DB	"R/S L2 BASIC",ENTER,0
 ;
 ; ----------------------------------------------------------------------
@@ -518,13 +566,20 @@ KEYBOU	push	bc		;01CC Save Row Address in BC into the STACK
 	rlca			;01E9 This code previously existed at the calling site
 	jp	KYDRES		;01EA Resume the keyboard driver routine
 ;
+#ENDIF
+;
 #ELSE
 ; ----------------------------------------------------------------------
 ; 0105H-012CH – MESSAGE STORAGE (VERSION 1.2)
 ; ----------------------------------------------------------------------
 ;
 MEMMSG:	.DB	"MEMORY SIZE",0
+;
+#IFNDEF _EMBED
+;
 HDGMSG:	.DB	"RADIO SHACK LEVEL II BASIC",ENTER,0
+;
+#ENDIF
 ;
 #ENDIF
 ;
@@ -533,6 +588,8 @@ HDGMSG:	.DB	"RADIO SHACK LEVEL II BASIC",ENTER,0
 ; ----------------------------------------------------------------------
 L3ERR:	ld	e,ERRL3		;012d - Load Register E with the ?L3 ERROR code of 2CH
 	jp	ERROR		;012f
+;
+#IFNDEF _EMBED
 ;
 ; ----------------------------------------------------------------------
 ; 0132H-0134H –	LEVEL II BASIC POINT COMMAND ENTRY POINT – "GRPHCS" or "POINT"
@@ -627,6 +684,8 @@ TBIT:	and	c		;0192
 	pop	hl		;019a
 	jr	FINPTB		;019b
 ;
+#ENDIF
+;
 ; ----------------------------------------------------------------------
 ; 019DH-01C8H – LEVEL II BASIC INKEY$ ROUTINE – “INKEY”
 ; ----------------------------------------------------------------------
@@ -676,6 +735,8 @@ CLS:	ld	a,CHOME		;01c9 - cursor Home
 RANDOM:	ld	a,r		;01d3
 	ld	(RNDX+1),a	;01d5
 	ret			;01d8
+;
+#IFNDEF _EMBED
 ;
 ; ----------------------------------------------------------------------
 ; 01D9H-01F7H – CASSETTE ROUTINE
@@ -938,6 +999,9 @@ GODO:	ex	de,hl		;031d
 	jr	nz,SYSTEM	;0326
 	ex	de,hl		;0328
 	jp	(hl)		;0329
+;
+#ENDIF
+;
 ; ----------------------------------------------------------------------
 ; 032AH-0347H – OUTPUT ROUTINE – “OUTCH1” and “OUTDO”
 ;   This is a general purpose output routine which outputs a byte from
@@ -951,7 +1015,9 @@ OUTDO:	push	bc		;032a
 	or	a		;0332
 	ld	a,c		;0333
 	pop	bc		;0334
+#IFNDEF _EMBED
 	jp	m,CASOUT	;0335
+#ENDIF
 	jr	nz,OUTLPT	;0338
 ; ----------------------------------------------------------------------
 ; 033AH-0347H – OUTPUT ROUTINE – “OUT2D”
@@ -1099,6 +1165,8 @@ CIORTN:	pop	de		;03dd - Device driver returns here
 	pop	hl		;03e0
 	pop	bc		;03e1
 	ret			;03e2
+;
+#IFNDEF _EMBED
 ;
 ; ======================================================================
 ; 03E3H-0457H – KEYBOARD DRIVER – “KEY”
@@ -1510,6 +1578,7 @@ PRTSA:	ld	a,(prtstat)	;05d1
 	cp	$30		;05d6
 	ret			;05d8
 ;
+#ENDIF
 ; ======================================================================
 ; 05D9H – Wait For Next Line – “KEYIN”
 ;
@@ -1659,7 +1728,9 @@ KLNCR:	push	af		;0662
 ;     On reset, A=0: 64 char video mode, CMT motor relay off, CMT out = 0.85 V.
 ; ----------------------------------------------------------------------
 INIT:
+#IFNDEF _EMBED
 	out	(vidcmt),a	;0674 - reset the Video cassette latch
+#ENDIF
 ;
 INITA1:	ld	hl,INITR	;0676
 	ld	de,RAM		;0679 - starting address of the communications region
@@ -1673,6 +1744,9 @@ INITA1:	ld	hl,INITR	;0676
 CLRAM:	ld	(de),a		;0687
 	inc	de		;0688
 	djnz	CLRAM		;0689 - Copy 0 to $4036 - $4062
+;
+#IFNDEF _EMBED
+;
 ; ----------------------------------------------------------------------
 ;  Check for a manual override
 ; ----------------------------------------------------------------------
@@ -1711,6 +1785,11 @@ BOOTLP:	bit	1,(hl)		;06c0
 	inc	c		;06c6
 	jr	nz,BOOTLP	;06c7
 	jp	MEMEND
+;
+#ELSE
+	jp	INIT2		;Embedded has NO Disk Detection continue to INIT2
+#ENDIF
+;
 ; ----------------------------------------------------------------------
 ; 06CCH-06CEH – Alternative re-entry point into BASIC – "RESETR"
 ;  This is an alternative re-entry point into BASIC. A JP 6CCH is often better
@@ -1748,7 +1827,11 @@ INITR:
 ; Display DCB
 	.DB	7
 	.DW	DSPDRV		; DISPLAY driver address
+#IFNDEF _EMBED
 	.DW	vidmem		; Cursor Position
+#ELSE
+	.DW	0		; We dont have video ram in embedded Mode
+#ENDIF
 	.DB	0
 	.DB	"D"
 	.DB	"O"
@@ -5462,7 +5545,9 @@ ERRFIN:	call	STROUT		;1a06
 STPRDY:	pop	bc		;1a18
 READY:	call	FINLPT		;1a19
 	call	PRGFIN		;1a1c - dos exit startup
+#IFNDEF _EMBED
 	call	CTOFF		;1a1f
+#ENDIF
 	call	CRDONZ		;1a22
 	ld	hl,m_REDDY	;1a25
 	call	STROUT		;1a28
@@ -5590,7 +5675,7 @@ MLOOPR:	ld	a,(de)		;1ae1
 	or	a		;1ae5
 	jr	nz,MLOOPR	;1ae6
 FINI:	pop	de		;1ae8
-	call	CHEAD		;1ae9
+FINIDE:	call	CHEAD		;1ae9 - Alternate entry, taking parameter in DE
 	call	EXFIND		;1aec
 	call	RUNC		;1aef
 	call	EXFIN2		;1af2
@@ -6726,8 +6811,14 @@ LPRIN1:	jp	NEWCHR		;206c * * *
 PRINT:	call	FILGET		;206f
 	cp	'#'		;2072
 	jr	nz,PNOTAT	;2074
+;
+#IFNDEF _EMBED
 	call	CWRTON		;2076 Write header on cassette file
 	ld	(PRTFLG),a 	;2079 Set current system device to cassette
+#ELSE
+	jp	FCERR		; PRINT# (cassette) is illegal in embedded basic
+#ENDIF
+;
 PNOTAT:
 NEWCHR:	dec	hl 		;207C Backspace over previous symbol in code string
 	GETCHR	 		;207D rst 10h Re-examine previous char in code string
@@ -6740,9 +6831,13 @@ PRINTC:	jp	z,FINPRT	;2081 If end of string turn off cassette and return
 	cp	$04		;208D A = MSB, test for @ value > 1023
  	jp	nc,FCERR	;208E FC error if @ position > 1023
 	push	hl	 	;2092  Save current code string addr
+#IFNDEF _EMBED
 	ld	hl,vidmem	;2093 HL = starting addr of video buffer
 	add	hl,de		;2096  Add tab position
  	ld	(CURSOR),hl	;2097 And save addr in video DCB as cursor addr
+#ELSE
+	call	DSPCUR		;Embedded, inform the display driver to update CURSOR
+#ENDIF
 	ld	a,e		;209A Then get position within line
 	and	$3F		;209B And truncate it to 63
  	ld	(TTYPOS),a 	;209D Then save as current position within line
@@ -6771,9 +6866,13 @@ PRINT:	call	FILGET		;206f
 	cp	$04		;2079
 	jp	nc,FCERR	;207b
 	push	hl		;207e
+#IFNDEF _EMBED
 	ld	hl,vidmem	;207f
 	add	hl,de		;2082
 	ld	(CURSOR),hl	;2083
+#ELSE
+	call	DSPCUR		;Embedded, inform the display driver to update CURSOR
+#ENDIF
 	ld	a,e		;2086
 	and	$3F		;2087
 	ld	(TTYPOS),a	;2089
@@ -6781,9 +6880,15 @@ PRINT:	call	FILGET		;206f
 	SYNTAX	(',')		;208d - rst 08h
 PNOTAT:	cp	'#'		;208f - Is it PRINT#
 	jr	nz,NEWCHR	;2091 - Jump if not PRINT#
+;
+#IFNDEF _EMBED
 	call	CWRTON		;2093
 	ld	a,$80		;2096
 	ld	(PRTFLG),a	;2098
+#ELSE
+	jp	FCERR		; PRINT# (cassette) is illegal in embedded basic
+#ENDIF
+;
 NEWCHR:	dec	hl		;209b
 	GETCHR			;209c - rst 10h
 	call	z,CRDO		;209d
@@ -6955,6 +7060,7 @@ INPUT:	call	ERRDIR		;219a
 	ld	(CASFLG),a	;21a3
 	ld	a,(hl)		;21a6
 	jr	nz,INTCAS	;21a7
+#IFNDEF _EMBED
 	call	CSRDON		;21a9
 	push	hl		;21ac
 	ld	b,$FA		;21ad ; 250, max characters which can be read
@@ -6971,6 +7077,9 @@ ENDREC:	dec	hl		;21bd
 	ld	hl,(BUFPNT)	;21c3
 	dec	hl		;21c6
 	jr	INPCN3		;21c7
+#ELSE
+	jp	FCERR		;Embedded - INPUT# (cassette) is illegal
+#ENDIF
 INTCAS:	ld	bc,NOTQTI	;21c9
 	push	bc		;21cc
 	cp	$22		;21cd
@@ -8972,6 +9081,9 @@ MLOOP:	ld	a,(de)		;2be8
 	ld	l,c		;2bf0
 	ld	(VARTAB),hl	;2bf1
 	ret			;2bf4
+;
+#IFNDEF _EMBED
+;
 ; ----------------------------------------------------------------------
 ; 2BF5-2C1E – LEVEL II BASIC CSAVE ROUTINE – “CSAVE”
 ; ----------------------------------------------------------------------
@@ -9110,6 +9222,8 @@ GETCHZ:	call	CASIN		;2c98
 ; ----------------------------------------------------------------------
 NOOKCS:	.DB	"BAD"		;2ca5
 	.DB	ENTER , $00	;2ca8
+;
+#ENDIF
 ;
 ; ----------------------------------------------------------------------
 ; 2CAA-2CB0 – LEVEL II BASIC PEEK ROUTINE – “PEEK”
@@ -9757,6 +9871,8 @@ QED:	pop	bc		;2ff6
 	.DB	$44		;2ffe
 	.DB	$B2		;2fff
 ;
+#IFNDEF _EMBED
+;
 ; ----------------------------------------------------------------------
 ;  Input Output Map
 ; ----------------------------------------------------------------------
@@ -9776,6 +9892,8 @@ disksect:	.EQU $37EE	; disk sector select
 diskdata:	.EQU $37EF	; disk data byte
 kbdmatrix:	.EQU $3800	; keyboard matrix start (100H bytes)
 vidmem:		.EQU $3C00	; start of video RAM (400H bytes)
+;
+#ENDIF
 ;
 ; ----------------------------------------------------------------------
 ;  Memory Map
