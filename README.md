@@ -30,6 +30,16 @@ On the last point I was unaware of these optimisations until I worked on this co
 
 This source code has been compiled with Telemark Assembler, and tested using a DIFF tool to ensure binary compatibility of the generated output.
 
+### Example Usage
+
+I have created an implementation of Level 2 Basic that runs as an executable CP/M 2.2 (or greater). 
+
+Switch to the branch "cpmbasic" which takes this source code and you will find TBASIC.Z80 which will
+comple to a CP/M COM executable file. It is not well documented (see intose the ASM file), it has many
+limitatations but does work. And also includes the LOAD filename.bas which will load a TRS-80 basic program.
+You do need to be careful though RAM starts at 3000H (not 4000H), so POKE's to what would normally be video
+RAM would easily corrupt your program
+
 ### Contributing
 
 If you wish to improve the quality of this source code (better documentation) wuld be happy to accept Pull Requests, please ensure you test that the build works using Telemark Assembler.
@@ -44,6 +54,7 @@ Following References
 * [http://www.trs-80.org/model-1-level-2-basic-rom-versions/] - ROM Versions defined
 * [https://www.trs-80.com/wordpress/roms/] - Very good source code documentation
 * [https://gitlab.com/retroabandon/trs80i34-re] - The disassembly I based this work on.
+* [https://rosettacode.org/wiki/Category:Z80_Assembly#Inlined_bytecode] - Better Else
 * [https://wikiti.brandonw.net/index.php?title=Z80_Optimization#Better_else] - Better Else
 * [https://www.cpcalive.com/docs/TASMMAN.HTM] - Telemark Assembler
 * Microsoft BASIC Decoded & Other Mysteries - James Farvour

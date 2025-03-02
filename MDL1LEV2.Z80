@@ -108,6 +108,7 @@ ERRL3:	.EQU	2CH	; Disk BASIC Command
 ;   Z-80 TRICKS - these are 1 byte opcode for multibyte instructions
 ;		- used in Z-80 trick code.
 ;
+;   https://rosettacode.org/wiki/Category:Z80_Assembly#Inlined_bytecode
 ;   https://wikiti.brandonw.net/index.php?title=Z80_Optimization#Better_else
 ; ----------------------------------------------------------------------
 LDBCNN:	.EQU 	$01	; LD BC,nnnn - skip 2 bytes
