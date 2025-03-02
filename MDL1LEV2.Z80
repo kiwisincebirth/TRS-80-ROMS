@@ -108,6 +108,7 @@ ERRL3:	.EQU	2CH	; Disk BASIC Command
 ;   Z-80 TRICKS - these are 1 byte opcode for multibyte instructions
 ;		- used in Z-80 trick code.
 ;
+;   https://rosettacode.org/wiki/Category:Z80_Assembly#Inlined_bytecode
 ;   https://wikiti.brandonw.net/index.php?title=Z80_Optimization#Better_else
 ; ----------------------------------------------------------------------
 LDBCNN:	.EQU 	$01	; LD BC,nnnn - skip 2 bytes
@@ -721,7 +722,7 @@ NULRT:	ld	hl,m_REDDY-1	;01bc
 ; ----------------------------------------------------------------------
 CLS:	ld	a,CHOME		;01c9 - cursor Home
 	call	OUT2D		;01cb
-	ld	a,CLRKEY		;01ce - erase to end of frame
+	ld	a,CLRKEY	;01ce - erase to end of frame
 	jp	OUT2D		;01d0
 ;
 ; ======================================================================
@@ -740,19 +741,20 @@ RANDOM:	ld	a,r		;01d3
 ;
 ; ----------------------------------------------------------------------
 ; 01D9H-01F7H – CASSETTE ROUTINE
+;   Output a pulse to the cassette recorder
 ; ----------------------------------------------------------------------
-CTPULS:	ld	hl,$FC01	;01d9
-	call	CTCHG		;01dc
-	ld	b,$0B		;01df
-CT1:	djnz	CT1		;01e1
-	ld	hl,$FC02	;01e3
-	call	CTCHG		;01e6
-	ld	b,$0B		;01e9
-CT2:	djnz	CT2		;01eb
-	ld	hl,$FC00	;01ed
-	call	CTCHG		;01f0
-	ld	b,$5C		;01f3
-CT3:	djnz	CT3		;01f5
+CTPULS:	ld	hl,$FC01	;01d9 - a top of pulse
+	call	CTCHG		;01dc - output pulse
+	ld	b,$0B		;01df - delay count of 80 milliseconds
+CT1:	djnz	CT1		;01e1 - delay loop
+	ld	hl,$FC02	;01e3 - a bottom of pulse
+	call	CTCHG		;01e6 - output pulse
+	ld	b,$0B		;01e9 - delay count of 80 milliseconds
+CT2:	djnz	CT2		;01eb - delay loop
+	ld	hl,$FC00	;01ed - clear pulse
+	call	CTCHG		;01f0 - output pulse
+	ld	b,$5C		;01f3 - delay count of 671 milliseconds
+CT3:	djnz	CT3		;01f5 - delay loop
 	ret			;01f7
 ;
 ; ----------------------------------------------------------------------
@@ -786,19 +788,19 @@ CTON:	ld	a,(hl)		;01fe
 ; ----------------------------------------------------------------------
 DEFDRV:	ld	(casselect),a	;0212
 	push	hl		;0215
-	ld	hl,$FF04	;0216
-CTCHG2:	call	CTCHG		;0219
+	ld	hl,$FF04	;0216 - turn on the cassette motor
+CTCHG2:	call	CTCHG		;0219 - output this command
 	pop	hl		;021c
 	ret			;021d
 ; ----------------------------------------------------------------------
 ; 021EH-022BH – CASSETTE ROUTINE – “CTSTAT”
 ; ----------------------------------------------------------------------
-CTSTAT:	ld	hl,$FF00	;021e
-CTCHG:	ld	a,(CAST)	;0221
-	and	h		;0224
-	or	l		;0225
-	out	(vidcmt),a
-	ld	(CAST),a	;0228
+CTSTAT:	ld	hl,$FF00	;021e - no change to the cassete port
+CTCHG:	ld	a,(CAST)	;0221 - saved value
+	and	h		;0224 - mask the value
+	or	l		;0225 - and set the value on top
+	out	(vidcmt),a	;0226 - send value to the CAS port
+	ld	(CAST),a	;0228 - save it for future
 	ret			;022b
 ; ----------------------------------------------------------------------
 ; 022CH-0234H – CASSETTE ROUTINE (BLINK **) – “BCASIN”
@@ -831,33 +833,33 @@ CTB0:	call	CTBIT		;0239
 ; ----------------------------------------------------------------------
 CTBIT:	push	bc		;0241
 	push	af		;0242
-CB0:	in	a,($FF)		;0243
+CB0:	in	a,(vidcmt)	;0243 - Read BIT from cassette port
 	rla			;0245
 	jr	nc,CB0		;0246
 ;
 #IFDEF VER13
-	ld	b,$60		;0248
+	ld	b,$60		;0248 - Delay for 703 microseconds (assume)
 #ELSE
-	ld	b,$41		;0248 Delay for 476 microseconds
+	ld	b,$41		;0248 - Delay for 476 microseconds
 #ENDIF
 ;
-CB1:	djnz	CB1		;024a
-	call	CTSTAT		;024c
+CB1:	djnz	CB1		;024a - Delay Loop
+	call	CTSTAT		;024c - clear the cassette controller
 ;
 #IFDEF VER13
-	ld	b,$85		;024f
+	ld	b,$85		;024f - Then Delay for 975 microseconds (assume)
 #ELSE
-	ld	b,$76		;024f Then delay for 865 microseconds
+	ld	b,$76		;024f - Then delay for 865 microseconds
 #ENDIF
 ;
-CB2:	djnz	CB2		;0251
-	in	a,($FF)		;0253
+CB2:	djnz	CB2		;0251 - Delay Loop
+	in	a,(vidcmt)	;0253 - Read BIT from cassette port
 	ld	b,a		;0255
 	pop	af		;0256
 	rl	b		;0257
 	rla			;0259
 	push	af		;025a
-	call	CTSTAT		;025b
+	call	CTSTAT		;025b - clear the cassette controller
 	pop	af		;025e
 	pop	bc		;025f
 	ret			;0260
@@ -903,7 +905,7 @@ CWRTON:	call	CTON		;0284
 	xor	a		;0289
 CSAV1:	call	CASOUT		;028a
 	djnz	CSAV1		;028d
-	ld	a,$A5		;028f
+	ld	a,$A5		;028f - sync byte (A5H)
 	jr	CASOUT		;0291
 ; ----------------------------------------------------------------------
 ; 0293H-029EH –	CASSETTE ROUTINE (TURN ON CASSETTE AND READ LEADER) – “CSRDON”
@@ -912,7 +914,7 @@ CSRDON:	call	CTON		;0293
 CSRDON3: push	hl		;0296
 	xor	a		;0297
 CLOD1:	call	CTBIT		;0298
-	cp	$A5		;029b
+	cp	$A5		;029b - sync byte (A5H)
 	jr	nz,CLOD1	;029d
 ; ----------------------------------------------------------------------
 ; 029FH-02A8H – CASSETTE ROUTINE
@@ -1293,17 +1295,17 @@ DSPDRV:
 	or	a		;0463
 	jr	z,DSPGRP	;0464
 	ld	(hl),a		;0466
-DSPGRP:	ld	a,c		;0467
-	cp	$20		;0468 - is it a control code
-	jp	c,DSPCTL	;046a
-	cp	$80		;046d
-	jr	nc,DSPGRC	;046f - is it a graphic
-	cp	$40		;0471
-	jr	c,DSPCHR	;0473 - is it alphabetic
-	sub	$40		;0475
-	cp	$20		;0477 - is it lower case
-	jr	c,DSPCHR	;0479
-	sub	$20		;047b - convert to upper case
+DSPGRP:	ld	a,c		;0467 - convert and display the charater
+	cp	$20		;0468 - is it a control code <$20
+	jp	c,DSPCTL	;046a - display control code
+	cp	$80		;046d - is it a graphic >= $80
+	jr	nc,DSPGRC	;046f - display graphic
+	cp	$40		;0471 - is it number or symbol $20-$40
+	jr	c,DSPCHR	;0473 - then display it
+	sub	$40		;0475 - So now upper case A is 01h
+	cp	$20		;0477 - is it upper case case
+	jr	c,DSPCHR	;0479 - display it
+	sub	$20		;047b - convert from lower to upper case
 DSPCHR:	call	DSPOUT		;047d
 DSPSKP:	ld	a,h		;0480
 	and	$03		;0481
@@ -1364,7 +1366,7 @@ DSPCOF:	xor	a		;04bd
 ; 04C0H – Home the cursor – “DSPHOM”
 ; ----------------------------------------------------------------------
 DSPHOM:	ld	hl,vidmem	;04c0
-	ld	a,(CAST)	;04c3
+	ld	a,(CAST)	;04c3 - Shaddow of Cassete Port
 	and	~CAST32		;04c6 ; $F7 - Not $08 - ie turn the bit off
 	ld	(CAST),a	;04c8
 	out	(vidcmt),a	;04cb
@@ -1376,8 +1378,8 @@ DSPBSP:	dec	hl		;04ce
 	ld	a,(CAST)	;04cf
 	and	CAST32		;04d2 - 32 char mode
 	jr	z,DSPBS2	;04d4
-	dec	hl		;04d6
-DSPBS2:	ld	(hl),' '	;04d7
+	dec	hl		;04d6 - back again if 32 char mode
+DSPBS2:	ld	(hl),' '	;04d7 - Clear the character under cursor
 	ret			;04d9
 ; ----------------------------------------------------------------------
 ; 04DAH – Cursor Left – “DSPLFT”
@@ -1414,7 +1416,7 @@ DSPUP:	ld	de,$FFC0	;04f1
 DSPETB:	ld	a,(CAST)	;04f6
 	or	CAST32		;04f9 - 32 char mode
 	ld	(CAST),a	;04fb
-	out	(vidcmt),a	;04fd
+	out	(vidcmt),a	;04fd - output setting the HW register
 	inc	hl		;0500
 	ld	a,l		;0501
 	and	$FE		;0502
@@ -1457,18 +1459,19 @@ DSPCTL:	ld	de,DSPSKP	;0506
 ; 0541H – Part of the Display routine – “DSPOUT”
 ;   Output the character held in Register A and move the cursor,
 ;   scrolling the screen if necessary
+;   HL contains the current screen address
 ; ----------------------------------------------------------------------
-DSPOUT:	ld	(hl),a		;0541
-	inc	hl		;0542
-	ld	a,(CAST)	;0543
-	and	CAST32		;0546 - 32 char mode
-	jr	z,DSPOT2	;0548
-	inc	hl		;054a
+DSPOUT:	ld	(hl),a		;0541 - write the charater to vide ram
+	inc	hl		;0542 - next screen position
+	ld	a,(CAST)	;0543 - cassete port shaddow byte
+	and	CAST32		;0546 - mask out 32 char mode
+	jr	z,DSPOT2	;0548 - if not 32 character mode, skip over
+	inc	hl		;054a - Skip another screen loaction (32 char)
 DSPOT2:	ld	a,h		;054b
-	cp	$40		;054c
-	ret	nz		;054e
-	ld	de,$FFC0	;054f - -ve line length (-40H)
-	add	hl,de		;0552
+	cp	$40		;054c - past end of screen at $40000
+	ret	nz		;054e - nothing to do
+	ld	de,$FFC0	;054f - => -64, ie one line of characters
+	add	hl,de		;0552 - move cursor back one line
 	push	hl		;0553
 ; ----------------------------------------------------------------------
 ; 0554H – Part of the Display routine – “DSPROL”
@@ -1729,7 +1732,7 @@ KLNCR:	push	af		;0662
 ; ----------------------------------------------------------------------
 INIT:
 #IFNDEF _EMBED
-	out	(vidcmt),a	;0674 - reset the Vido cassette latch
+	out	(vidcmt),a	;0674 - reset the Video cassette latch
 #ENDIF
 ;
 INITA1:	ld	hl,INITR	;0676
@@ -1751,26 +1754,26 @@ CLRAM:	ld	(de),a		;0687
 ;  Check for a manual override
 ; ----------------------------------------------------------------------
 	ld	a,(kbdmatrix+$40);068b
-	and	$04		;068e
-	jp	nz,INIT2	;0690
+	and	$04		;068e - if the BREAK key is being pressed
+	jp	nz,INIT2	;0690 - Jump if the BREAK key was pressed
 ;
 ; This is the beginning of the routine which boots a diskette
 	ld	sp,TMPSTK	;0693 - $407D since Disk load will overite > $4200
-	ld	a,(diskstat)
+	ld	a,(diskstat)	;0696 - status of the disk controller (37ECH)
 	inc	a		;0699
-	cp	$02		;069a
-	jp	c,INIT2		;069c
+	cp	$02		;069a - is disk controller present.
+	jp	c,INIT2		;069c - Jump to Level II Init if no disk controller
 ;   fallthrough
 ; ----------------------------------------------------------------------
 ; 069FH – Bootstrap from Diskette – "BOOT"
 ; ----------------------------------------------------------------------
 BOOT:	ld	a,$01		;069f
 	ld	(dskselect),a	;06a1
-	ld	hl,diskstat
-	ld	de,diskdata	;06a7
-	ld	(hl),$03	;06aa
+	ld	hl,diskstat	;06a4 - address of the disk command/status Register 37ECH
+	ld	de,diskdata	;06a7 - address of the disk data Register (37EFH)
+	ld	(hl),$03	;06aa - command 03H (RESTORE and POSITION TO TRACK 0)
 	ld	bc,$0000	;06ac
-	call	PAUSE
+	call	PAUSE		;06af - delay (BC times 14.65) about 3 seconds
 BOOTDL:	bit	0,(hl)		;06b2
 	jr	nz,BOOTDL	;06b4
 	xor	a		;06b6
@@ -9877,7 +9880,7 @@ QED:	pop	bc		;2ff6
 ;  Input Output Map
 ; ----------------------------------------------------------------------
 ;
-vidcmt:	.EQU	$FF		; VIDEO I/O Port
+vidcmt:	.EQU	$FF		; VIDEO I/O Mode select and Cassette Port
 ;
 ; ----------------------------------------------------------------------
 ;  Memory Mapped Hardware
@@ -9890,6 +9893,7 @@ diskstat:	.EQU $37EC	; disk controller status
 disktrk:	.EQU $37ED	; disk track select
 disksect:	.EQU $37EE	; disk sector select
 diskdata:	.EQU $37EF	; disk data byte
+;
 kbdmatrix:	.EQU $3800	; keyboard matrix start (100H bytes)
 vidmem:		.EQU $3C00	; start of video RAM (400H bytes)
 ;
