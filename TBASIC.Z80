@@ -65,8 +65,11 @@ ESC		.equ	$1B
 ;
 	ld	(stksav),sp		; save old stack value
 	xor	a			; clear accumulator (for INIT)
-	jp	INIT			; run the Rom from INIT
+	jp	INIT			; JUM to LEVEL 2 BASIC INIT
+	; BASIC is execting at this point, See POSTINI below.
+;
 cleanup:
+	; This is executed when the BASIC SYSTEM command is used
 	ld	sp,(stksav)		; restore stack from saved stack
 	jp	restart			; return to CP/M via restart
 ;
@@ -90,8 +93,8 @@ MEMORY:
         ; just below the BOOS.
 	ret
 ;
-INIT3:
-	; called after full initialisation, but before READY prompt
+POSTINIT:
+	; called after full initialisation of BASIC, but before READY prompt
 	; allows additional setup tasks to be performed
 	; todo setup disk basic Vector's - e.g.load and save
 	ld	a,OPJPNN		; opcode for JP nnnn

@@ -532,7 +532,7 @@ USEDEF:	dec	hl		;00e7
 	ld	(STKTOP),hl	;00f6 - start of string space pointer MEMSIZE-32
 ;
 #IFDEF _EMBED
-	call	INIT3		; Embedded Post Init Setup.
+	call	POSTINIT		; Embedded Post Init Setup.
 #ENDIF
 ;
 	call	SCRTCH		;00f9
