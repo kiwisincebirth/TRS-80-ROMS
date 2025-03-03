@@ -19,24 +19,29 @@
 ;   * CLEAR - Mapped to ?
 ; LANGUAGE
 ;   * SYSTEM command (monitor) replacd - now perform exit from basic
-;   * Cassette All commands removed CLOAD, CSAVE or disabled PRINT#, INPUT#
-;   * Graphics All commands removed SET, RESET, POINT,
+;   * Cassette All commands removed CLOAD, CSAVE, will generate an L3 Error
+;   * Cassette access has been disabled PRINT#, INPUT# will generate an FN error
+;   * Graphics All commands removed SET, RESET, POINT will generate an L3 Error
+;   * LOAD filename.bas - disk command has been implement to load a basic fle from disk
 ; TECHNICAL
 ;   * Removed all support for Cassette
 ;   * Removed support for 32 Character Mode
 ;   * Removed Disk Boot startup from ROM
-;   * Removed ALL HW dependancies
-;   * RAM (communications area) is fully supported, but starts at $3000, not $4000.
-;   * ROM subroutine addresses no longer valid, but will work (different addresses)
-;   * RST commands not supported, must be replaced wiht CALL's
+;   * Removed ALL other HW dependancies
+;   * RAM communications area ($4000) is fully supported, but starts at $3000.
+;   * ROM subroutines fully work (if not removed), just at different addresses.
+;   * RST commands not supported, have been replaced with CALL's
 ; TODO
 ;   * PRINT@[0-1023] command, uses HW address, needs fixing
-;   * Disk Routines need writing SAVE LOAD, then others
+;   * SAVE command (save a basic file to disk) needs implementing
+;   * Other Disk BASIC Routines for reading and wrting files need implementing
 ;   * Line Printer Driver need implemting
+;   * POKE's to HW addressed < $4000 should be ignored
+;   * POKE's and PEEK's to $4000 to $4200 could be remapped to $3000
 ; ISSUES
 ;   * Graphics charater not nativly supported, requires terminal font to be installed
 ;     this may or may not work.
-;   * Video ram does not exist POKES to video ram will cause failures
+;   * Video ram does not exist POKE's to video ram will cause failures
 ;   * INSTR$ will not detect a contious key press, (i.e. no held keys)
 ;     it will respond to Key repeat (multiple presses) if supported in HW
 ;
@@ -129,22 +134,6 @@ POINT:
 ;===============================================================================
 ;
 DLOAD:
-;	call	FRMEVL		; evaluate the string expression at the location HL
-;	call	FRESTR		; check and get string pointer in HL
-;	;
-;	ld	a,(hl)		; length byte, need to check it
-;	or	a
-;	jp	z,FCERR		; ensure it isnt 0 length
-;;	cp	8
-;;	jp	nc,FCERR	; >= 8 so report the erro
-;	;
-;	inc	hl		; the string pointer
-;	ld	e,(hl)		; dereference the string pointer
-;	inc	hl
-;	ld	d,(hl)
-;	ex	de,hl		; move DE (string pointr) into HL
-;	; TODO All above code could be removed, HL already contains pointer to String, excepting we may want to skip " ?
-
 	; The HL pointer already comes with pointer to input string.
 	ld	de,sysfcb1	; target FCB
 	call	convert		; convert filename to FCB

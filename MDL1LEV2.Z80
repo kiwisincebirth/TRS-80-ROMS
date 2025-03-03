@@ -9866,6 +9866,8 @@ QED:	pop	bc		;2ff6
 	pop	de		;2ff7
 	jp	READY		;2ff8
 ;
+#IFNDEF _EMBED
+;
 ; ----------------------------------------------------------------------
 ; THE END OF THE LEVEL II BASIC ROMS
 	.DB	$DE		;2ffb
@@ -9873,8 +9875,6 @@ QED:	pop	bc		;2ff6
 	.DB	$C3		;2ffd
 	.DB	$44		;2ffe
 	.DB	$B2		;2fff
-;
-#IFNDEF _EMBED
 ;
 ; ----------------------------------------------------------------------
 ;  Input Output Map
