@@ -12,6 +12,9 @@
 ; CRC-32: A8E60D9A
 ;
 ; #DEFINE VER13	; Leave Commented for V1.2, Uncomment for V1.3
+; #DEFINE NMIHARD ; Uncomment to set NMI Reset as always hard reset. (0066h)
+; #DEFINE LOWCASE ; Uncomment to Disable Alpha Character Translation (0471h)
+; #DEFINE DONTEND ; Uncomment to Disable END directive, use if #include
 ;
 ; ======================================================================
 ;     INFORMATION
@@ -24,7 +27,7 @@
 ;   * Replaced all auto generated Labels with meaninful labels
 ;   * Ensured all jumps referenced code labels
 ;   * Replaced $3xxx hardware references with EQU defintions
-;   * Replaced $4xxx buffere references with EQU definitions
+;   * Replaced $4xxx buffer references with EQU definitions
 ;   * Replaced op-code with Byte definitions for Data Segments
 ;   * Replaced incorrect op-codes, where Better Else code "Trick" was was used.
 ;   * Added V1.3 modifications into the source code, with use of #IFDEF
@@ -391,7 +394,13 @@ PAUSE:	dec	bc		;0060
 ; The RESET button generates an NMI, not an actual reset.
 ; ----------------------------------------------------------------------
 NMI:	ld	sp,$0600	;0066 - wrong Stack Pointer. Replaced
+;
+#IFDEF NMIHARD
+	ld	a,0		;0069 - Always START as if power-up
+	inc	a		;006B - by loading a with valid disk status
+#ELSE
 	ld	a,(diskstat)	;0069 - $FF if no expansion interface present
+#ENDIF
 	inc	a		;006C
 	cp	$02		;006D - disk present?
 	jp	nc,_START	;006F -   yes: re_START as if power-up
@@ -1233,7 +1242,11 @@ DSPGRP:	ld	a,c		;0467 - convert and display the charater
 	cp	$80		;046d - is it a graphic >= $80
 	jr	nc,DSPGRC	;046f - display graphic
 	cp	$40		;0471 - is it number or symbol $20-$40
+#IFDEF LOWCASE
+	jr	DSPCHR		;Disabe all Alpha CHR translation
+#ELSE
 	jr	c,DSPCHR	;0473 - then display it
+#ENDIF
 	sub	$40		;0475 - So now upper case A is 01h
 	cp	$20		;0477 - is it upper case case
 	jr	c,DSPCHR	;0479 - display it
@@ -1670,7 +1683,7 @@ INITA1:	ld	hl,INITR	;0676
 	ldir			;067f - Move 6D2-707 to 4000-4035
 	dec	a		;0681
 	dec	a		;0682
-	jr	nz,INITA1	;Changes from ROM v1.0 to v1.1
+	jr	nz,INITA1	;0683 - Loop back until block move occurred 128 times
 ;
 	ld	b,$27		;0685
 CLRAM:	ld	(de),a		;0687
@@ -1694,26 +1707,26 @@ CLRAM:	ld	(de),a		;0687
 ; 069FH – Bootstrap from Diskette – "BOOT"
 ; ----------------------------------------------------------------------
 BOOT:	ld	a,$01		;069f
-	ld	(dskselect),a	;06a1
+	ld	(dskselect),a	;06a1 - Select Drive :0 and turn the motor on
 	ld	hl,diskstat	;06a4 - address of the disk command/status Register 37ECH
 	ld	de,diskdata	;06a7 - address of the disk data Register (37EFH)
 	ld	(hl),$03	;06aa - command 03H (RESTORE and POSITION TO TRACK 0)
 	ld	bc,$0000	;06ac
 	call	PAUSE		;06af - delay (BC times 14.65) about 3 seconds
-BOOTDL:	bit	0,(hl)		;06b2
+BOOTDL:	bit	0,(hl)		;06b2 - is the diskette controller is busy
 	jr	nz,BOOTDL	;06b4
 	xor	a		;06b6
 	ld	(disksect),a	;06b7
-	ld	bc,MEMEND	;06ba
-	ld	a,$8C		;06bd
+	ld	bc,MEMEND	;06ba - address to read sector data (4200H)
+	ld	a,$8C		;06bd - command to read single IBM formatted sector
 	ld	(hl),a		;06bf
-BOOTLP:	bit	1,(hl)		;06c0
+BOOTLP:	bit	1,(hl)		;06c0 - check to see if there is data available
 	jr	z,BOOTLP	;06c2
-	ld	a,(de)		;06c4
-	ld	(bc),a		;06c5
-	inc	c		;06c6
-	jr	nz,BOOTLP	;06c7
-	jp	MEMEND		;06c9
+	ld	a,(de)		;06c4 - load byte from disk controller
+	ld	(bc),a		;06c5 - write byte to ram.
+	inc	c		;06c6 - next mem address
+	jr	nz,BOOTLP	;06c7 - Loop until whole 256 byte sector has been read
+	jp	MEMEND		;06c9 - Hand execution to the boot sector code
 ; ----------------------------------------------------------------------
 ; 06CCH-06CEH – Alternative re-entry point into BASIC – "RESETR"
 ;  This is an alternative re-entry point into BASIC. A JP 6CCH is often better
@@ -9952,5 +9965,7 @@ SMPSTK:	.EQU	RAM+$1F8	; Initial Stack address.
 MEMEND:	.EQU	RAM+$200	; End of Reserved RAM Communications area
 ;
 ; ======================================================================
+#IFNDEF DONTEND
 	.END
+#ENDIF
 ; ======================================================================
