@@ -4,7 +4,7 @@
 
 This repository contains reverse engineered source code for Tandy TRS-80 Model 1 Level 2 BASIC ROMS. 
 
-This source code has support for both V1.2, and V1.3 of the ROMS. The version can be selected via the `#DEFINE VER13` code directive. For more information on the differences see the blog article
+This source code has support for both V1.2, and V1.3 of the ROMS. The version can be selected via the `#DEFINE VER12` code directive. For more information on the differences see the blog article
 
 ### Motivation
 
@@ -31,7 +31,7 @@ On the last point I was unaware of these optimisations until I worked on this co
 This source code has been compiled with Telemark Assembler, and tested using a DIFF tool to ensure binary compatibility of the generated output.
 
 There are several Optional `DEFINES` with can be stated. See rom image and uncomment if necessary
-* DEFINE VER13 - For V1.3 of the ROM, defaults to the V1.2 ROM Image. Only 1.2 and 1.3 are supported.
+* DEFINE VER12 - Defne for V1.2 of the ROM, defaults to the V1.3 ROM Image. Only 1.2 and 1.3 are supported.
 * DEFINE NMIHARD - Set NMI (reset) as always perform a hard reset. Normally on non-disk systems NMI performs a soft reset returing to the `READY>` prompt with the basic program intact. This is useful in system without floppy disk to force a full reset (0066h)
 * DEFINE LOWCASE - Disable Alpha character translation of letters A-Z to the values on range 00h to 1Fh. This is useful when a lower case mod is installed, but an alternate video driver has not been installed. (0471h)
 * DEFINE DONTEND - Disable `.END` directive if `#INCLUDE`ing the source inside another file.

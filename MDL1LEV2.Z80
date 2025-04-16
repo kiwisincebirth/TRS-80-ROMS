@@ -11,7 +11,7 @@
 ; Date: 01/07/80-01/13/80
 ; CRC-32: A8E60D9A
 ;
-; #DEFINE VER13	; Leave Commented for V1.2, Uncomment for V1.3
+; #DEFINE VER12	; Uncomment for V1.2, Leave Commented for V1.3
 ; #DEFINE NMIHARD ; Uncomment to set NMI Reset as always hard reset. (0066h)
 ; #DEFINE LOWCASE ; Uncomment to Disable Alpha Character Translation (0471h)
 ; #DEFINE DONTEND ; Uncomment to Disable END directive, use if #include
@@ -46,6 +46,10 @@
 ;   • Microsoft BASIC Decoded & Other Mysteries - James Farvour
 ;
 ; ======================================================================
+;
+#IFNDEF VER12
+#DEFINE VER13	; Ensure 1.3 is the default if 1.2 is not defined.
+#ENDIF
 ;
 ; ----------------------------------------------------------------------
 ;   BASIC TOKENS IDS
