@@ -11,9 +11,10 @@
 ; Date: 01/07/80-01/13/80
 ; CRC-32: A8E60D9A
 ;
-; #DEFINE VER12	; Uncomment for V1.2, Leave Commented for V1.3
+; #DEFINE VER12	  ; Uncomment for V1.2, Leave Commented for V1.3
 ; #DEFINE NMIHARD ; Uncomment to set NMI Reset as always hard reset. (0066h)
 ; #DEFINE LOWCASE ; Uncomment to Disable Alpha Character Translation (0471h)
+; #DEFINE SIZE16K ; Uncomment to build a $FF padded 16K Image for banked ROM
 ; #DEFINE DONTEND ; Uncomment to Disable END directive, use if #include
 ;
 ; ======================================================================
@@ -9969,6 +9970,18 @@ SMPSTK:	.EQU	RAM+$1F8	; Initial Stack address.
 MEMEND:	.EQU	RAM+$200	; End of Reserved RAM Communications area
 ;
 ; ======================================================================
+;
+; PADDING to create 16KB ROM Image, to allow append multiple
+; versions into a larger (modern) paged ROM file.
+;
+#IFDEF	SIZE16K
+	.FILL	(4000h - $)
+#ENDIF
+; ======================================================================
+;
+; If this file is being #Included from another assembly file
+; we may want to disable the END directive
+;
 #IFNDEF DONTEND
 	.END
 #ENDIF
