@@ -31,9 +31,12 @@ On the last point I was unaware of these optimisations until I worked on this co
 This source code has been compiled with Telemark Assembler, and tested using a DIFF tool to ensure binary compatibility of the generated output.
 
 There are several Optional `DEFINES` with can be stated. See rom image and uncomment if necessary
+* DEFINE FREHDBT - Enables the FreHD auto boot feature, i.e. the Auto boot ROM. This implies a Version 1.3 rom as a base. Consider also enabling NMIHARD to ensure reset (on non floppy machine) will force a reset.
+* DEFINE NMIHARD - Set NMI (reset) as always perform a hard reset. Normally on non-floppy systems NMI performs a soft reset returing to the `READY>` prompt with the basic program intact. This is useful in system without floppy disk to force a full reset (0066h)
+* DEFINE LOWCASE - Disable Alpha character translation of letters A-Z,a-z to the values on range 00h to 1Fh. This is useful when a lower case mod is installed, but an alternate video driver has not been installed. (0471h)
+
+Some additional defines, which are build options rather than features
 * DEFINE VER12 - Define for V1.2 of the ROM, defaults to the V1.3 ROM Image. Only 1.2 and 1.3 are supported.
-* DEFINE NMIHARD - Set NMI (reset) as always perform a hard reset. Normally on non-disk systems NMI performs a soft reset returing to the `READY>` prompt with the basic program intact. This is useful in system without floppy disk to force a full reset (0066h)
-* DEFINE LOWCASE - Disable Alpha character translation of letters A-Z to the values on range 00h to 1Fh. This is useful when a lower case mod is installed, but an alternate video driver has not been installed. (0471h)
 * DEFINE SIZE16K - Will pad the end of the rom with $FF to 16KB size. Use if want to append multiple rom images for used in large paged rom
 * DEFINE DONTEND - Disable `.END` directive if `#INCLUDE`ing the source inside another file.
 
