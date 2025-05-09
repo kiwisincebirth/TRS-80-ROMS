@@ -5,6 +5,7 @@
 ;
 ; Rom Version Definition
 ; #DEFINE VER12	  ; Uncomment for V1.2, Leave Commented for V1.3
+; #DEFINE EACA80  ; Uncomment to enable System-80 (EACA) hardware support
 ;
 ; Version 1.3 - 80/02
 ; Date: 01/07/80-01/13/80
@@ -17,7 +18,7 @@
 ; Rom Additional Features
 ; #DEFINE NMIHARD ; Uncomment to set NMI Reset as always hard reset. (0066h)
 ; #DEFINE LOWCASE ; Uncomment to Disable Alpha Character Translation (0471h)
-; #DEFINE FREHDBT ; Uncomment to enable FreHD Auto boot at startup
+; #DEFINE FREHDBT ; Uncomment to enable FreHD Auto boot at startup (requires VER13)
 ;
 ; Build Features
 ; #DEFINE SIZE16K ; Uncomment to build a $FF padded 16K Image for banked ROM
@@ -557,11 +558,23 @@ HDBOOT:	ld	a,ROM_MODEL_1	;00ff - ROM parameter to FreHD. 1 for Model1.
 ;   Note: Starts at 0113H if FreHD has been defined
 ; ----------------------------------------------------------------------
 ;
-MEMMSG:	.DB	"MEM SIZE",0
+#IFNDEF EACA80
+MEMMSG:	.DB	"MEM SIZE",0	; Radio Shack Mem Size V1.3
+#ELSE
+MEMMSG:	.DB	"READY ",0,0,0  ; Disk Smith System-80 (EACA) Ready Message
+#ENDIF
+
 #IFNDEF FREHDBT
 		; If FreHD then this message is removed
 		; saving enough space for the HDBOOT routine (00FFH) above
-HDGMSG:	.DB	"R/S L2 BASIC",ENTER,0
+
+#IFNDEF EACA80
+HDGMSG:	.DB	"R/S L2 BASIC",ENTER,0 ; Radio Shack l2 BASIC V1.3
+#ELSE
+HDGMSG:	.DB	ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,0
+		; Disk Smith System-80 (EACA) Blank Message
+#ENDIF
+
 #ENDIF
 ;
 ; ----------------------------------------------------------------------
@@ -585,8 +598,13 @@ KEYBOU	push	bc		;01CC Save Row Address in BC into the STACK
 ; 0105H-012CH – MESSAGE STORAGE (VERSION 1.2)
 ; ----------------------------------------------------------------------
 ;
+#IFNDEF EACA80
 MEMMSG:	.DB	"MEMORY SIZE",0
 HDGMSG:	.DB	"RADIO SHACK LEVEL II BASIC",ENTER,0
+#ELSE
+MEMMSG:	.DB	"READY ",0,0,0,0,0,0	; Disk Smith System-80 (EACA) Startup Messages
+HDGMSG:	.DB	ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,0
+#ENDIF
 ;
 #ENDIF
 ;
@@ -786,7 +804,13 @@ CTON:	ld	a,(hl)		;01fe
 ;   Put 00H in A Register to turn on cassette 1, or O1H to turn on cassette 2.
 ;   All registers are used.
 ; ----------------------------------------------------------------------
-DEFDRV:	ld	(casselect),a	;0212
+DEFDRV:
+#IFNDEF EACA80
+	ld	(casselect),a	;0212
+#ELSE
+	out	(casport),a	;0212 - On Dick Smith System-80 (EACA) use IO port
+	nop			;0214
+#ENDIF
 	push	hl		;0215
 	ld	hl,$FF04	;0216 - turn on the cassette motor
 CTCHG2:	call	CTCHG		;0219 - output this command
@@ -1549,14 +1573,24 @@ PRTVT:	ld	a,(ix+3)	;059f
 PRTFF:	call	PRTSA		;05a6
 	jr	nz,PRTFF	;05a9
 	ld	a,LINEF		;05ab
+#IFNDEF EACA80
 	ld	(prtstat),a	;05ad
+#ELSE
+	nop			;05ad
+	out	(prtport),a	;05ae - On Dick Smith System-80 (EACA) use IO port
+#ENDIF
 	djnz	PRTFF		;05b0
 	jr	PRTOP		;05b2
 PRTIT:	push	af		;05b4
 PRTIT2:	call	PRTSA		;05b5
 	jr	nz,PRTIT2	;05b8
 	pop	af		;05ba
+#IFNDEF EACA80
 	ld	(prtstat),a	;05bb
+#ELSE
+	nop			;05bb
+	out	(prtport),a	;05bc - On Dick Smith System-80 (EACA) use IO port
+#ENDIF
 	cp	ENTER		;05be
 	ret	nz		;05c0
 	inc	(ix+4)		;05c1
@@ -1573,7 +1607,13 @@ PRTOP:	ld	(ix+4),0	;05cc
 ;   Returns the status of the line printer in the status register as
 ;   zero if the printer is ready, and non-zero if not ready.
 ; ----------------------------------------------------------------------
-PRTSA:	ld	a,(prtstat)	;05d1
+PRTSA:
+#IFNDEF EACA80
+	ld	a,(prtstat)	;05d1
+#ELSE
+	nop			;05d1
+	in	a,(prtport)	;05d2 - On Dick Smith System-80 (EACA) use IO port
+#ENDIF
 	and	$F0		;05d4
 	cp	$30		;05d6
 	ret			;05d8
@@ -5285,7 +5325,11 @@ ERRTAB:
 	.DB	"UE"		; Unprintable Error 	(26H)
 	.DB	"MO"		; Missing Operand 	(28H)
 	.DB	"FD"		; Bad file Data 	(2AH)
+#IFNDEF	EACA80
 	.DB	"L3"		; Disk BASIC Command 	(2CH)
+#ELSE
+	.DB	"SN"		; Disk BASIC Command 	(2CH) - On Dick Smith System-80
+#ENDIF
 ;
 ; ----------------------------------------------------------------------
 ; 18F7-1904 – STORAGE LOCATION FOR THE SINGLE PRECISION DIVISION ROUTINE
@@ -9835,7 +9879,11 @@ QED:	pop	bc		;2ff6
 ;  Input Output Map
 ; ----------------------------------------------------------------------
 ;
-vidcmt:	.EQU	$FF		; VIDEO I/O Mode select and Cassette Port
+; On Disk Smith System 80 (EACA) there are additional Hardware IO ports
+prtport: .EQU	$FD		; Printer Port (replaces 37E8)
+casport: .EQU	$FE		; Cassette Select Latch Port
+;
+vidcmt:	 .EQU	$FF		; VIDEO I/O Mode select and Cassette Port
 ;
 ; ----------------------------------------------------------------------
 ;  Memory Mapped Hardware
