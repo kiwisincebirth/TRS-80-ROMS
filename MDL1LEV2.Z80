@@ -3,17 +3,25 @@
 ;     TRS-80 Model I Level II BASIC ROM - (Dissassembled Code)
 ; ----------------------------------------------------------------------
 ;
-; Version 1.2 - 79/12
-; Date: 03/19/78 - 03/25/79
-; CRC-32: 0D8A132E
+; Rom Version Definition
+; #DEFINE VER12	  ; Uncomment for V1.2, Leave Commented for V1.3
+; #DEFINE EACA80  ; Uncomment to enable System-80 (EACA) hardware support
 ;
 ; Version 1.3 - 80/02
 ; Date: 01/07/80-01/13/80
 ; CRC-32: A8E60D9A
+
+; Version 1.2 - 79/12
+; Date: 03/19/78 - 03/25/79
+; CRC-32: 0D8A132E
 ;
-; #DEFINE VER12	; Uncomment for V1.2, Leave Commented for V1.3
+; Rom Additional Features
 ; #DEFINE NMIHARD ; Uncomment to set NMI Reset as always hard reset. (0066h)
 ; #DEFINE LOWCASE ; Uncomment to Disable Alpha Character Translation (0471h)
+; #DEFINE FREHDBT ; Uncomment to enable FreHD Auto boot at startup (requires VER13)
+;
+; Build Features
+; #DEFINE SIZE16K ; Uncomment to build a $FF padded 16K Image for banked ROM
 ; #DEFINE DONTEND ; Uncomment to Disable END directive, use if #include
 ;
 ; ======================================================================
@@ -49,6 +57,19 @@
 ;
 #IFNDEF VER12
 #DEFINE VER13	; Ensure 1.3 is the default if 1.2 is not defined.
+#ENDIF
+;
+#IFDEF FREHDBT
+		; Constants used by FreHD
+ROM_MODEL_1:	.EQU 1			; TRS model : passed by the patched rom
+READROM:	.EQU $C4		; read only
+WRITEROM	.EQU $C5		; write only
+ROM_LOAD	.EQU $5000		; where the extra "rom is loaded
+;
+#IFNDEF VER13
+#DEFINE VER13 	; VER13 must be used if FreHD is defined
+#ENDIF
+;
 #ENDIF
 ;
 ; ----------------------------------------------------------------------
@@ -549,24 +570,63 @@ USEDEF:	dec	hl		;00e7
 #ENDIF
 ;
 	call	SCRTCH		;00f9
+#IFNDEF FREHDBT
+	; FreHD does not print this message, saving 6 bytes here
 	ld	hl,HDGMSG	;00fc
 	call	STROUT		;00ff
+#ENDIF
 ; then it jumps to the entry point for the BASIC command mode
 	jp	READY		;0102
 ;
 #IFDEF VER13
+;
+#IFDEF FREHDBT
+;
 ; ----------------------------------------------------------------------
-; 0105H-01CBH – MESSAGE STORAGE
+; 00FFH-0112H – HDBOOT - FreHD HD bootup routine
+; using space saved by HDGMSG startup message
+; ----------------------------------------------------------------------
+HDBOOT:	ld	a,ROM_MODEL_1	;00ff - ROM parameter to FreHD. 1 for Model1.
+        out	(WRITEROM),a	;0101
+        in	a,(READROM)	;0103
+        cp	0FEh		;0105 - FE is FreHD present and valid code!
+        ret	nz		;0107 - return if no FreHD or old firmware
+        ld	hl,ROM_LOAD	;0108 - load more "rom" from FreHD
+        ld	bc,READROM	;010b - port to read and size counter
+        inir			;010e - bulk transfer
+        jp	ROM_LOAD	;0110 - jump to loader in RAM
+;
+#ENDIF
+;
+; ----------------------------------------------------------------------
+; 0105H-011BH – MESSAGE STORAGE
+;   Note: Starts at 0113H if FreHD has been defined
 ; ----------------------------------------------------------------------
 ;
-MEMMSG:	.DB	"MEM SIZE",0
-;
+#IFNDEF EACA80
+MEMMSG:	.DB	"MEM SIZE",0	; Radio Shack Mem Size V1.3
+#ELSE
+MEMMSG:	.DB	"READY ",0,0,0  ; Disk Smith System-80 (EACA) Ready Message
+#ENDIF
+
 #IFNDEF _EMBED
-;
-HDGMSG:	.DB	"R/S L2 BASIC",ENTER,0
+
+#IFNDEF FREHDBT
+		; If FreHD then this message is removed
+		; saving enough space for the HDBOOT routine (00FFH) above
+
+#IFNDEF EACA80
+HDGMSG:	.DB	"R/S L2 BASIC",ENTER,0 ; Radio Shack l2 BASIC V1.3
+#ELSE
+HDGMSG:	.DB	ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,0
+		; Disk Smith System-80 (EACA) Blank Message
+#ENDIF
+
+#ENDIF
 ;
 ; ----------------------------------------------------------------------
-; 01CCH-01ECH – KEYBOUNCE V1.3
+; 011CH-012CH – KEYBOUNCE V1.3
+; using space save by the shortened startup messages
 ; ----------------------------------------------------------------------
 KEYBOU	push	bc		;01CC Save Row Address in BC into the STACK
 	ld 	bc,$0500	;01DD the debounce delay
@@ -587,11 +647,16 @@ KEYBOU	push	bc		;01CC Save Row Address in BC into the STACK
 ; 0105H-012CH – MESSAGE STORAGE (VERSION 1.2)
 ; ----------------------------------------------------------------------
 ;
+#IFNDEF EACA80
 MEMMSG:	.DB	"MEMORY SIZE",0
 ;
 #IFNDEF _EMBED
 ;
 HDGMSG:	.DB	"RADIO SHACK LEVEL II BASIC",ENTER,0
+#ELSE
+MEMMSG:	.DB	"READY ",0,0,0,0,0,0	; Disk Smith System-80 (EACA) Startup Messages
+HDGMSG:	.DB	ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,0
+#ENDIF
 ;
 #ENDIF
 ;
@@ -799,7 +864,13 @@ CTON:	ld	a,(hl)		;01fe
 ;   Put 00H in A Register to turn on cassette 1, or O1H to turn on cassette 2.
 ;   All registers are used.
 ; ----------------------------------------------------------------------
-DEFDRV:	ld	(casselect),a	;0212
+DEFDRV:
+#IFNDEF EACA80
+	ld	(casselect),a	;0212
+#ELSE
+	out	(casport),a	;0212 - On Dick Smith System-80 (EACA) use IO port
+	nop			;0214
+#ENDIF
 	push	hl		;0215
 	ld	hl,$FF04	;0216 - turn on the cassette motor
 CTCHG2:	call	CTCHG		;0219 - output this command
@@ -1569,14 +1640,24 @@ PRTVT:	ld	a,(ix+3)	;059f
 PRTFF:	call	PRTSA		;05a6
 	jr	nz,PRTFF	;05a9
 	ld	a,LINEF		;05ab
+#IFNDEF EACA80
 	ld	(prtstat),a	;05ad
+#ELSE
+	nop			;05ad
+	out	(prtport),a	;05ae - On Dick Smith System-80 (EACA) use IO port
+#ENDIF
 	djnz	PRTFF		;05b0
 	jr	PRTOP		;05b2
 PRTIT:	push	af		;05b4
 PRTIT2:	call	PRTSA		;05b5
 	jr	nz,PRTIT2	;05b8
 	pop	af		;05ba
+#IFNDEF EACA80
 	ld	(prtstat),a	;05bb
+#ELSE
+	nop			;05bb
+	out	(prtport),a	;05bc - On Dick Smith System-80 (EACA) use IO port
+#ENDIF
 	cp	ENTER		;05be
 	ret	nz		;05c0
 	inc	(ix+4)		;05c1
@@ -1593,7 +1674,13 @@ PRTOP:	ld	(ix+4),0	;05cc
 ;   Returns the status of the line printer in the status register as
 ;   zero if the printer is ready, and non-zero if not ready.
 ; ----------------------------------------------------------------------
-PRTSA:	ld	a,(prtstat)	;05d1
+PRTSA:
+#IFNDEF EACA80
+	ld	a,(prtstat)	;05d1
+#ELSE
+	nop			;05d1
+	in	a,(prtport)	;05d2 - On Dick Smith System-80 (EACA) use IO port
+#ENDIF
 	and	$F0		;05d4
 	cp	$30		;05d6
 	ret			;05d8
@@ -1776,20 +1863,26 @@ CLRAM:	ld	(de),a		;0687
 ;
 ; This is the beginning of the routine which boots a diskette
 	ld	sp,TMPSTK	;0693 - $407D since Disk load will overite > $4200
+#IFDEF FREHDBT
+	call	HDBOOT		;0696 - ; call to the FreHD hd boot routines.
+#ENDIF
 	ld	a,(diskstat)	;0696 - status of the disk controller (37ECH)
 	inc	a		;0699
 	cp	$02		;069a - is disk controller present.
 	jp	c,INIT2		;069c - Jump to Level II Init if no disk controller
 ;   fallthrough
 ; ----------------------------------------------------------------------
-; 069FH – Bootstrap from Diskette – "BOOT"
+; 069FH-06CBH – Bootstrap from Diskette – "BOOT"
 ; ----------------------------------------------------------------------
 BOOT:	ld	a,$01		;069f
 	ld	(dskselect),a	;06a1 - Select Drive :0 and turn the motor on
 	ld	hl,diskstat	;06a4 - address of the disk command/status Register 37ECH
 	ld	de,diskdata	;06a7 - address of the disk data Register (37EFH)
 	ld	(hl),$03	;06aa - command 03H (RESTORE and POSITION TO TRACK 0)
+#IFNDEF FREHDBT
+	; FreHD excludeds  these 3 bytes for call HDBOOT above (696h)
 	ld	bc,$0000	;06ac
+#ENDIF
 	call	PAUSE		;06af - delay (BC times 14.65) about 3 seconds
 BOOTDL:	bit	0,(hl)		;06b2 - is the diskette controller is busy
 	jr	nz,BOOTDL	;06b4
@@ -5314,7 +5407,11 @@ ERRTAB:
 	.DB	"UE"		; Unprintable Error 	(26H)
 	.DB	"MO"		; Missing Operand 	(28H)
 	.DB	"FD"		; Bad file Data 	(2AH)
+#IFNDEF	EACA80
 	.DB	"L3"		; Disk BASIC Command 	(2CH)
+#ELSE
+	.DB	"SN"		; Disk BASIC Command 	(2CH) - On Dick Smith System-80
+#ENDIF
 ;
 ; ----------------------------------------------------------------------
 ; 18F7-1904 – STORAGE LOCATION FOR THE SINGLE PRECISION DIVISION ROUTINE
@@ -9897,7 +9994,11 @@ QED:	pop	bc		;2ff6
 ;  Input Output Map
 ; ----------------------------------------------------------------------
 ;
-vidcmt:	.EQU	$FF		; VIDEO I/O Mode select and Cassette Port
+; On Disk Smith System 80 (EACA) there are additional Hardware IO ports
+prtport: .EQU	$FD		; Printer Port (replaces 37E8)
+casport: .EQU	$FE		; Cassette Select Latch Port
+;
+vidcmt:	 .EQU	$FF		; VIDEO I/O Mode select and Cassette Port
 ;
 ; ----------------------------------------------------------------------
 ;  Memory Mapped Hardware
@@ -10087,6 +10188,18 @@ SMPSTK:	.EQU	RAM+$1F8	; Initial Stack address.
 MEMEND:	.EQU	RAM+$200	; End of Reserved RAM Communications area
 ;
 ; ======================================================================
+;
+; PADDING to create 16KB ROM Image, to allow append multiple
+; versions into a larger (modern) paged ROM file.
+;
+#IFDEF	SIZE16K
+	.FILL	(4000h - $)
+#ENDIF
+; ======================================================================
+;
+; If this file is being #Included from another assembly file
+; we may want to disable the END directive
+;
 #IFNDEF DONTEND
 	.END
 #ENDIF
