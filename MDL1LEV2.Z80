@@ -179,7 +179,8 @@ BREAK:	.EQU	$01	; (BREAK Key)
 BACKS:	.EQU 	$08	; (LEFT  Arrow) - Backspace
 TAB:	.EQU 	$09	; (RIGHT Arrow) - Tab
 LINEF:	.EQU 	$0A	; (DOWN  Arrow)
-FORMF:	.EQU 	$0C
+VERTAB:	.EQU 	$0B	; Vertical Tab (Ascii)
+FORMF:	.EQU 	$0C	; Form Feed (Ascii)
 ENTER:	.EQU 	$0D	; (ENTER Key) - Return
 ;
 ; Following are special meaning CHR codes, not ASCII standard
@@ -1574,7 +1575,7 @@ DSPERA:	ld	(hl),SPACE	;0580
 PRTDRV:	ld	a,c		;058d
 	or	a		;058e
 	jr	z,PRTSA		;058f
-	cp	$0B		;0591 - is a skip to the top of the form
+	cp	VERTAB		;0591 - is a skip to the top of the form
 	jr	z,PRTVT		;0593
 	cp	FORMF		;0595
 	jr	nz,PRTIT	;0597
@@ -5191,7 +5192,7 @@ RESLST:
 	.DB	$D2,"IGHT$"	; RIGHT$ - $F9
 	.DB	$CD,"ID$"	; MID$   - $FA
 ;
-	.DB	$A7		; ' ($FB)
+	.DB	$A7		; ' (REM)- $FB
 ;
 	.DB	80h		; TERMINATOR.
 ;
@@ -5827,14 +5828,21 @@ SCRTCH:	ld	hl,(TXTTAB)	;1b4d
 ;
 ; ----------------------------------------------------------------------
 ; 1B5D-1BB2 – LEVEL II BASIC RUN ROUTINE – “RUNC”
+;   This is called by "RUN" routine when NO Line number is specified
+;
 ;   This routine does a lot of variable resets and other things that are
 ;   common to NEW as well, so NEW just does the special NEW stuff
 ;   and than passes right through to here to reset the rest.
 ; ----------------------------------------------------------------------
-RUNC:	ld	hl,(TXTTAB)	;1b5d
+RUNC:	ld	hl,(TXTTAB)	;1b5d - the PST (the start of the BASIC program pointer).
 	dec	hl		;1b60
 ;
 ; ----------------------------------------------------------------------
+; 1B61H – Subroutine which initializes a lot of stuff – “CLEARC”
+;   Initialize he variable and array space by resetting
+;   ARYTAB (which is the end of the the simple variable spac) and
+;   STREND (which is the end of the array storage).
+;   It then falls into STKINI which resets the STACK. HL is preserved.
 ; ----------------------------------------------------------------------
 CLEARC:	ld	(TEMP),hl	;1b61
 	ld	b,26		;1b64 - number of variable names to be initialized
@@ -6230,22 +6238,22 @@ GONE2:	sub	$80		;1d60
 ;   it is alphabetic, or sets it if is alphanumeric. Blanks and control
 ;   codes 09 and OB are ignored causing the following character to be
 ;   loaded and tested. The HL Register will be incremented before loading
-;   any character therfore on the first call the HL Register should contain
+;   any character therefore on the first call the HL Register should contain
 ;   the string address minus one. The string must be terminated by a byte
 ;   of zeros).
 ; ----------------------------------------------------------------------
-CHRGTR:	inc	hl		;1d78
+CHRGTR:	inc	hl		;1d78 - Bump the BASIC program pointer to next char
 	ld	a,(hl)		;1d79
-	cp	':'		;1d7a
-	ret	nc		;1d7c
-	cp	SPACE		;1d7d
-	jp	z,CHRGTR	;1d7f
-	cp	$0B		;1d82
-	jr	nc,NOTLFT	;1d84
-	cp	$09		;1d86
-	jp	nc,CHRGTR	;1d88
-NOTLFT:	cp	'0'		;1d8b
-	ccf			;1d8d
+	cp	':'		;1d7a - is greater than or equal to a :
+	ret	nc		;1d7c - Return if char >= to a : meaning :, ;, < . Y, Z
+	cp	SPACE		;1d7d - is a SPACE
+	jp	z,CHRGTR	;1d7f - loop if a space
+	cp	VERTAB		;1d82 - is >= 0BH (not a control code)
+	jr	nc,NOTLFT	;1d84 - JP if greater than or equal to 0BH
+	cp	TAB		;1d86 - is >= 09H (meaning a line feed or tab)
+	jp	nc,CHRGTR	;1d88 - Loop if the char is >= to 09H
+NOTLFT:	cp	'0'		;1d8b - is >= a zero character
+	ccf			;1d8d - Set the carry flag if is numeric (i.e., greater than or equal to 30H)
 	inc	a		;1d8e
 	dec	a		;1d8f
 	ret			;1d90
@@ -6522,12 +6530,14 @@ CLEAR:	jp	z,CLEARC	;1e7a
 ;
 ; ----------------------------------------------------------------------
 ; 1EA3-1EB0 - LEVEL II BASIC RUN ROUTINE - "RUN"
+;   This is the MAIN entry Point
+;   On entry, if the Z flag is set, there was no parameter present
 ; ----------------------------------------------------------------------
-RUN:	jp	z,RUNC		;1ea3
-	call	LRUN		;1ea6
-	call	CLEARC		;1ea9
-	ld	bc,NEWSTT	;1eac
-	jr	RUNC2		;1eaf
+RUN:	jp	z,RUNC		;1ea3 - Jump if there isn't a line number specified after the RUN
+	call	LRUN		;1ea6 - see if DOS wants to do anything?
+	call	CLEARC		;1ea9 - initialize RUN time variables
+	ld	bc,NEWSTT	;1eac - BC with the continuation address in the execution driver, RETurn to NEWSTT
+	jr	RUNC2		;1eaf - Use GOTO code to begin execution at specified line
 ;
 ; ----------------------------------------------------------------------
 ; 1EB1-1EC1 - LEVEL II BASIC GOSUB ROUTINE - "GOSUB"
@@ -10072,12 +10082,12 @@ CLSALL:	.EQU	DEXT+21		; (1D**) Initializing BASIC for new routine. During END pr
 FINDRT:	.EQU	DEXT+24		; (2174) During initializing of system output device
 EXOUTC:	.EQU	DEXT+27		; (032C) During writing to system output device.
 EXINC:	.EQU	DEXT+30		; (0358) When scanning keyboard.
-LRUN:	.EQU	DEXT+33		; (1Ea6) At start of RUN NNN processing.
-FILGET:	.EQU	DEXT+36		; (206f) At beginning of PRINT processing.
-EXDSKL:	.EQU	DEXT+39		; (20c6) During PRINT # or PRINT item processing.
+LRUN:	.EQU	DEXT+33		; (1EA6) At start of RUN NNN processing.
+FILGET:	.EQU	DEXT+36		; (206F) At beginning of PRINT processing.
+EXDSKL:	.EQU	DEXT+39		; (20C6) During PRINT # or PRINT item processing.
 EXDSCR:	.EQU	DEXT+42		; (2103) When skipping to next line on video during a output op
 EXPDOS:	.EQU	DEXT+45		; (21**) At start of PRINT on cassette and during PRINT TAB.
-EXUNKN:	.EQU	DEXT+48		; (219e) At beginning of INPUT processing
+EXUNKN:	.EQU	DEXT+48		; (219E) At beginning of INPUT processing
 DLHSMD:	.EQU	DEXT+51		; (2AEC)
 FILIND:	.EQU	DEXT+54		; (222D) During READ processing when a variable has been read.
 EXCHDS:	.EQU	DEXT+57		; (2***) From List, At end of READ processing
