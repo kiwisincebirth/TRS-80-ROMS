@@ -550,6 +550,8 @@ USEDEF:	dec	hl		;00e7
 ;
 #IFDEF VER13
 ;
+; (start V1.3)
+;
 #IFDEF FREHDBT
 ;
 ; ----------------------------------------------------------------------
@@ -573,23 +575,23 @@ HDBOOT:	ld	a,ROM_MODEL_1	;00ff - ROM parameter to FreHD. 1 for Model1.
 ;   Note: Starts at 0113H if FreHD has been defined
 ; ----------------------------------------------------------------------
 ;
-#IFNDEF EACA80
-MEMMSG:	.DB	"MEM SIZE",0	; Radio Shack Mem Size V1.3
-#ELSE
+#IFDEF EACA80
 MEMMSG:	.DB	"READY ",0,0,0  ; Disk Smith System-80 (EACA) Ready Message
+#ELSE
+MEMMSG:	.DB	"MEM SIZE",0	; Radio Shack Mem Size V1.3
 #ENDIF
 
 #IFNDEF FREHDBT
 		; If FreHD then this message is removed
 		; saving enough space for the HDBOOT routine (00FFH) above
 
-#IFNDEF EACA80
-HDGMSG:	.DB	"R/S L2 BASIC",ENTER,0 ; Radio Shack l2 BASIC V1.3
-#ELSE
+#IFDEF EACA80
+		; Disk Smith System-80 (EACA) has Blank Message
 HDGMSG:	.DB	ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,0
-		; Disk Smith System-80 (EACA) Blank Message
+#ELSE
+HDGMSG:	.DB	"R/S L2 BASIC",ENTER,0 ; Radio Shack L2 BASIC V1.3
 #ENDIF
-
+;
 #ENDIF
 ;
 ; ----------------------------------------------------------------------
@@ -608,18 +610,25 @@ KEYBOU	push	bc		;01CC Save Row Address in BC into the STACK
 	rlca			;01E9 This code previously existed at the calling site
 	jp	KYDRES		;01EA Resume the keyboard driver routine
 ;
+; (finish 1.3)
+;
 #ELSE
+;
+; (start V1.2)
+;
 ; ----------------------------------------------------------------------
 ; 0105H-012CH – MESSAGE STORAGE (VERSION 1.2)
 ; ----------------------------------------------------------------------
 ;
-#IFNDEF EACA80
-MEMMSG:	.DB	"MEMORY SIZE",0
-HDGMSG:	.DB	"RADIO SHACK LEVEL II BASIC",ENTER,0
-#ELSE
+#IFDEF EACA80
 MEMMSG:	.DB	"READY ",0,0,0,0,0,0	; Disk Smith System-80 (EACA) Startup Messages
 HDGMSG:	.DB	ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,0
+#ELSE
+MEMMSG:	.DB	"MEMORY SIZE",0			     ; MEMORY SIZE V1.2
+HDGMSG:	.DB	"RADIO SHACK LEVEL II BASIC",ENTER,0 ; RS L2 BASIC V1.2
 #ENDIF
+;
+; (finish V1.2)
 ;
 #ENDIF
 ;
