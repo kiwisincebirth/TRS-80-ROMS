@@ -74,6 +74,7 @@ ROM_LOAD	.EQU $5000		; where the extra "rom is loaded
 ;
 ; ----------------------------------------------------------------------
 ;   BASIC TOKENS IDS
+;   (note: this is not complete, just constants used in code)
 ; ----------------------------------------------------------------------
 TKFOR:	.EQU	$81	; FOR
 TKDATA:	.EQU	$88	; DATA
@@ -102,6 +103,12 @@ TKPLUS:	.EQU	$CD	; +
 TKMNUS:	.EQU	$CE	; -
 TKGT:	.EQU	$D4	; >
 TKEQL:	.EQU	$D5	; =
+TKLT:	.EQU	$D6	; <
+TKSGN:	.EQU	$D7	; SGN
+ONEFUN: .EQU	$D7	; SGN - Called ONEFUN in TRS-80.COM disassembly.
+TKSQR:	.EQU	$DD	; SQR
+TKATN:	.EQU	$E4	; ATN
+TKMID:	.EQU	$FA	; MID
 TKSNQT:	.EQU	$FB	; '
 ;
 ; ----------------------------------------------------------------------
@@ -131,6 +138,13 @@ ERRUE:	.EQU	26H	; Unprintable Error
 ERRMO:	.EQU	28H	; Missing Operand
 ERRFD:	.EQU	2AH	; Bad file Data
 ERRL3:	.EQU	2CH	; Disk BASIC Command
+;
+; ----------------------------------------------------------------------
+; Device Code Types. See PRTFLG
+; ----------------------------------------------------------------------
+DEV0VID:	.EQU	$00	; 0 - VIDEO DEVICE (Z Flag) - uses XOR A to set
+DEV1PRT:	.EQU	$01	; 1 - PRINTER DEVICE (NZ Flag - positive number)
+DEVTAPE:	.EQU	$80	; $80 - TAPE DEVICE (M Flag - negative number)
 ;
 ; ----------------------------------------------------------------------
 ;   Z-80 TRICKS - these are 1 byte opcode for multibyte instructions
@@ -165,7 +179,8 @@ BREAK:	.EQU	$01	; (BREAK Key)
 BACKS:	.EQU 	$08	; (LEFT  Arrow) - Backspace
 TAB:	.EQU 	$09	; (RIGHT Arrow) - Tab
 LINEF:	.EQU 	$0A	; (DOWN  Arrow)
-FORMF:	.EQU 	$0C
+VERTAB:	.EQU 	$0B	; Vertical Tab (Ascii)
+FORMF:	.EQU 	$0C	; Form Feed (Ascii)
 ENTER:	.EQU 	$0D	; (ENTER Key) - Return
 ;
 ; Following are special meaning CHR codes, not ASCII standard
@@ -237,7 +252,7 @@ _WHERE:	pop	hl		;000b
 ; ----------------------------------------------------------------------
 ; 000DH-000FH – DISK BOOTSTRAP – "_BOOT"
 ; ----------------------------------------------------------------------
-_BOOT:	jp	BOOT		;000d
+_BOOT:	jp	BOOT		;000d - Jump to Disk Bootstrap loader (069Fh)
 ;
 ; ======================================================================
 ; 0010H (RST 10) – GET A CHARACTER FROM THE BUFFER - GETCHR
@@ -268,11 +283,11 @@ rst10:	jp	mRST2		;0010
 #ENDIF
 ;
 ; ----------------------------------------------------------------------
-; 0013H-0017H – IN_PUT ROUTINE – _GET
+; 0013H-0017H – INPUT ROUTINE – _GET
 ; ----------------------------------------------------------------------
 _GET:	push	bc		;0013
-	ld	b,$01		;0014
-	jr	COIJ		;0016
+	ld	b,$01		;0014 - device type entry code
+	jr	CIOJ		;0016 - BASIC driver entry routine at 0046H
 ;
 #IFNDEF _EMBED
 ;
@@ -295,8 +310,8 @@ rst18:	jp	mRST3		;0018
 ; 001BH-001EH – DRIVER ENTRY ROUTINE – Part 1 – "_PUT"
 ; ----------------------------------------------------------------------
 _PUT:	push	bc		;001b
-	ld	b,$02		;001c
-	jr	COIJ		;001e
+	ld	b,$02		;001c - device type entry code
+	jr	CIOJ		;001e - BASIC driver entry routine at 0046H
 ;
 #IFNDEF _EMBED
 ;
@@ -314,8 +329,8 @@ rst20:	jp	mRST4		;0020
 ; 0023H-0027H – DISK ROUTINE – "_CTL"
 ; ----------------------------------------------------------------------
 _CTL:	push	bc		;0023
-	ld	b,$04		;0024
-	jr	COIJ		;0026
+	ld	b,$04		;0024 - device type entry code
+	jr	CIOJ		;0026- BASIC driver entry routine at 0046H
 ;
 ; ======================================================================
 ; 0028H (RST 28H) - DOS Function CALL - DOSCAL
@@ -399,7 +414,7 @@ _KEYIN:	jp	KEYIN		;0040
 ; ----------------------------------------------------------------------
 ; 0046H-0048H – DRIVER ENTRY ROUTINE – Part 2 – "CIOJ"
 ; ----------------------------------------------------------------------
-COIJ:	jp	CIO		;0046
+CIOJ:	jp	CIO		;0046
 ;
 ; ======================================================================
 ; 0049H – KEYBOARD ROUTINE – "$KEY" -  Wait For Keyboard Input
@@ -580,6 +595,8 @@ USEDEF:	dec	hl		;00e7
 ;
 #IFDEF VER13
 ;
+; (start V1.3)
+;
 #IFDEF FREHDBT
 ;
 ; ----------------------------------------------------------------------
@@ -603,10 +620,10 @@ HDBOOT:	ld	a,ROM_MODEL_1	;00ff - ROM parameter to FreHD. 1 for Model1.
 ;   Note: Starts at 0113H if FreHD has been defined
 ; ----------------------------------------------------------------------
 ;
-#IFNDEF EACA80
-MEMMSG:	.DB	"MEM SIZE",0	; Radio Shack Mem Size V1.3
-#ELSE
+#IFDEF EACA80
 MEMMSG:	.DB	"READY ",0,0,0  ; Disk Smith System-80 (EACA) Ready Message
+#ELSE
+MEMMSG:	.DB	"MEM SIZE",0	; Radio Shack Mem Size V1.3
 #ENDIF
 
 #IFNDEF _EMBED
@@ -615,13 +632,13 @@ MEMMSG:	.DB	"READY ",0,0,0  ; Disk Smith System-80 (EACA) Ready Message
 		; If FreHD then this message is removed
 		; saving enough space for the HDBOOT routine (00FFH) above
 
-#IFNDEF EACA80
-HDGMSG:	.DB	"R/S L2 BASIC",ENTER,0 ; Radio Shack l2 BASIC V1.3
-#ELSE
+#IFDEF EACA80
+		; Disk Smith System-80 (EACA) has Blank Message
 HDGMSG:	.DB	ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,0
-		; Disk Smith System-80 (EACA) Blank Message
+#ELSE
+HDGMSG:	.DB	"R/S L2 BASIC",ENTER,0 ; Radio Shack L2 BASIC V1.3
 #ENDIF
-
+;
 #ENDIF
 ;
 ; ----------------------------------------------------------------------
@@ -642,21 +659,27 @@ KEYBOU	push	bc		;01CC Save Row Address in BC into the STACK
 ;
 #ENDIF
 ;
+; (finish 1.3)
+;
 #ELSE
+;
+; (start V1.2)
+;
 ; ----------------------------------------------------------------------
 ; 0105H-012CH – MESSAGE STORAGE (VERSION 1.2)
 ; ----------------------------------------------------------------------
 ;
-#IFNDEF EACA80
-MEMMSG:	.DB	"MEMORY SIZE",0
-;
 #IFNDEF _EMBED
 ;
-HDGMSG:	.DB	"RADIO SHACK LEVEL II BASIC",ENTER,0
-#ELSE
+#IFDEF EACA80
 MEMMSG:	.DB	"READY ",0,0,0,0,0,0	; Disk Smith System-80 (EACA) Startup Messages
 HDGMSG:	.DB	ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,ENTER,0
+#ELSE
+MEMMSG:	.DB	"MEMORY SIZE",0			     ; MEMORY SIZE V1.2
+HDGMSG:	.DB	"RADIO SHACK LEVEL II BASIC",ENTER,0 ; RS L2 BASIC V1.2
 #ENDIF
+;
+; (finish V1.2)
 ;
 #ENDIF
 ;
@@ -1097,14 +1120,14 @@ GODO:	ex	de,hl		;031d
 OUTDO:	push	bc		;032a
 	ld	c,a		;032b
 	call	EXOUTC		;032c
-	ld	a,(PRTFLG)	;032f
-	or	a		;0332
+	ld	a,(PRTFLG)	;032f - get the current Device
+	or	a		;0332 - set the flags
 	ld	a,c		;0333
 	pop	bc		;0334
 #IFNDEF _EMBED
-	jp	m,CASOUT	;0335
+	jp	m,CASOUT	;0335 - if is It Cassette
 #ENDIF
-	jr	nz,OUTLPT	;0338
+	jr	nz,OUTLPT	;0338 - if it is Printer
 ; ----------------------------------------------------------------------
 ; 033AH-0347H – OUTPUT ROUTINE – “OUT2D”
 ;   A Print routine which performs the same function as 33H except
@@ -1183,7 +1206,7 @@ INCHR:	call	ISCHAR		;0384
 ; 038BH-039BH – PRINTER ROUTINE – “FINLPT”
 ; ----------------------------------------------------------------------
 FINLPT:	xor	a		;038b
-	ld	(PRTFLG),a	;038c
+	ld	(PRTFLG),a	;038c - set current output device VIDEO
 	ld	a,(LPTPOS)	;038f
 	or	a		;0392
 	ret	z		;0393
@@ -1627,7 +1650,7 @@ DSPERA:	ld	(hl),SPACE	;0580
 PRTDRV:	ld	a,c		;058d
 	or	a		;058e
 	jr	z,PRTSA		;058f
-	cp	$0B		;0591 - is a skip to the top of the form
+	cp	VERTAB		;0591 - is a skip to the top of the form
 	jr	z,PRTVT		;0593
 	cp	FORMF		;0595
 	jr	nz,PRTIT	;0597
@@ -1908,8 +1931,8 @@ BOOTLP:	bit	1,(hl)		;06c0 - check to see if there is data available
 ;  This is an alternative re-entry point into BASIC. A JP 6CCH is often better
 ;  than a jump to 1A19H as the latter sometimes does strange things to any resident BASIC program
 ; ----------------------------------------------------------------------
-RESETR:	ld	bc,STPRDY	;06cc
-	jp	ERESET		;06cf
+RESETR:	ld	bc,STPRDY	;06cc - Address of
+	jp	ERESET		;06cf - Jumps to 19AE
 ; ----------------------------------------------------------------------
 ; 06D2H-0707H – ROM STORAGE LOCATION FOR DATA TO BE MOVED TO RAM
 ;   BY THE INITIALIZATION PROCESS – “INITR”
@@ -5077,10 +5100,10 @@ ATNCON:	.DB	$09		; number constants which follows
 ;
 ; ----------------------------------------------------------------------
 ; 1608-164F - Function Dispatch Table
-;           - for functions stating at token $D7 to $FA
+;           - for functions stating at token $D7 (SGN) to $FA (MID$)
 ; ----------------------------------------------------------------------
 FUNDSP:
-	.DW	FNSGN		; SGN()
+	.DW	FNSGN		; SGN() - ($D7)
 	.DW	FNINT		; INT()
 	.DW	FNABS		; ABS()
 	.DW	FNFRE		; FRE
@@ -5118,37 +5141,38 @@ FUNDSP:
 	.DW	FNCHR		; CHR$
 	.DW	FNLEFT		; LEFT$
 	.DW	FNRGT		; RIGHT$
-	.DW	FNMID		; MID$
+	.DW	FNMID		; MID$ - ($FA)
 ;
 ; ----------------------------------------------------------------------
 ; 1650-1821 - Reserved key word list (in token order)
 ;       * first character ored with 80h to denote start of new token
 ;       * token ID's start from $80 and increment
+;	* token ID is in the comments for reference purposes
 ;	* table is broken into statments, followed by functions
 ; ----------------------------------------------------------------------
 RESLST:
-	.DB	$C5,"ND"	; END - $80
-	.DB	$C6,"OR"	; FOR - $81
-	.DB	$D2,"ESET"	; RESET
-	.DB	$D3,"ET"	; SET
+	.DB	$C5,"ND"	; END   - $80
+	.DB	$C6,"OR"	; FOR   - $81
+	.DB	$D2,"ESET"	; RESET - $82
+	.DB	$D3,"ET"	; SET   - $83
 	.DB	$C3,"LS"	; CLS
 	.DB	$C3,"MD"	; CMD (disk)
 	.DB	$D2,"ANDOM"	; RANDOM
 	.DB	$CE,"EXT"	; NEXT
-	.DB	$C4,"ATA"	; DATA
+	.DB	$C4,"ATA"	; DATA  - $88
 	.DB	$C9,"NPUT"	; INPUT
 	.DB	$C4,"IM"	; DIM
 	.DB	$D2,"EAD"	; READ
 	.DB	$CC,"ET"	; LET
-	.DB	$C7,"OTO"	; GOTO
+	.DB	$C7,"OTO"	; GOTO  - $8D
 	.DB	$D2,"UN"	; RUN
 	.DB	$C9,"F"		; IF
 	.DB	$D2,"ESTORE"	; RESTORE
 	.DB	$C7,"OSUB"	; GOSUB
 	.DB	$D2,"ETURN"	; RETURN
-	.DB	$D2,"EM"	; REM
+	.DB	$D2,"EM"	; REM   - $93
 	.DB	$D3,"TOP"	; STOP
-	.DB	$C5,"LSE"	; ELSE
+	.DB	$C5,"LSE"	; ELSE  - $95
 	.DB	$D4,"RON"	; TRON
 	.DB	$D4,"ROFF"	; TROFF
 	.DB	$C4,"EFSTR"	; DEFSTR
@@ -5177,7 +5201,7 @@ RESLST:
 	.DB	$CC,"PRINT"	; LPRINT
 	.DB	$C4,"EF"	; DEF (disk)
 	.DB	$D0,"OKE"	; POKE
-	.DB	$D0,"RINT"	; PRINT
+	.DB	$D0,"RINT"	; PRINT - $B2
 	.DB	$C3,"ONT"	; CONT
 	.DB	$CC,"IST"	; LIST
 	.DB	$CC,"LIST"	; LLIST
@@ -5186,14 +5210,14 @@ RESLST:
 	.DB	$C3,"LEAR"	; CLEAR
 	.DB	$C3,"LOAD"	; CLOAD
 	.DB	$C3,"SAVE"	; CSAVE
-	.DB	$CE,"EW"	; NEW
+	.DB	$CE,"EW"	; NEW   - $BB
 	;
 	; The following are Functions
 	;
-	.DB	$D4,"AB("	; TAB()
-	.DB	$D4,"O"		; TO
-	.DB	$C6,"N"		; FN (disk)
-	.DB	$D5,"SING"	; USING
+	.DB	$D4,"AB("	; TAB()     - $BC
+	.DB	$D4,"O"		; TO        - $BD
+	.DB	$C6,"N"		; FN (disk) - $BE
+	.DB	$D5,"SING"	; USING     - $BF
 	.DB	$D6,"ARPTR"	; VARPTR
 	.DB	$D5,"SR"	; USR
 	.DB	$C5,"RL"	; ERL
@@ -5205,24 +5229,24 @@ RESLST:
 	.DB	$CD,"EM"	; MEM
 	.DB	$C9,"NKEY$"	; INKEY$
 	.DB	$D4,"HEN"	; THEN
-	.DB	$CE,"OT"	; NOT
-	.DB	$D3,"TEP"	; STEP
+	.DB	$CE,"OT"	; NOT  - $CB
+	.DB	$D3,"TEP"	; STEP - $CC
 ;
-	.DB	$AB		; +
-	.DB	$AD		; -
+	.DB	$AB		; + ($CD)
+	.DB	$AD		; - ($CE)
 	.DB	$AA		; *
 	.DB	$AF		; /
 	.DB	$DB		; [ - (up arrow)
 ;
-	.DB	$C1,"ND"	; AND
-	.DB	$CF,"R"		; OR
+	.DB	$C1,"ND"	; AND - $D2
+	.DB	$CF,"R"		; OR  - $D3
 ;
-	.DB	$BE		; >
+	.DB	$BE		; > ($D4)
 	.DB	$BD		; =
-	.DB	$BC		; <
+	.DB	$BC		; < ($D6)
 ;
-	.DB	$D3,"GN"	; SGN
-	.DB	$C9,"NT"	; INT
+	.DB	$D3,"GN"	; SGN - $D7
+	.DB	$C9,"NT"	; INT - $D8
 	.DB	$C1,"BS"	; ABS
 	.DB	$C6,"RE"	; FRE
 	.DB	$C9,"NP"	; INP
@@ -5258,7 +5282,7 @@ RESLST:
 	.DB	$D2,"IGHT$"	; RIGHT$ - $F9
 	.DB	$CD,"ID$"	; MID$   - $FA
 ;
-	.DB	$A7		; ' - $FB
+	.DB	$A7		; ' (REM)- $FB
 ;
 	.DB	80h		; TERMINATOR.
 ;
@@ -5660,17 +5684,17 @@ ERRFIN:	call	STROUT		;1a06
 	.DB	LDANN		; Z80 Trick - LD A,nn - skip next 1 byte instruction
 ;
 STPRDY:	pop	bc		;1a18
-READY:	call	FINLPT		;1a19
-	call	PRGFIN		;1a1c - dos exit startup
+READY:	call	FINLPT		;1a19 - Re-entry into BASIC command mode entry point. (see 6CCH also)
+	call	PRGFIN		;1a1c - dos exit for BASIC startup
 #IFNDEF _EMBED
-	call	CTOFF		;1a1f
+	call	CTOFF		;1a1f - turn off the cassette recorder
 #ENDIF
-	call	CRDONZ		;1a22
-	ld	hl,m_REDDY	;1a25
-	call	STROUT		;1a28
-	ld	a,(ERRFLG)	;1a2b
-	sub	$02		;1a2e
-	call	z,ERREDT	;1a30
+	call	CRDONZ		;1a22 - display a carriage return if necessary
+	ld	hl,m_REDDY	;1a25 - the starting address of word “READY”
+	call	STROUT		;1a28 - Display the word “READY”
+	ld	a,(ERRFLG)	;1a2b - load A with the value of the current error code
+	sub	ERRSN		;1a2e - compare with SYNTAX ERROR
+	call	z,ERREDT	;1a30 - If an SN ERR, enter EDIT mode on that line
 ;
 ;
 ; ======================================================================
@@ -5896,14 +5920,21 @@ SCRTCH:	ld	hl,(TXTTAB)	;1b4d
 ;
 ; ----------------------------------------------------------------------
 ; 1B5D-1BB2 – LEVEL II BASIC RUN ROUTINE – “RUNC”
+;   This is called by "RUN" routine when NO Line number is specified
+;
 ;   This routine does a lot of variable resets and other things that are
 ;   common to NEW as well, so NEW just does the special NEW stuff
 ;   and than passes right through to here to reset the rest.
 ; ----------------------------------------------------------------------
-RUNC:	ld	hl,(TXTTAB)	;1b5d
+RUNC:	ld	hl,(TXTTAB)	;1b5d - the PST (the start of the BASIC program pointer).
 	dec	hl		;1b60
 ;
 ; ----------------------------------------------------------------------
+; 1B61H – Subroutine which initializes a lot of stuff – “CLEARC”
+;   Initialize he variable and array space by resetting
+;   ARYTAB (which is the end of the the simple variable spac) and
+;   STREND (which is the end of the array storage).
+;   It then falls into STKINI which resets the STACK. HL is preserved.
 ; ----------------------------------------------------------------------
 CLEARC:	ld	(TEMP),hl	;1b61
 	ld	b,26		;1b64 - number of variable names to be initialized
@@ -6299,22 +6330,22 @@ GONE2:	sub	$80		;1d60
 ;   it is alphabetic, or sets it if is alphanumeric. Blanks and control
 ;   codes 09 and OB are ignored causing the following character to be
 ;   loaded and tested. The HL Register will be incremented before loading
-;   any character therfore on the first call the HL Register should contain
+;   any character therefore on the first call the HL Register should contain
 ;   the string address minus one. The string must be terminated by a byte
 ;   of zeros).
 ; ----------------------------------------------------------------------
-CHRGTR:	inc	hl		;1d78
+CHRGTR:	inc	hl		;1d78 - Bump the BASIC program pointer to next char
 	ld	a,(hl)		;1d79
-	cp	':'		;1d7a
-	ret	nc		;1d7c
-	cp	SPACE		;1d7d
-	jp	z,CHRGTR	;1d7f
-	cp	$0B		;1d82
-	jr	nc,NOTLFT	;1d84
-	cp	$09		;1d86
-	jp	nc,CHRGTR	;1d88
-NOTLFT:	cp	'0'		;1d8b
-	ccf			;1d8d
+	cp	':'		;1d7a - is greater than or equal to a :
+	ret	nc		;1d7c - Return if char >= to a : meaning :, ;, < . Y, Z
+	cp	SPACE		;1d7d - is a SPACE
+	jp	z,CHRGTR	;1d7f - loop if a space
+	cp	VERTAB		;1d82 - is >= 0BH (not a control code)
+	jr	nc,NOTLFT	;1d84 - JP if greater than or equal to 0BH
+	cp	TAB		;1d86 - is >= 09H (meaning a line feed or tab)
+	jp	nc,CHRGTR	;1d88 - Loop if the char is >= to 09H
+NOTLFT:	cp	'0'		;1d8b - is >= a zero character
+	ccf			;1d8d - Set the carry flag if is numeric (i.e., greater than or equal to 30H)
 	inc	a		;1d8e
 	dec	a		;1d8f
 	ret			;1d90
@@ -6373,7 +6404,7 @@ ENDCON:	ld	hl,(CURLIN)	;1dc1
 	ld	(OLDLIN),hl	;1dcb
 	ld	hl,(SAVTXT)	;1dce
 	ld	(OLDTXT),hl	;1dd1
-DIRIS:	call	FINLPT		;1dd4
+DIRIS:	call	FINLPT		;1dd4 - set the current output device to video
 	call	CRDONZ		;1dd7
 	pop	af		;1dda
 	ld	hl,BNKTXT	;1ddb
@@ -6591,12 +6622,14 @@ CLEAR:	jp	z,CLEARC	;1e7a
 ;
 ; ----------------------------------------------------------------------
 ; 1EA3-1EB0 - LEVEL II BASIC RUN ROUTINE - "RUN"
+;   This is the MAIN entry Point
+;   On entry, if the Z flag is set, there was no parameter present
 ; ----------------------------------------------------------------------
-RUN:	jp	z,RUNC		;1ea3
-	call	LRUN		;1ea6
-	call	CLEARC		;1ea9
-	ld	bc,NEWSTT	;1eac
-	jr	RUNC2		;1eaf
+RUN:	jp	z,RUNC		;1ea3 - Jump if there isn't a line number specified after the RUN
+	call	LRUN		;1ea6 - see if DOS wants to do anything?
+	call	CLEARC		;1ea9 - initialize RUN time variables
+	ld	bc,NEWSTT	;1eac - BC with the continuation address in the execution driver, RETurn to NEWSTT
+	jr	RUNC2		;1eaf - Use GOTO code to begin execution at specified line
 ;
 ; ----------------------------------------------------------------------
 ; 1EB1-1EC1 - LEVEL II BASIC GOSUB ROUTINE - "GOSUB"
@@ -6916,8 +6949,8 @@ SKPMRF:	call	DATA		;2058
 ; ----------------------------------------------------------------------
 ; 2067-206E – LEVEL II BASIC LPRINT ROUTINE – FOR v1.0 ONLY– “LPRINT”
 ; ----------------------------------------------------------------------
-LPRINT:	ld	a,$01		;2067
-	ld	(PRTFLG),a	;2069
+LPRINT:	ld	a,DEV1PRT	;2067 - Device PRINTER
+	ld	(PRTFLG),a	;2069 - set the output device code - printer
 LPRIN1:	jp	NEWCHR		;206c * * *
 ; ----------------------------------------------------------------------
 ; 206F-2177 – LEVEL II BASIC PRINT@ ROUTINE – FOR v1.0 ONLY – “PRINT”
@@ -7000,8 +7033,8 @@ PNOTAT:	cp	'#'		;208f - Is it PRINT#
 ;
 #IFNDEF _EMBED
 	call	CWRTON		;2093
-	ld	a,$80		;2096
-	ld	(PRTFLG),a	;2098
+	ld	a,DEVTAPE	;2096 - Set A to 80H (the write to cassette flag)
+	ld	(PRTFLG),a	;2098 - save current output device flag
 #ELSE
 	jp	FCERR		; PRINT# (cassette) is illegal in embedded basic
 #ENDIF
@@ -7030,11 +7063,11 @@ PRINTC:	jp	z,FINPRT	;20a0
 	call	STRLIT		;20c3
 	call	EXDSKL		;20c6
 	ld	hl,(FACLO)	;20c9
-	ld	a,(PRTFLG)	;20cc
-	or	a		;20cf
-	jp	m,LINCH2	;20d0
-	jr	z,ISTTY		;20d3
-	ld	a,(LPTPOS)	;20d5
+	ld	a,(PRTFLG)	;20cc - Get the output device type flag into A
+	or	a		;20cf - set flags
+	jp	m,LINCH2	;20d0 - If we writing to a cassette
+	jr	z,ISTTY		;20d3 - If NOT LPRINT
+	ld	a,(LPTPOS)	;20d5 - Wwe have a LPRINT, Get carriage POS
 	add	a,(hl)		;20d8
 	cp	$84		;20d9
 	jr	LINCHK		;20db
@@ -7071,17 +7104,17 @@ CRFIN:	call	EXDSCR		;2103
 ; 2108 – This is the jump point for a continuation of the PRINT# code – “COMPRT”.
 ; ----------------------------------------------------------------------
 COMPRT:	call	EXPDOS		;2108
-	ld	a,(PRTFLG)	;210b
-	or	a		;210e
-	jp	p,NTCAS		;210f
+	ld	a,(PRTFLG)	;210b - the current output device flag
+	or	a		;210e - Set The Flags
+	jp	p,NTCAS		;210f - if the printer or the video display
 	ld	a,','		;2112
 	call	OUTDO		;2114
 NTCAS0:	jr	NOTABR		;2117
-NTCAS:	jr	z,ISCTTY	;2119
-	ld	a,(LPTPOS)	;211b
+NTCAS:	jr	z,ISCTTY	;2119 - is it the video display
+	ld	a,(LPTPOS)	;211b - the current carriage position.
 	cp	$70		;211e
 	jp	CHKCOM		;2120
-ISCTTY:	ld	a,(CLMLST)	;2123
+ISCTTY:	ld	a,(CLMLST)	;2123 - output device is the video display
 	ld	b,a		;2126
 	ld	a,(TTYPOS)	;2127
 	cp	b		;212a
@@ -7111,11 +7144,11 @@ TABER:	call	GTBYTC		;2137 - evaluate the tab number, and return with the result 
 ; ----------------------------------------------------------------------
 	push	hl		;2140
 	call	EXPDOS		;2141
-	ld	a,(PRTFLG)	;2144
-	or	a		;2147
-	jp	m,FCERR		;2148
-	jp	z,TTYIST	;214b
-	ld	a,(LPTPOS)	;214e
+	ld	a,(PRTFLG)	;2144 - the current output device flag
+	or	a		;2147 - set the flags
+	jp	m,FCERR		;2148 - cannot send a tab to cassette, FC ERR
+	jp	z,TTYIST	;214b - is Video
+	ld	a,(LPTPOS)	;214e - printer get carriage position
 	jr	DOSIST		;2151
 TTYIST:	ld	a,(TTYPOS)	;2153
 DOSIST:	cpl			;2156
@@ -7142,8 +7175,8 @@ FINPRT:
 	call	m,CTOFF		;216d - If cassette, turn it off
 #ENDIF
 	xor	a		;2170
-	ld	(PRTFLG),a	;2171
-	call	FINDRT		;2174
+	ld	(PRTFLG),a	;2171 - set current output device type = VIDEO
+	call	FINDRT		;2174 - DOS Exit Point
 	ret			;2177
 ; ----------------------------------------------------------------------
 ; 2178-217E – MESSAGE STORAGE LOCATION FOR REDO MESSAGE – “TRYAGN”
@@ -7791,8 +7824,8 @@ NTVARP:	cp	TKUSR		;24ff - USR Function
 	jp	z,STRNGS	;251f
 	cp	TKFN		;2522
 	jp	z,DVFN		;2524 - FN Handler
-	sub	$D7		;2527 - ID the first functional token
-	jp	nc,ISFUN	;2529
+	sub	ONEFUN		;2527 - Is a function starting at SGN
+	jp	nc,ISFUN	;2529 - Jump if is a SGN to MID$ token
 ; ----------------------------------------------------------------------
 ; 252CH – Other Function Routine – If we pass through to here, the only
 ; other possibility is that it is a function in parenthesis – “PARCHK”
@@ -7825,14 +7858,15 @@ RETVAR:	push	hl		;2543
 ; 254E – This routine processes an expression for SNG( to MID$( – “ISFUN”
 ; ----------------------------------------------------------------------
 ISFUN:	ld	b,$00		;254e
-	rlca			;2550
+	rlca			;2550 - Set A to be 2 * (token – D7H)
 	ld	c,a		;2551
 	push	bc		;2552
 	GETCHR			;2553 - rst 10h
 	ld	a,c		;2554
-	cp	$41		;2555
-	jr	c,OKNORM	;2557
-	call	FRMPRN		;2559
+	;2555 - Test the adjusted token to see if it is past 2 * LASNUM – 2 * ONEFUN + 1
+	cp	$41
+	jr	c,OKNORM	;2557 - Jump if the token is SGN( to CHR$(.
+	call	FRMPRN		;2559 - If not, it is a LEFT$ – MID$
 ; ----------------------------------------------------------------------
 	SYNTAX	(',')		;255c - rst 08h
 	call	CHKSTR		;255e
@@ -7849,9 +7883,11 @@ OKNORM:	call	PARCHK		;256f
 	ex	(sp),hl		;2572
 ; ----------------------------------------------------------------------
 	ld	a,l		;2573
-	cp	$0C		;2574
-	jr	c,NOTFRF	;2576
-	cp	$1B		;2578
+	;2574 - Check to see if the operator token in Register A is one less than SQR - $0C
+	cp	(TKSQR-ONEFUN)*2
+	jr	c,NOTFRF	;2576 - Jump to avoid forcing the argument if is SGN to SQR
+	;2578 - Check to see if the operator token in Register A is bigger than ATN() - $1B
+	cp	(TKATN-ONEFUN)*2+1
 	push	hl		;257a
 	call	c,FRCSNG	;257b
 	pop	hl		;257e
@@ -9057,8 +9093,8 @@ CONINT:	call	INTFR2		;2b1f
 ;   This routine sets the output device flag to PRINTER and then
 ;   flows through to the LIST command.
 ; ----------------------------------------------------------------------
-LLIST:	ld	a,$01		;2b29
-	ld	(PRTFLG),a	;2b2b
+LLIST:	ld	a,DEV1PRT	;2b29 - the output device code for the printer (1)
+	ld	(PRTFLG),a	;2b2b - Save the current output device type number
 ; ----------------------------------------------------------------------
 ; 2B2E-2B74 – LEVEL II BASIC LIST ROUTINE – “LIST”
 ;   On entry the STACK has the return address, then the first basic line
@@ -10055,7 +10091,7 @@ OUTWRD:	.EQU	RAM+$96		; Output port routine OUT A,(00)
 CHARC:	.EQU	RAM+$99		; Last key pressed on the keyboard
 ERRFLG:	.EQU	RAM+$9A		; Current Error Code. See ERR function
 LPTPOS:	.EQU	RAM+$9B		; No. Of chars. In current print line
-PRTFLG:	.EQU	RAM+$9C		; This is the current device output flag. 0=vid, 1=print $80=cas
+PRTFLG:	.EQU	RAM+$9C		; Current output device flag. -VE=CAS, 0=vid, 1=print
 LINLEN:	.EQU	RAM+$9D		; Number of chars on video display line.
 CLMLST:	.EQU	RAM+$9E		; Number of chars on printed line.
 ;
@@ -10171,12 +10207,12 @@ CLSALL:	.EQU	DEXT+21		; (1D**) Initializing BASIC for new routine. During END pr
 FINDRT:	.EQU	DEXT+24		; (2174) During initializing of system output device
 EXOUTC:	.EQU	DEXT+27		; (032C) During writing to system output device.
 EXINC:	.EQU	DEXT+30		; (0358) When scanning keyboard.
-LRUN:	.EQU	DEXT+33		; (1Ea6) At start of RUN NNN processing.
-FILGET:	.EQU	DEXT+36		; (206f) At beginning of PRINT processing.
-EXDSKL:	.EQU	DEXT+39		; (20c6) During PRINT # or PRINT item processing.
+LRUN:	.EQU	DEXT+33		; (1EA6) At start of RUN NNN processing.
+FILGET:	.EQU	DEXT+36		; (206F) At beginning of PRINT processing.
+EXDSKL:	.EQU	DEXT+39		; (20C6) During PRINT # or PRINT item processing.
 EXDSCR:	.EQU	DEXT+42		; (2103) When skipping to next line on video during a output op
 EXPDOS:	.EQU	DEXT+45		; (21**) At start of PRINT on cassette and during PRINT TAB.
-EXUNKN:	.EQU	DEXT+48		; (219e) At beginning of INPUT processing
+EXUNKN:	.EQU	DEXT+48		; (219E) At beginning of INPUT processing
 DLHSMD:	.EQU	DEXT+51		; (2AEC)
 FILIND:	.EQU	DEXT+54		; (222D) During READ processing when a variable has been read.
 EXCHDS:	.EQU	DEXT+57		; (2***) From List, At end of READ processing

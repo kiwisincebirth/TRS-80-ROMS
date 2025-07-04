@@ -22,6 +22,7 @@ been very heavily documented over the years. However, this repository aims to ad
 
 Main Features
 * Fully Compilable Source Code for Model 1 Level 2 12KB ROMS
+* Both 1.3 and 1.2 versions, plus EACA clone hardware.
 
 While based of a disassembly (which can be low quality) the following work has been done: 
 * Replaced all disassembler generated labels with meaningful labels
@@ -33,57 +34,72 @@ While based of a disassembly (which can be low quality) the following work has b
 * Replaced incorrect op-codes, where Better Else "Trick" was used. See Reference below.
 
 On the last point I was unaware of these optimisations until I worked on this code.
+If you are interested search the code for `Trick` you will find cope optimisations
+that save a few bytes by allowing Jumps to the second byte of 2 byte instruction
 
-### Build and Test
+## Compiling
 
-This source code has been compiled with Telemark Assembler, and tested using a DIFF tool to ensure binary 
-compatibility of the generated output. There are several `DEFINE`'s that can be set
-in the code (very start) to enable certain features
+This source code has been compiled with Telemark Assembler, and tested using a DIFF tool to ensure binary
+compatibility of the generated output.
 
-By default the build will create a Version 1.3 of the TRS-80 ROM. Version 1.2 is also supported, 
-but V1.1 and prior versions are not supported
+### Build Options
+
+There are several `DEFINE`'s that can be set in the code (very start) to enable certain features.
+By default the build will create a Version 1.3
 
 The base ROM version can be defined.
-* DEFINE VER12 - uncomment tis Define for V1.2 of the ROM.
-* DEFINE EACA80 - Used to enable Dick Smith System-80 (EACA) hardware support. 
-  NOTE: While not mandatory you should also specify `VER12` since the System-80 ROM was based on V1.2.
-  V1.3 has not been formally tested, but assume should work, and opens ability to also specify `FREHD`  
+* `#DEFINE VER12` - uncomment this the degrade from V1.3 to V1.2 of the ROM.
+* `#DEFINE EACA80` - uncomment to enable Dick Smith System-80 (EACA) hardware support. 
+  NOTE: While not mandatory you should also define `VER12` since the System-80 ROM was based on V1.2.
+  V1.3 has not been formally tested, but assume should work, and opens ability to also specify `FREHDBT`  
 
 There are several optional features.
-* DEFINE FREHDBT - Enables the FreHD auto boot feature, i.e. the Auto boot ROM. This implies a Version 1.3 
-  ROM as a base, please do not DEFINE VER12. 
+* `#DEFINE FREHDBT` - Enables the FreHD auto boot feature, i.e. the Auto boot ROM. This requires version 1.3 
+  ROM as a base, please do NOT define `VER12` 
   Consider also enabling NMIHARD to ensure reset (on non-floppy machine) will force a reset.
-* DEFINE NMIHARD - Set NMI (reset) as always perform a hard reset. Normally on non-floppy systems NMI performs
+* `#DEFINE NMIHARD` - Set NMI (reset) as always perform a hard reset. Normally on non-floppy systems NMI performs
   a soft reset returing to the `READY>` prompt with the basic program intact. This is useful in system without 
   floppy disk to force a full reset (0066h)
-* DEFINE LOWCASE - Disable Alpha character translation of letters A-Z,a-z to the values on range 00h to 1Fh. 
+* `#DEFINE LOWCASE` - Disable Alpha character translation of letters A-Z,a-z to the values on range 00h to 1Fh. 
   This is useful when a lower case mod is installed, but an alternate video driver has not been installed, 
   or where the font rom on the machine has the alternate characters in the 00h 1Fh range (0471h)
 
 Some additional defines, which are build options rather than features
-* DEFINE SIZE16K - Will pad the end of the rom with $FF to 16KB size. Use if want to append multiple ROM 
-  images for used in large paged rom
-* DEFINE DONTEND - Disable `.END` directive if `#INCLUDE`ing the source inside another file.
-* DEFINE _EMBED - Experimental, used to strip all HW, and IO routines leaving just BASIC language as standalone code 
+* `#DEFINE SIZE16K` - Will pad the end of the rom with $FF to 16KB size. useful if want to append multiple ROM 
+  images for used in large 16K paged rom
+* `#DEFINE DONTEND` - Disable `.END` directive if `#INCLUDE`ing the source inside another file.
 
-### Example Usage
+Experimental - use at your own risk
+* `#DEFINE _EMBED` - Strip all HW, and IO routines leaving just BASIC language as standalone code
+  and used in L2 Basic for CP/M
+
+## Extensions
+
+### L2 Basic for CP/M
 
 I have created an implementation of Level 2 Basic that runs as an executable CP/M 2.2 (or greater). 
 
 Switch to the branch "cpmbasic" which takes this source code and you will find TBASIC.Z80 which will
-comple to a CP/M COM executable file. It is not well documented (see intose the ASM file), it has many
-limitatations but does work. And also includes the LOAD filename.bas which will load a TRS-80 basic program.
-You do need to be careful though RAM starts at 3000H (not 4000H), so POKE's to what would normally be video
+compile to a CP/M COM executable file. It is not well documented (see in the the ASM file), it has many
+limitations but does work. 
+
+i.e. You do need to be careful though RAM starts at 3000H (not 4000H), so POKE's to what would normally be video
 RAM would easily corrupt your program
 
-### Contributing
+It also includes the LOAD filename.bas which will load a TRS-80 basic program.
 
-If you wish to improve the quality of this source code (better documentation)I  would be happy to accept Pull Requests, 
-please ensure you test that the build works using Telemark Assembler.
+## Fine Print
 
 ### Legal
 
 The source code is NOT the original code, it is a derivative work assembled from multiple sources.
+By providing this code I do not claim any ownership of the original code, those rights belong with
+the original authors.
+
+### Contributing
+
+If you wish to improve the quality of this source code (better documentation) I  would be happy to accept Pull Requests,
+please ensure you test that the build works using Telemark Assembler.
 
 ### References
 
