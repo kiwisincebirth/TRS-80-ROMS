@@ -7066,11 +7066,9 @@ NOTABR:	pop	hl		;2164
 ;        necessary. CALLs Disk BASIC link at 41BEH prior to return.
 ; ----------------------------------------------------------------------
 FINPRT:
-#IFNDEF _EMBED
 	ld	a,(PRTFLG)	;2169 - current output device flag
 	or	a		;216c - check the flags
 	call	m,CTOFF		;216d - If cassette, turn it off
-#ENDIF
 	xor	a		;2170
 	ld	(PRTFLG),a	;2171 - set current output device type = VIDEO
 	call	FINDRT		;2174 - DOS Exit Point
