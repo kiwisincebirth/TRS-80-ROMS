@@ -22,8 +22,6 @@ been very heavily documented over the years. However, this repository aims to ad
 
 Main Features
 * Fully Compilable Source Code for Model 1 Level 2 12KB ROMS
-
-Supports
 * Both 1.3 and 1.2 versions, plus EACA clone hardware.
 
 While based of a disassembly (which can be low quality) the following work has been done: 
@@ -36,6 +34,8 @@ While based of a disassembly (which can be low quality) the following work has b
 * Replaced incorrect op-codes, where Better Else "Trick" was used. See Reference below.
 
 On the last point I was unaware of these optimisations until I worked on this code.
+If you are interested search the code for `Trick` you will find cope optimisations
+that save a few bytes by allowing Jumps to the second byte of 2 byte instruction
 
 ## Compiling
 
