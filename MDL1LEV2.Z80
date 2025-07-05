@@ -24,6 +24,10 @@
 ; #DEFINE SIZE16K ; Uncomment to build a $FF padded 16K Image for banked ROM
 ; #DEFINE DONTEND ; Uncomment to Disable END directive, use if #include
 ;
+; Extended Rom Features
+; #DEFINE EXTBOOT ; Uncomment to Replace Disk Boot with external code(0696h)
+; #DEFINE POSTBASIC ; Uncomment to support post Basic Vector Initialisation
+;
 ; ======================================================================
 ;     INFORMATION
 ; ----------------------------------------------------------------------
@@ -223,7 +227,12 @@ RAM:	.EQU	$4000	; Start of RAM Communications area
 _START:
 rst00:	di			;0000
 	xor	a		;0001
+#IFNDEF EXTBOOT
 	jp	INIT		;0002
+#ELSE
+	jp	BOOTSTRAP	;0002 - perform alternate system bootstrap
+	; Suggest using "M3" convention of JP vector at 3015H (future)
+#ENDIF
 ;
 	jp	mRST1		;0005
 ;
@@ -539,7 +548,14 @@ USEDEF:	dec	hl		;00e7
 	ld	(MEMSIZ),hl	;00f2 - Save the MEMORY SIZE? amount
 	add	hl,de		;00f5
 	ld	(STKTOP),hl	;00f6 - start of string space pointer MEMSIZE-32
+;
+#IFNDEF POSTBASIC
 	call	SCRTCH		;00f9
+#ELSE
+	call	FINBASIC	; Call to Finalise Basic Startup.
+	; FINBASIC routine should JP SCRTCH to complete.
+#ENDIF
+;
 #IFNDEF FREHDBT
 	; FreHD does not print this message, saving 6 bytes here
 	ld	hl,HDGMSG	;00fc

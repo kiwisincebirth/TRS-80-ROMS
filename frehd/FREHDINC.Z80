@@ -1,0 +1,35 @@
+; ------------------------------------------
+; FREHD
+; ------------------------------------------
+; Some Constants from FREHD
+;
+; where the extra FREHD rom is loaded
+ROM_LOAD	.equ 5000h
+;
+; TRS model : passed by the patched rom
+ROM_MODEL_1	.equ 1h
+ROM_MODEL_3	.equ 3h
+;
+; FreHD PORT Interface defines
+DATA2	  	.equ 0c2h
+SIZE2     	.equ 0c3h
+COMMAND2  	.equ 0c4h
+READROM		.equ 0c4h		; read only
+ERROR2    	.equ 0c5h		; read only
+WRITEROM	.equ 0c5h		; write only
+STATUS    	.equ 0cfh		; read only
+;
+; FreHD Commands
+OPENFILE  	.equ 03h
+READFILE  	.equ 04h
+WRITEFILE 	.equ 05h
+CLOSEFILE 	.equ 06h
+;
+; FatFS flags
+FA_OPEN_EXISTING .equ 00h
+FA_READ          .equ 01h
+FA_WRITE         .equ 02h
+FA_CREATE_NEW    .equ 04h
+FA_CREATE_ALWAYS .equ 08h
+FA_OPEN_ALWAYS   .equ 10h
+;

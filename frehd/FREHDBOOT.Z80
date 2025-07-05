@@ -1,0 +1,294 @@
+;
+; ==========================================
+; TRS_80 Model 1 Level 2 - 14 KB Extened ROM
+; CUSTOM BOOT ROM WITH FREHD SUPPORT
+; ==========================================
+;
+; BASED ON
+; https://github.com/veco/FreHDv1/blob/main/sw/z80/frehd_rom/rom-patches/model1rom.asm
+;
+; Includes
+#INCLUDE	"FREHDINC.Z80"
+;
+; Macros
+#DEFINE	JP_UNDEFINED	ret\ nop\ nop
+;
+; ------------------------------------------
+; Setup fro ROM file inclusion
+; ------------------------------------------
+;
+#DEFINE NMIHARD ; NMI Reset is forced to hard reset.
+#DEFINE LOWCASE ; Disable Alpha Character Translation
+#DEFINE FREHDBT ; Enable FreHD Auto boot at startup (requires VER13)
+#DEFINE	DONTEND	; DISABLE the .END Directive in the INCLUDE
+;
+; #DEFINE EXTBOOT ; Enable External Boot, replacing FDD boot
+#DEFINE POSTBASIC ; Support Post Basic Vector Initialisation
+;
+; ------------------------------------------
+; Include the TRS-ROM file itself.
+; ------------------------------------------
+;
+#INCLUDE 	"../MDL1LEV2.Z80"	; INCLUDE the ROM file itself.
+;
+; ------------------------------------------
+; CODE
+; ------------------------------------------
+; The Extra Code, added to end of the ROM IMAGE starts at 0x3000
+;
+; ------------------------------------------
+; Jump Table 3000H ->
+; ------------------------------------------
+;
+; Model 3 Entry Points. Kept for "arbitrary" compatability
+;
+_SLOWWRITE:	JP_UNDEFINED		; 3000 - Jump to 325EH for a SLOW tape header write.
+_FASTWRITE:	JP_UNDEFINED		; 3003 - Jump to 329BH for a FAST tape header write.
+_SLOWREAD:	JP_UNDEFINED		; 3006 - Jump to 3274H for a SLOW tape header read.
+_FASTREAD:	JP_UNDEFINED		; 3009 - Jump to 32DAH for a FAST tape header read.
+_CASOFF:	JP_UNDEFINED		; 300C - Jump to 31C0H for Cassette OFF
+_CASON:		JP_UNDEFINED		; 300F - Jump to 31D1H for Cassette ON
+_WARMBOOT:	JP_UNDEFINED		; 3012 - Jump to 34ABH for Warm Boot.
+_BOOTSTRAP:	JP_UNDEFINED		; 3015 - Bootstrap
+_INTHANDLE:	JP_UNDEFINED		; 3018 - Jump to 35C2H for Maskable Interrupt Handler
+_RS232INIT:	JP_UNDEFINED		; 301B - Jump to 35FBH for RS-232 Initialization
+_RS232IN:	JP_UNDEFINED		; 301E - Jump to 365AH for RS-232 Input
+_RS232OUT:	JP_UNDEFINED		; 3021 - Jump to 3680H for RS-232 Output
+_KEYBRDIN:	JP_UNDEFINED		; 3024 - Jump to 338EH for Keyboard Input
+_IOREROUTE:	JP_UNDEFINED		; 3027 - Jump to 3739H for I/O Re-Router
+_PRINTHASH:	JP_UNDEFINED		; 302A - Jump to 31F7H for part of cassette header routine
+_ISINQUOTE:	JP_UNDEFINED		; 302D - Jump to 377BH for a routine which parses whether the current instruction on a the current line is in quotes
+_STRDATTIM:	JP_UNDEFINED		; 3030 - Jump to 3799H for STRING=DATE$+””+TIME$.
+_DISPDATE:	JP_UNDEFINED		; 3033 - Jump to 35BBH to put the DATE onto the upper right hand corner of the screen.
+;
+; FREHD Entry Points
+;
+_LOADHDFIL:	jp	file_loader	; 3036 - FreHD file loader, to load CMD file
+;
+; ----------------------------------------------------
+; BOOTSTRAP - Model 1 Bootstrap including Detect FreHD
+; ----------------------------------------------------
+;
+;BOOTSTRAP:
+	; The following code originally existed in Model 1 at location (0674)
+;	out	(vidcmt),a	;0674 - reset the Video cassette latch
+;
+;BOOTS_A1:
+;	ld	hl,INITR	;0676
+;	ld	de,RAM		;0679 - starting address of the communications region
+;	ld	bc,$0036	;067c
+;	ldir			;067f - Move 6D2-707 to 4000-4035
+;	dec	a		;0681
+;	dec	a		;0682
+;	jr	nz,BOOTS_A1	;0683 - Loop back until block move occurred 128 times
+;
+;	ld	b,$27		;0685
+;BOOTS_CRAM:
+;	ld	(de),a		;0687
+;	inc	de		;0688
+;	djnz	BOOTS_CRAM	;0689 - Copy 0 to $4036 - $4062
+;
+;	ld	a,(kbdmatrix+$40);068b
+;	and	$04		;068e - if the BREAK key is being pressed
+;	jp	nz,INIT2	;0690 - Jump if the BREAK key was pressed (BACK TO MAIN ROM)
+;
+;	; This is the beginning of the routine which boots a diskette
+;	ld	sp,TMPSTK	;0693 - $407D since Disk load will overite > $4200
+;
+;	; FRED boot initialisation code
+;	call	CLS		; 0069 clear screen
+;	ld	bc,$0000	; PAUSE for about 3 seconds
+;	call	PAUSE		; 006c call delay routine, trashes bc
+;
+;hd_detect:
+;	; FRED detection logic
+;	ld	a,ROM_MODEL_1	; 00ff ROM parameter. 1 for Model1.
+;	out	(WRITEROM),a	; 0101 Write to Port $C5
+;	;
+;	in	a,(READROM)	; 0103 Read Port $C4
+;	cp	0FEh		; 0105 $FE is FreHD present and valid code! (discarded)
+;	jr	z,hd_boot	; 0107 Found FreHD Firmware, Boot from FreHD (CONTINUE FREHD)
+;
+;flop_detect:
+;	; FDD detection Logic copied from from ROM
+;	ld	a,(diskstat)	;0696 - status of the disk controller (37ECH)
+;	inc	a		;0699
+;	cp	$02		;069a - is disk controller present.
+;	jp	c,INIT2		;069c - Jump to Level II Init if no disk controller (BACK TO MAIN ROM)
+;	;
+;	jp	BOOT		; Jump to Floppy Boot if disk controller found (BACK TO MAIN ROM)
+;
+; -----------------------------
+; FREHD Load Boot Code
+;
+;hd_boot:
+;	; FRED Bootloader
+;	ld	hl,ROM_LOAD	; 0108 Target address of 5000h - load "rom" from FreHD
+;	ld	bc,READROM	; 010b Read $100 bytes (B) from IO Port $C4 (C)
+;	inir			; 010e Read (C) -> (HL), Inc HL, Dec B, repeat until B=0
+;	;
+;	jp	ROM_LOAD	; 0113 jump to the fred boot loader (FINISHED)
+;
+; -----------------------------
+; INIT - FINALISE BASIC
+; -----------------------------
+;
+FINBASIC:
+	;Init Basic Vectors
+	;
+	; TODO Detect if FREHD is present, otherwis skip
+	; todo print a message indicating extensions installed
+	;
+	ld	a,OPJPNN		; opcode for JP nnnn
+	ld	(DVOPEN),a		; set the JP Instruction into Vector Table
+	ld	hl,open_cmd		; address of our Disk OPEN function
+	ld	(DVOPEN+1),hl		; set the vector to function
+	;
+	jp	SCRTCH			; finish the basic init (and RETURN)
+;
+; -----------------------------
+;
+; FREHD Load ROM IMAGE, copied from the 256 byte loader
+; Directly Load FreHD.ROM image and executes it.
+; At this point we assume the FREHD is alive.
+;
+;frehd_boot:
+;	ld	de,fname		; load FREHD.ROM
+;	ld	b,fnamlen		; length
+;	call	file_loader		; call it
+;	ret	nz			; didnt load
+;	jp	(hl)			; run it.
+;
+;fname	.db	"FREHD.ROM"
+;fnamlen .equ	($-fname)
+;
+; -----------------------------
+;
+open_cmd:
+	push	hl			; save the basic pointer
+	ld	b,0			; the length of the string (result)
+open_cmd2:
+	ld	a,(hl)			; get byte
+	or	a			; test it
+	jr	z,open_cmd3		; zero, so fin
+	inc	hl			; next char
+	inc	b			; one more byte
+	jr	open_cmd2		; test the next char
+open_cmd3:
+	pop	de			; pop the string address into DE
+	call	file_loader		; attempt to load the file
+	jp	nz,FCERR		; FC ERROR IF NOT LOADED
+	jp	(hl)			; run the loaded program
+;
+; -----------------------------
+;;;
+;;; FreHD file loader
+;;;
+;;; Input:
+;;; - DE : pointer to filename
+;;; - B  : filename length
+;;;
+;;; Return:
+;;; - Z  : no error. HL contains transfer address
+;;; - NZ : error occurred, file not or partially loaded
+;;;
+file_loader:
+	ld	hl,0			; save SP in IX
+	add	hl,sp
+	push	hl
+	pop	ix
+
+	ex	de,hl
+	ld	a,OPENFILE		; open file command
+	out	(COMMAND2),a
+	call	wait
+	;
+	ld	a,b
+	inc	a			; +1 for options
+	inc	a			; +1 for null-terminator
+	out	(SIZE2),a
+	ld	c,DATA2
+	ld	a,FA_OPEN_EXISTING|FA_READ
+	out	(c),a			; send option
+	otir				; send filename
+	xor	a			; send null-terminator
+	out	(c),a
+	call	wait
+	;
+	ret	nz			; error, return
+	ld	c,0FFh			; counter
+load:
+	call	getbyte			; get type code
+	dec	a
+	jr	nz,load2		; bypass if not type 1
+	call	getaddr			; get address
+load1a:	call	getbyte
+	ld	(hl),a			; save that byte
+	inc	hl
+	djnz	load1a
+	jr	load
+load2:	dec	a			; test if type 2 (TRADDR)
+	jr	z,load3			; yes
+	call	getbyte			; assume comment
+	ld	b,a			; get comment length
+load2a:	call	getbyte
+	djnz	load2a			; read and ignore
+	jr	load
+load3:	call	getaddr			; get transfer address
+	ld	a,CLOSEFILE		; close file
+	out	(COMMAND2),a
+	call	wait
+	xor	a			; set Z for success !
+	ret
+
+getaddr
+	call	getbyte			; get block length
+	ld	b,a
+	call	getbyte			; get low-order load addr
+	ld	l,a
+	dec	b			; adjust length
+	call	getbyte			; get high-order load addr
+	ld	h,a
+	dec	b			; adjust length
+	ret
+
+getbyte:
+	inc	c			; i++
+	jr	nz,getbyte1		; every 256 bytes, need another chunk
+	call	getchunk
+getbyte1:
+	in	a,(DATA2)		; get a byte
+	ret
+
+getchunk
+	xor	a			; request 256 bytes
+	out	(SIZE2),a
+	ld	a,READFILE
+	out	(COMMAND2),a
+	call	wait
+	jr	nz,error
+	in	a,(STATUS)		; DRQ set means we got something
+	and	08h
+	ret	nz			; return if ok !
+error
+	ld	a,CLOSEFILE		; close file
+	out	(COMMAND2),a
+	call	wait
+	ld	sp,ix
+	inc	a			; set NZ (wait returns A == 0 or 1)
+	ret				; return
+
+wait	in 	a, (STATUS)
+	rlca
+	jr 	c, wait
+	in 	a, (STATUS)		; read status again
+	and 	01h			; nz = error
+	ret
+
+; -----------------------------
+; PADDING to create 16KB ROM Image, so we can simply append multiple
+; versions into a larger paged ROM file for modern chip.
+;
+	.FILL	(4000h - $)
+;
+	.END
