@@ -8551,8 +8551,8 @@ ARYVAR:	ex	de,hl		;2921
 	jr	nz,ARYVA2	;2933
 	ld	(TEMP3),hl	;2935
 	pop	hl		;2938
-	ld	c,(hl)		;2939
-	ld	b,$00		;293a
+	ld	c,(hl)		;2939 - Load C with num of subscripts for the array HL pointer
+	ld	b,$00		;293a - Zero B so that BC holds the number of dimensions
 	add	hl,bc		;293c
 	add	hl,bc		;293d
 	inc	hl		;293e
