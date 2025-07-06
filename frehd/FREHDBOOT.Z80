@@ -164,21 +164,29 @@ FINBASIC:
 ;
 ; -----------------------------
 ;
+; (HL) points to character following OPEN cmd
+;
 open_cmd:
-	push	hl			; save the basic pointer
-	ld	b,0			; the length of the string (result)
-open_cmd2:
-	ld	a,(hl)			; get byte
-	or	a			; test it
-	jr	z,open_cmd3		; zero, so fin
-	inc	hl			; next char
-	inc	b			; one more byte
-	jr	open_cmd2		; test the next char
-open_cmd3:
-	pop	de			; pop the string address into DE
-	call	file_loader		; attempt to load the file
-	jp	nz,FCERR		; FC ERROR IF NOT LOADED
-	jp	(hl)			; run the loaded program
+
+	call	FRMEVL		; call 2337 which evaluates the expression.
+	call	FRESTR		; gets pointer to string in HL if string
+				; if not a string it FAILS
+	;
+	LD	A,(HL)		; GET STRING LENGTH
+	or	a
+	JP	Z,FCERR		; FC error if zero length
+	;
+	inc	hl
+	ld	e,(hl)
+	inc	hl
+	ld	d,(hl)		; string pointer in DE
+	ld	b,a		; length into B
+	;
+	call	file_loader	; attempt to load the file
+	;
+	jp	nz,FCERR	; FC ERROR IF NOT LOADED
+	;
+	jp	(hl)		; run the loaded program
 ;
 ; -----------------------------
 ;;;
