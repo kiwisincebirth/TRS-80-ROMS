@@ -76,6 +76,8 @@ ROM_LOAD	.EQU $5000		; where the extra "rom is loaded
 ;   BASIC TOKENS IDS
 ;   (note: this is not complete, just constants used in code)
 ; ----------------------------------------------------------------------
+TKOFF	.EQU	$80	; Offset - The first Token, Token Offset.
+TKEND	.EQU	$80	; END
 TKFOR:	.EQU	$81	; FOR
 TKDATA:	.EQU	$88	; DATA
 TKGOTO:	.EQU	$8D	; GOTO
@@ -5037,10 +5039,10 @@ FUNDSP:
 	.DW	FNSIN		; SIN()
 	.DW	FNTAN		; TAN()
 	.DW	ATAN		; ATAN()
-	.DW	PEEK		; PEEK
+	.DW	PEEK		; PEEK - ($E5)
 ;
 ; DISK IO FUNCTIONS (VECTORS) offset from base
-	.DW	DVCVI		; CVI
+	.DW	DVCVI		; CVI - ($E6)
 	.DW	DVCVS		; CVS
 	.DW	DVCVD		; CVD
 	.DW	DVEOF		; EOF
@@ -5048,10 +5050,10 @@ FUNDSP:
 	.DW	DVLOF		; LOF
 	.DW	DVMKI		; MKI
 	.DW	DVMKS		; MKS
-	.DW	DVMKD		; MKD
+	.DW	DVMKD		; MKD - ($EE)
 ; END of DISK IO Functions
 ;
-	.DW	FRCINT		; CINT()
+	.DW	FRCINT		; CINT() - ($EF)
 	.DW	FRCSNG		; CSNG()
 	.DW	FRCDBL		; CDBL
 	.DW	FNFIX		; FIX
@@ -5062,7 +5064,7 @@ FUNDSP:
 	.DW	FNCHR		; CHR$
 	.DW	FNLEFT		; LEFT$
 	.DW	FNRGT		; RIGHT$
-	.DW	FNMID		; MID$ - ($FA)
+	.DW	FNMID		; MID$ - Disk Basic Token - ($FA)
 ;
 ; ----------------------------------------------------------------------
 ; 1650-1821 - Reserved key word list (in token order)
@@ -5077,7 +5079,7 @@ RESLST:
 	.DB	$D2,"ESET"	; RESET - $82
 	.DB	$D3,"ET"	; SET   - $83
 	.DB	$C3,"LS"	; CLS
-	.DB	$C3,"MD"	; CMD (disk)
+	.DB	$C3,"MD"	; CMD (disk) - $85
 	.DB	$D2,"ANDOM"	; RANDOM
 	.DB	$CE,"EXT"	; NEXT
 	.DB	$C4,"ATA"	; DATA  - $88
@@ -5100,13 +5102,13 @@ RESLST:
 	.DB	$C4,"EFINT"	; DEFINT
 	.DB	$C4,"EFSNG"	; DEFSNG
 	.DB	$C4,"EFDBL"	; DEFDBL
-	.DB	$CC,"INE"	; LINE (disk)
+	.DB	$CC,"INE"	; LINE (disk) - $9E
 	.DB	$C5,"DIT"	; EDIT
 	.DB	$C5,"RROR"	; ERROR
 	.DB	$D2,"ESUME"	; RESUME
 	.DB	$CF,"UT"	; OUT
 	.DB	$CF,"N"		; ON
-	.DB	$CF,"PEN"	; OPEN (disk)
+	.DB	$CF,"PEN"	; OPEN (disk) - $A2
 	.DB	$C6,"IELD"	; FIELD (disk)
 	.DB	$C7,"ET"	; GET (disk)
 	.DB	$D0,"UT"	; PUT (disk)
@@ -5117,10 +5119,10 @@ RESLST:
 	.DB	$CB,"ILL"	; KILL (disk)
 	.DB	$CC,"SET"	; LSET (disk)
 	.DB	$D2,"SET"	; RSET (disk)
-	.DB	$D3,"AVE"	; SAVE (disk)
+	.DB	$D3,"AVE"	; SAVE (disk) - $AD
 	.DB	$D3,"YSTEM"	; SYSTEM
 	.DB	$CC,"PRINT"	; LPRINT
-	.DB	$C4,"EF"	; DEF (disk)
+	.DB	$C4,"EF"	; DEF (disk) - $B0
 	.DB	$D0,"OKE"	; POKE
 	.DB	$D0,"RINT"	; PRINT - $B2
 	.DB	$C3,"ONT"	; CONT
@@ -5146,7 +5148,7 @@ RESLST:
 	.DB	$D3,"TRING$"	; STRING$
 	.DB	$C9,"NSTR"	; INSTR
 	.DB	$D0,"OINT"	; POINT
-	.DB	$D4,"IME$"	; TIME$ (disk)
+	.DB	$D4,"IME$"	; TIME$ (disk) - $C7
 	.DB	$CD,"EM"	; MEM
 	.DB	$C9,"NKEY$"	; INKEY$
 	.DB	$D4,"HEN"	; THEN
@@ -5181,7 +5183,7 @@ RESLST:
 	.DB	$D4,"AN"	; TAN
 	.DB	$C1,"TN"	; ATN
 	.DB	$D0,"EEK"	; PEEK
-	.DB	$C3,"VI"	; CVI (disk)
+	.DB	$C3,"VI"	; CVI (disk) - $E6
 	.DB	$C3,"VS"	; CVS (disk)
 	.DB	$C3,"VD"	; CVD (disk)
 	.DB	$C5,"OF"	; EOF (disk)
@@ -5189,7 +5191,7 @@ RESLST:
 	.DB	$CC,"OF"	; LOF (disk)
 	.DB	$CD,"KI$"	; MKI$ (disk)
 	.DB	$CD,"KS$"	; MKS$ (disk)
-	.DB	$CD,"KD$"	; MKD$ (disk)
+	.DB	$CD,"KD$"	; MKD$ (disk) - $ED
 	.DB	$C3,"INT"	; CINT
 	.DB	$C3,"SNG"	; CSNG
 	.DB	$C3,"DBL"	; CDBL
@@ -8919,10 +8921,17 @@ PREAM2:	pop	bc		;2ae2
 	ret			;2ae6
 ; ----------------------------------------------------------------------
 ; 2AE7H-2AEE – Process a LEFT-HAND-SIDE MID$– “ISMID$”
+;
+; This routine is designed to handle a left-size MID$ call.
+; So check to see if the character at the location of the current BASIC
+; program pointer in Register A is trying to process a left hand side MID$.
+; If they match, the Z FLAG is set, and otherwise the NZ FLAG is set.
+; If A < the checked value, then the C FLAG is set.
+; If A >= the checked value, the NC FLAG is set.
 ; ----------------------------------------------------------------------
-ISMID:	cp	$7A		;2ae7
+ISMID:	cp	TKMID-TKOFF	;2ae7 - Check the Mid Token.
 	jp	nz,SNERR	;2ae9
-	jp	DLHSMD		;2aec
+	jp	DLHSMD		;2aec JUMP to DOS to see if DOS wants to deal with this.
 ;
 ; ----------------------------------------------------------------------
 ; 2AEF-2AF7 – LEVEL II BASIC INP ROUTINE– “FNINP”
@@ -10110,7 +10119,7 @@ EXDSKL:	.EQU	DEXT+39		; (20C6) During PRINT # or PRINT item processing. (41CD)
 EXDSCR:	.EQU	DEXT+42		; (2103) When skipping to next line on video during a output op (41D0)
 EXPDOS:	.EQU	DEXT+45		; (21**) At start of PRINT on cassette and during PRINT TAB. (41D3)
 EXUNKN:	.EQU	DEXT+48		; (219E) At beginning of INPUT processing (41D6)
-DLHSMD:	.EQU	DEXT+51		; (2AEC) (41D9)
+DLHSMD:	.EQU	DEXT+51		; (2AEC) MID$ function DOS EXIT (41D9)
 FILIND:	.EQU	DEXT+54		; (222D) During READ processing when a variable has been read. (41DC)
 EXCHDS:	.EQU	DEXT+57		; (2***) From List, At end of READ processing (41DF)
 SYSOUT:	.EQU	DEXT+60		; (02B2) During SYSTEM command operation (41E2)
