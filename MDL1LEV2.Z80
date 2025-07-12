@@ -79,10 +79,14 @@ ROM_LOAD	.EQU $5000		; where the extra "rom is loaded
 TKOFF	.EQU	$80	; Offset - The first Token, Token Offset.
 TKEND	.EQU	$80	; END
 TKFOR:	.EQU	$81	; FOR
+TKNEXT:	.EQU	$87	; NEXT
 TKDATA:	.EQU	$88	; DATA
 TKGOTO:	.EQU	$8D	; GOTO
+TKIF:	.EQU	$8F	; IF
+TKGOSU:	.EQU	$91	; GOSUB
 TKREM:	.EQU	$93	; REM
 TKELSE:	.EQU	$95	; ELSE
+TKERRO:	.EQU	$9E	; ERROR
 TKPRNT:	.EQU	$B2	; PRINT
 TKTAB:	.EQU	$BC	; TAB(
 TKTO:	.EQU	$BD	; TO
@@ -5081,7 +5085,7 @@ RESLST:
 	.DB	$C3,"LS"	; CLS
 	.DB	$C3,"MD"	; CMD (disk) - $85
 	.DB	$D2,"ANDOM"	; RANDOM
-	.DB	$CE,"EXT"	; NEXT
+	.DB	$CE,"EXT"	; NEXT  - $87
 	.DB	$C4,"ATA"	; DATA  - $88
 	.DB	$C9,"NPUT"	; INPUT
 	.DB	$C4,"IM"	; DIM
@@ -5089,9 +5093,9 @@ RESLST:
 	.DB	$CC,"ET"	; LET
 	.DB	$C7,"OTO"	; GOTO  - $8D
 	.DB	$D2,"UN"	; RUN
-	.DB	$C9,"F"		; IF
+	.DB	$C9,"F"		; IF    - $8F
 	.DB	$D2,"ESTORE"	; RESTORE
-	.DB	$C7,"OSUB"	; GOSUB
+	.DB	$C7,"OSUB"	; GOSUB - $91
 	.DB	$D2,"ETURN"	; RETURN
 	.DB	$D2,"EM"	; REM   - $93
 	.DB	$D3,"TOP"	; STOP
@@ -5102,12 +5106,12 @@ RESLST:
 	.DB	$C4,"EFINT"	; DEFINT
 	.DB	$C4,"EFSNG"	; DEFSNG
 	.DB	$C4,"EFDBL"	; DEFDBL
-	.DB	$CC,"INE"	; LINE (disk) - $9E
+	.DB	$CC,"INE"	; LINE (disk) - $9C
 	.DB	$C5,"DIT"	; EDIT
-	.DB	$C5,"RROR"	; ERROR
-	.DB	$D2,"ESUME"	; RESUME
+	.DB	$C5,"RROR"	; ERROR  - $9E
+	.DB	$D2,"ESUME"	; RESUME - $9F
 	.DB	$CF,"UT"	; OUT
-	.DB	$CF,"N"		; ON
+	.DB	$CF,"N"		; ON     - $A1
 	.DB	$CF,"PEN"	; OPEN (disk) - $A2
 	.DB	$C6,"IELD"	; FIELD (disk)
 	.DB	$C7,"ET"	; GET (disk)
@@ -5427,7 +5431,7 @@ FNDFOR:	ld	hl,$0004	;1936
 	add	hl,sp		;1939
 LOOPER:	ld	a,(hl)		;193a
 	inc	hl		;193b
-	cp	$81		;193c
+	cp	TKFOR		;193c - Check (which is the current STACK pointer – 4) is a FOR token to make sure that the item in the STACK was associated with a FOR loop
 	ret	nz		;193e
 	ld	c,(hl)		;193f
 	inc	hl		;1940
@@ -5938,7 +5942,7 @@ KLOOP:	ld	a,(hl)		;1bcc
 	cp	SPACE		;1bcd
 	jp	z,STUFFH	;1bcf
 	ld	b,a		;1bd2
-	cp	$22		;1bd3
+	cp	'"'		;1bd3 - Check to see if the current character is a "
 	jp	z,STRNG		;1bd5
 	or	a		;1bd8
 	jp	z,CRDONE	;1bd9
@@ -5946,7 +5950,7 @@ KLOOP:	ld	a,(hl)		;1bcc
 	or	a		;1bdf
 	ld	a,(hl)		;1be0
 	jp	nz,STUFFH	;1be1
-	cp	'?'		;1be4
+	cp	'?'		;1be4 - Check to see if is a ? (PRINT statement)
 	ld	a,TKPRNT	;1be6
 	jp	z,STUFFH	;1be8
 	ld	a,(hl)		;1beb
@@ -5986,7 +5990,7 @@ LOPPSI:	inc	de		;1c1d
 	jp	m,FOUND		;1c20
 	ld	c,a		;1c23
 	ld	a,b		;1c24
-	cp	$8D		;1c25
+	cp	TKGOTO		;1c25 - Check to see if the current reserved word is GOTO
 	jr	nz,NTGOTO	;1c27
 	GETCHR			;1c29 - rst 10h
 	dec	hl		;1c2a
@@ -6562,7 +6566,7 @@ GOSUB:	ld	c,$03		;1eb1
 	push	hl		;1eb8
 	ld	hl,(CURLIN)	;1eb9
 	ex	(sp),hl		;1ebc
-	ld	a,$91		;1ebd
+	ld	a,TKGOSU	;1ebd - Load A with a GOSUB token
 	push	af		;1ebf
 	inc	sp		;1ec0
 RUNC2:	push	bc		;1ec1
@@ -6598,7 +6602,7 @@ RETURN:	ret	nz		;1ede
 	call	FNDFOR		;1ee1
 	ld	sp,hl		;1ee4
 	ld	(SAVSTK),hl	;1ee5
-	cp	$91		;1ee8
+	cp	TKGOSU		;1ee8 - Check if is a GOSUB token
 	ld	e,ERRRG		;1eea
 	jp	nz,ERROR	;1eec
 	pop	hl		;1eef
@@ -6632,9 +6636,9 @@ REMER:	ld	a,(hl)		;1f0e
 	cp	b		;1f11
 	ret	z		;1f12
 	inc	hl		;1f13
-	cp	$22		;1f14
+	cp	'"'		;1f14 - Check to see if is a quote "
 	jr	z,EXCHQT	;1f16
-	sub	$8F		;1f18
+	sub	TKIF		;1f18 - Check to see if is a IF token
 	jr	nz,REMER	;1f1a
 	cp	b		;1f1c
 	adc	a,d		;1f1d
@@ -6693,8 +6697,8 @@ COPNUM:	call	VMOVE		;1f66
 ; ----------------------------------------------------------------------
 ; 1F6C-1FAE - LEVEL II BASIC ERROR ON ROUTINE - "ONGOTO"
 ; ----------------------------------------------------------------------
-ONGOTO:	cp	$9E		;1f6c
-	jr	nz,NTOERR	;1f6e
+ONGOTO:	cp	TKERRO		;1f6c - is an ERROR token (meant to be ON ERROR)
+	jr	nz,NTOERR	;1f6e - Not ON ERROR check for other ON statements
 	GETCHR			;1f70 - rst 10h
 	SYNTAX	(TKGOTO)	;1f71 - rst 08h
 	call	LINGET		;1f73
@@ -6717,12 +6721,14 @@ RESTRP:	ex	de,hl		;1f83
 	ld	e,a		;1f91
 	jp	ERRESM		;1f92
 ; ----------------------------------------------------------------------
+; We know it isn't ON ERROR. We now need to deal with the possibility
+; that it was an ON n GOTO or ON n GOSUB
 ; ----------------------------------------------------------------------
 NTOERR:	call	GETBYT		;1f95
 	ld	a,(hl)		;1f98
 	ld	b,a		;1f99
-	cp	$91		;1f9a
-	jr	z,ISGOSU	;1f9c
+	cp	TKGOSU		;1f9a - IS Register A a GOSUB token
+	jr	z,ISGOSU	;1f9c - Skip the next 2 opcodes since a GOSUB
 	SYNTAX	(TKGOTO)	;1f9e - rst 08h
 	dec	hl		;1fa0
 ISGOSU:	ld	c,e		;1fa1
@@ -6744,7 +6750,7 @@ RESUME:	ld	de,ONEFLG	;1faf
 	ld	(ERRFLG),a	;1fb8
 	ld	(de),a		;1fbb
 	ld	a,(hl)		;1fbc
-	cp	$87		;1fbd
+	cp	TKNEXT		;1fbd - Check to see if it is a NEXT token
 	jr	z,RESNXT	;1fbf
 	call	LINGET		;1fc1
 	ret	nz		;1fc4
@@ -6968,9 +6974,9 @@ PRINTC:	jp	z,FINPRT	;20a0
 	or	a		;20cf - set flags
 	jp	m,LINCH2	;20d0 - If we writing to a cassette
 	jr	z,ISTTY		;20d3 - If NOT LPRINT
-	ld	a,(LPTPOS)	;20d5 - Wwe have a LPRINT, Get carriage POS
+	ld	a,(LPTPOS)	;20d5 - We have a LPRINT, Get carriage POS
 	add	a,(hl)		;20d8
-	cp	$84		;20d9
+	cp	132		;20d9 - Is the adjusted length greater than 132
 	jr	LINCHK		;20db
 ; ----------------------------------------------------------------------
 ; 20DDH – LEVEL II BASIC PRINT@ ROUTINE – “ISTTY”
@@ -7105,14 +7111,14 @@ TRMNOK:	ld	a,(FLGINP)	;217f
 INPUT:	call	ERRDIR		;219a
 	ld	a,(hl)		;219d
 	call	EXUNKN		;219e
-	sub	'#'		;21a1 ; compare with #
+	sub	'#'		;21a1 - compare with #
 	ld	(CASFLG),a	;21a3
 	ld	a,(hl)		;21a6
 	jr	nz,INTCAS	;21a7
 	call	CSRDON		;21a9
 	push	hl		;21ac
-	ld	b,$FA		;21ad ; 250, max characters which can be read
-	ld	hl,(BUFPNT)	;21af ; input buffer
+	ld	b,250		;21ad - Max characters which can be read
+	ld	hl,(BUFPNT)	;21af - input buffer
 FILBUF:	call	CASIN		;21b2
 	ld	(hl),a		;21b5
 	inc	hl		;21b6
@@ -8438,7 +8444,16 @@ STRFIN:	cp	$22		;2878
 	ld	a,c		;2880
 	call	STRAD2		;2881
 PUTNEW:	ld	de,DSCTMP	;2884
-	ld	a,$D5		;2887
+;
+       	.DB	LDANN		;2887 - Z80 Trick LD A,nn - skip next instruction - load it into A
+;
+; ----------------------------------------------------------------------
+; PUTTMP - A JUMP point in DOS Basic to process a new string in the
+; DEF FN routine. When JUMPed to 2888H, a PUSH DE is processed
+; ----------------------------------------------------------------------
+PUTTMP:
+	push	de		;2888 - Save a pointer to the stat of the string to the STACK
+;
 	ld	hl,(TEMPPT)	;2889
 	ld	(FACLO),hl	;288c
 	ld	a,VTSTR		;288f - value type String
@@ -9156,7 +9171,7 @@ CSAVE:	call	CWRTON		;2bf5
 	call	FRMEVL		;2bf8
 	push	hl		;2bfb
 	call	ASC2		;2bfc
-	ld	a,$D3		;2bff
+	ld	a,$D3		;2bff - the filename header byte (=D3H which is a “S” with the sign bit on)
 	call	CASOUT		;2c01
 	call	TWOCSO		;2c04
 	ld	a,(de)		;2c07
@@ -9513,7 +9528,7 @@ ENDNUM:	pop	hl		;2db5
 	cp	25		;2dc5 - total number of characters in Register A is greater than 24
 	jp	nc,FCERR	;2dc7
 	ld	a,d		;2dca
-	or	$80		;2dcb
+	or	$80		;2dcb - Turn on the “USING” bit in the flags
 	call	PUFOUT		;2dcd
 	call	STROUT		;2dd0
 FNSTRF:	pop	hl		;2dd3
@@ -9522,7 +9537,7 @@ FNSTRF:	pop	hl		;2dd3
 	scf			;2dd6
 	jr	z,CRDNUS	;2dd7
 	ld	(FLGINP),a	;2dd9
-	cp	SEMICO		;2ddc - compare with semicolin ';'
+	cp	SEMICO		;2ddc - compare with semicolon ';'
 	jr	z,SEMUSN	;2dde
 	cp	','		;2de0
 	jp	nz,SNERR	;2de2
@@ -9695,36 +9710,36 @@ NOTDGI:	push	hl		;2eb0
 	inc	d		;2eb6
 	jp	nz,NTZERD	;2eb7
 	inc	d		;2eba
-NTZERD:	cp	$D8		;2ebb
+NTZERD:	cp	$D8		;2ebb - Check to see if the character is a BACKSPACE character
 	jp	z,DELED		;2ebd
-	cp	$DD		;2ec0
+	cp	$DD		;2ec0 - Check to see if the character is a CARRIAGE RETURN.
 	jp	z,CRED		;2ec2
-	cp	$F0		;2ec5
+	cp	$F0		;2ec5 - Check to see if the character is a SPACE.
 	jr	z,SPED		;2ec7
-	cp	$31		;2ec9
+	cp	$31		;2ec9 - Check to see if the character is lowercase
 	jr	c,NOTLW4	;2ecb
-	sub	$20		;2ecd
-NOTLW4:	cp	$21		;2ecf
+	sub	$20		;2ecd - Convert the lowercase character to uppercase
+NOTLW4:	cp	'Q'-$30		;2ecf - Check to see if the character is a Q (Quit)
 	jp	z,QED		;2ed1
-	cp	$1C		;2ed4
+	cp	'L'-$30		;2ed4 - Check to see if the character is an L (Branch)
 	jp	z,LED		;2ed6
-	cp	$23		;2ed9
+	cp	'S'-$30		;2ed9 - Check to see if the character is an S (Search)
 	jr	z,SED		;2edb
-	cp	$19		;2edd
+	cp	'I'-$30		;2edd - Check to see if the character is an I (Insert)
 	jp	z,IED		;2edf
-	cp	$14		;2ee2
+	cp	'D'-$30		;2ee2 - Check to see if the character is a D (Delete)
 	jp	z,DED		;2ee4
-	cp	$13		;2ee7
+	cp	'C'-$30		;2ee7 - Check to see if the character is a C (Change)
 	jp	z,CED		;2ee9
-	cp	$15		;2eec
+	cp	'E'-$30		;2eec - Check to see if the character is an E (End)
 	jp	z,EED		;2eee
-	cp	$28		;2ef1
+	cp	'X'-$30		;2ef1 - Check to see if the character is an X (Extend)
 	jp	z,XED		;2ef3
-	cp	$1B		;2ef6
+	cp	'K'-$30		;2ef6 - Check to see if the character is a K (Kill)
 	jr	z,KED		;2ef8
-	cp	$18		;2efa
+	cp	'H'-$30		;2efa - Check to see if the character is an H (Hack)
 	jp	z,HED		;2efc
-	cp	$11		;2eff
+	cp	'A'-$30		;2eff - Check to see if the character is an A (Again)
 	ret	nz		;2f01
 ; ----------------------------------------------------------------------
 ; 2F02 – EDIT Command – Cancel and Restore Logic.
