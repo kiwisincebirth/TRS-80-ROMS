@@ -604,17 +604,17 @@ HDGMSG:	.DB	"R/S L2 BASIC",ENTER,0 ; Radio Shack L2 BASIC V1.3
 ; 011CH-012CH – KEYBOUNCE V1.3
 ; using space save by the shortened startup messages
 ; ----------------------------------------------------------------------
-KEYBOU	push	bc		;01CC Save Row Address in BC into the STACK
-	ld 	bc,$0500	;01DD the debounce delay
-	call	PAUSE		;01E0 delay on delay count in BC (7.33 ms)
-	pop	bc		;01E3 Restore the Row Address back to BC
-	ld	a,(bc)		;01E4 Reload the original flags from active row
-	and	e		;01E5 Combine the current flag lists with the original flag bits
-	ret	z		;01E6 Return to caller if zero because the row was not active on the second test
-	ld	a,d		;01E7 Otherwise, we have a legitimate active row
-	rlca			;01E8 Multiply the row index by 2. twice.
-	rlca			;01E9 This code previously existed at the calling site
-	jp	KYDRES		;01EA Resume the keyboard driver routine
+KEYBOU	push	bc		;011C Save Row Address in BC into the STACK
+	ld 	bc,$0500	;011D the debounce delay
+	call	PAUSE		;0120 delay on delay count in BC (18.8 ms)
+	pop	bc		;0123 Restore the Row Address back to BC
+	ld	a,(bc)		;0124 Reload the original flags from active row
+	and	e		;0125 Combine the current flag lists with the original flag bits
+	ret	z		;0126 Return to caller if zero because the row was not active on the second test
+	ld	a,d		;0127 Otherwise, we have a legitimate active row
+	rlca			;0128 Multiply the row index by 2. twice.
+	rlca			;0129 This code previously existed at the calling site
+	jp	KYDRES		;012A Resume the keyboard driver routine
 ;
 ; (finish 1.3)
 ;
@@ -1313,12 +1313,12 @@ KEYNSF:	ld	hl,KEYTAB	;0443
 ; 044BH-044BH – Part of the Keyboard routine – “KEYRTN”
 ;   This routine will debounce the keyboard downstroke and return
 ; ----------------------------------------------------------------------
-KEYRTN:	ld	d,a		;044b
-KEYRT2:	ld	bc,$0DAC	;044c - delay count (3500)
-	call	PAUSE		;044f
-	ld	a,d		;0452
-	cp	$01		;0453
-	ret	nz		;0455
+KEYRTN:	ld	d,a		;044b - save value for the key pressed from A
+KEYRT2:	ld	bc,3500		;044c - delay count (3500)
+	call	PAUSE		;044f - delay about 51.3 ms
+	ld	a,d		;0452 - restore value for the key pressed
+	cp	$01		;0453 - Check to see if the BREAK key was pressed
+	ret	nz		;0455 - Return if the BREAK key wasn’t pressed
 	rst	28h		;0456
 	ret			;0457
 ;
