@@ -844,15 +844,15 @@ DEFDRV:
 	push	hl		;0215
 	ld	hl,$FF04	;0216 - turn on the cassette motor
 CTCHG2:	call	CTCHG		;0219 - output this command
-	pop	hl		;021c
+	pop	hl		;021c - current BASIC program pointer from the STACK
 	ret			;021d
 ; ----------------------------------------------------------------------
 ; 021EH-022BH – CASSETTE ROUTINE – “CTSTAT”
 ; ----------------------------------------------------------------------
-CTSTAT:	ld	hl,$FF00	;021e - no change to the cassete port
-CTCHG:	ld	a,(CAST)	;0221 - saved value
-	and	h		;0224 - mask the value
-	or	l		;0225 - and set the value on top
+CTSTAT:	ld	hl,$FF00	;021e - no change to the cassette port
+CTCHG:	ld	a,(CAST)	;0221 - saved shadow ram copy of cassette port
+	and	h		;0224 - mask the value, remove unwanted bits
+	or	l		;0225 - and set bits we want
 	out	(vidcmt),a	;0226 - send value to the CAS port
 	ld	(CAST),a	;0228 - save it for future
 	ret			;022b
@@ -1088,8 +1088,8 @@ OUT2D:	push	de		;033a
 ; 0348H-0357H – VIDEO ROUTINE – “DSPPOS”
 ;   Works out horizontal cursor position based on (CURSOR) vid ram pointer
 ; ----------------------------------------------------------------------
-DSPPOS:	ld	a,(CAST)	;0348
-	and	CAST32		;034b - 32 char mode
+DSPPOS:	ld	a,(CAST)	;0348 - get shadow copy of casette port
+	and	CAST32		;034b - mask of the 32 char mode bit
 	ld	a,(CURSOR)	;034d - LSB of the current cursor position
 	jr	z,NT32PS	;0350 - 64 characters per line mode?
 	rrca			;0352 - divide by 2
@@ -1416,32 +1416,32 @@ DSPCOF:	xor	a		;04bd
 ; ----------------------------------------------------------------------
 ; 04C0H – Home the cursor – “DSPHOM”
 ; ----------------------------------------------------------------------
-DSPHOM:	ld	hl,vidmem	;04c0
-	ld	a,(CAST)	;04c3 - Shaddow of Cassete Port
-	and	~CAST32		;04c6 ; $F7 - Not $08 - ie turn the bit off
-	ld	(CAST),a	;04c8
-	out	(vidcmt),a	;04cb
+DSPHOM:	ld	hl,vidmem	;04c0 - starting address of video memory
+	ld	a,(CAST)	;04c3 - Shadow of Cassette Port
+	and	~CAST32		;04c6 - turn off the 32 char mode bit
+	ld	(CAST),a	;04c8 - save shadow copy
+	out	(vidcmt),a	;04cb - write to the cassette port
 	ret			;04cd
 ; ----------------------------------------------------------------------
 ; 04CEH – Backspace – “DSPBSP”
 ; ----------------------------------------------------------------------
 DSPBSP:	dec	hl		;04ce
-	ld	a,(CAST)	;04cf
-	and	CAST32		;04d2 - 32 char mode
-	jr	z,DSPBS2	;04d4
+	ld	a,(CAST)	;04cf - get shadow copy of Cassette port
+	and	CAST32		;04d2 - check for 32 char mode
+	jr	z,DSPBS2	;04d4 - 64 char mode sip forward
 	dec	hl		;04d6 - back again if 32 char mode
 DSPBS2:	ld	(hl),' '	;04d7 - Clear the character under cursor
 	ret			;04d9
 ; ----------------------------------------------------------------------
 ; 04DAH – Cursor Left – “DSPLFT”
 ; ----------------------------------------------------------------------
-DSPLFT:	ld	a,(CAST)	;04da
-	and	CAST32		;04dd - 32 char mode
-	call	nz,DSPLF2	;04df
-DSPLF2:	ld	a,l		;04e2
-	and	$3F		;04e3
-	dec	hl		;04e5
-	ret	nz		;04e6
+DSPLFT:	ld	a,(CAST)	;04da - get shadow copy of Cassette port
+	and	CAST32		;04dd - check for 32 char mode
+	call	nz,DSPLF2	;04df - if 32 char mode, move back twice
+DSPLF2:	ld	a,l		;04e2 - get the lower order address
+	and	$3F		;04e3 - mask 64 char line for RET below
+	dec	hl		;04e5 - move back 1
+	ret	nz		;04e6 - Return if still on the same line
 ; ----------------------------------------------------------------------
 ; 04E7H – Cursor Down – “DSPDWN”
 ; ----------------------------------------------------------------------
@@ -1464,14 +1464,14 @@ DSPUP:	ld	de,$FFC0	;04f1
 ; ----------------------------------------------------------------------
 ; 04F6H – Set up 32-Character mode – “DSPETB”
 ; ----------------------------------------------------------------------
-DSPETB:	ld	a,(CAST)	;04f6
-	or	CAST32		;04f9 - 32 char mode
-	ld	(CAST),a	;04fb
+DSPETB:	ld	a,(CAST)	;04f6 - get shadow copy of Cassette port
+	or	CAST32		;04f9 - Set the 32 Char mode bit
+	ld	(CAST),a	;04fb - save shadow copy of cassette port
 	out	(vidcmt),a	;04fd - output setting the HW register
-	inc	hl		;0500
-	ld	a,l		;0501
-	and	$FE		;0502
-	ld	l,a		;0504
+	inc	hl		;0500 - Increment the current cursor position
+	ld	a,l		;0501 - get lower order byte
+	and	$FE		;0502 - mask out the LSB bit, not relevant for 32char
+	ld	l,a		;0504 - write it back to L, adjusting cursor position
 	ret			;0505
 ; ----------------------------------------------------------------------
 ; 0506H – Process control characters – “DSPCTL”
@@ -1514,10 +1514,10 @@ DSPCTL:	ld	de,DSPSKP	;0506
 ; ----------------------------------------------------------------------
 DSPOUT:	ld	(hl),a		;0541 - write the charater to vide ram
 	inc	hl		;0542 - next screen position
-	ld	a,(CAST)	;0543 - cassete port shaddow byte
-	and	CAST32		;0546 - mask out 32 char mode
+	ld	a,(CAST)	;0543 - cassette port shadow byte
+	and	CAST32		;0546 - mask out 32 char mode bit
 	jr	z,DSPOT2	;0548 - if not 32 character mode, skip over
-	inc	hl		;054a - Skip another screen loaction (32 char)
+	inc	hl		;054a - Skip another screen location (32 char)
 DSPOT2:	ld	a,h		;054b
 	cp	$40		;054c - past end of screen at $40000
 	ret	nz		;054e - nothing to do
@@ -1797,7 +1797,7 @@ KLNCR:	push	af		;0662
 ;     On reset, A=0: 64 char video mode, CMT motor relay off, CMT out = 0.85 V.
 ; ----------------------------------------------------------------------
 INIT:
-	out	(vidcmt),a	;0674 - reset the Video cassette latch
+	out	(vidcmt),a	;0674 - reset the Video cassette latch, A=0
 ;
 INITA1:	ld	hl,INITR	;0676
 	ld	de,RAM		;0679 - starting address of the communications region
