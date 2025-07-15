@@ -80,11 +80,17 @@ ROM_LOAD	.EQU $5000		; where the extra "rom is loaded
 ;   BASIC TOKENS IDS
 ;   (note: this is not complete, just constants used in code)
 ; ----------------------------------------------------------------------
+TKOFF	.EQU	$80	; Offset - The first Token, Token Offset.
+TKEND	.EQU	$80	; END
 TKFOR:	.EQU	$81	; FOR
+TKNEXT:	.EQU	$87	; NEXT
 TKDATA:	.EQU	$88	; DATA
 TKGOTO:	.EQU	$8D	; GOTO
+TKIF:	.EQU	$8F	; IF
+TKGOSU:	.EQU	$91	; GOSUB
 TKREM:	.EQU	$93	; REM
 TKELSE:	.EQU	$95	; ELSE
+TKERRO:	.EQU	$9E	; ERROR
 TKPRNT:	.EQU	$B2	; PRINT
 TKTAB:	.EQU	$BC	; TAB(
 TKTO:	.EQU	$BD	; TO
@@ -614,17 +620,17 @@ HDGMSG:	.DB	"R/S L2 BASIC",ENTER,0 ; Radio Shack L2 BASIC V1.3
 ; 011CH-012CH – KEYBOUNCE V1.3
 ; using space save by the shortened startup messages
 ; ----------------------------------------------------------------------
-KEYBOU	push	bc		;01CC Save Row Address in BC into the STACK
-	ld 	bc,$0500	;01DD the debounce delay
-	call	PAUSE		;01E0 delay on delay count in BC (7.33 ms)
-	pop	bc		;01E3 Restore the Row Address back to BC
-	ld	a,(bc)		;01E4 Reload the original flags from active row
-	and	e		;01E5 Combine the current flag lists with the original flag bits
-	ret	z		;01E6 Return to caller if zero because the row was not active on the second test
-	ld	a,d		;01E7 Otherwise, we have a legitimate active row
-	rlca			;01E8 Multiply the row index by 2. twice.
-	rlca			;01E9 This code previously existed at the calling site
-	jp	KYDRES		;01EA Resume the keyboard driver routine
+KEYBOU	push	bc		;011C Save Row Address in BC into the STACK
+	ld 	bc,$0500	;011D the debounce delay
+	call	PAUSE		;0120 delay on delay count in BC (18.8 ms)
+	pop	bc		;0123 Restore the Row Address back to BC
+	ld	a,(bc)		;0124 Reload the original flags from active row
+	and	e		;0125 Combine the current flag lists with the original flag bits
+	ret	z		;0126 Return to caller if zero because the row was not active on the second test
+	ld	a,d		;0127 Otherwise, we have a legitimate active row
+	rlca			;0128 Multiply the row index by 2. twice.
+	rlca			;0129 This code previously existed at the calling site
+	jp	KYDRES		;012A Resume the keyboard driver routine
 ;
 ; (finish 1.3)
 ;
@@ -854,15 +860,15 @@ DEFDRV:
 	push	hl		;0215
 	ld	hl,$FF04	;0216 - turn on the cassette motor
 CTCHG2:	call	CTCHG		;0219 - output this command
-	pop	hl		;021c
+	pop	hl		;021c - current BASIC program pointer from the STACK
 	ret			;021d
 ; ----------------------------------------------------------------------
 ; 021EH-022BH – CASSETTE ROUTINE – “CTSTAT”
 ; ----------------------------------------------------------------------
-CTSTAT:	ld	hl,$FF00	;021e - no change to the cassete port
-CTCHG:	ld	a,(CAST)	;0221 - saved value
-	and	h		;0224 - mask the value
-	or	l		;0225 - and set the value on top
+CTSTAT:	ld	hl,$FF00	;021e - no change to the cassette port
+CTCHG:	ld	a,(CAST)	;0221 - saved shadow ram copy of cassette port
+	and	h		;0224 - mask the value, remove unwanted bits
+	or	l		;0225 - and set bits we want
 	out	(vidcmt),a	;0226 - send value to the CAS port
 	ld	(CAST),a	;0228 - save it for future
 	ret			;022b
@@ -1098,8 +1104,8 @@ OUT2D:	push	de		;033a
 ; 0348H-0357H – VIDEO ROUTINE – “DSPPOS”
 ;   Works out horizontal cursor position based on (CURSOR) vid ram pointer
 ; ----------------------------------------------------------------------
-DSPPOS:	ld	a,(CAST)	;0348
-	and	CAST32		;034b - 32 char mode
+DSPPOS:	ld	a,(CAST)	;0348 - get shadow copy of casette port
+	and	CAST32		;034b - mask of the 32 char mode bit
 	ld	a,(CURSOR)	;034d - LSB of the current cursor position
 	jr	z,NT32PS	;0350 - 64 characters per line mode?
 	rrca			;0352 - divide by 2
@@ -1323,12 +1329,12 @@ KEYNSF:	ld	hl,KEYTAB	;0443
 ; 044BH-044BH – Part of the Keyboard routine – “KEYRTN”
 ;   This routine will debounce the keyboard downstroke and return
 ; ----------------------------------------------------------------------
-KEYRTN:	ld	d,a		;044b
-KEYRT2:	ld	bc,$0DAC	;044c - delay count (3500)
-	call	PAUSE		;044f
-	ld	a,d		;0452
-	cp	$01		;0453
-	ret	nz		;0455
+KEYRTN:	ld	d,a		;044b - save value for the key pressed from A
+KEYRT2:	ld	bc,3500		;044c - delay count (3500)
+	call	PAUSE		;044f - delay about 51.3 ms
+	ld	a,d		;0452 - restore value for the key pressed
+	cp	$01		;0453 - Check to see if the BREAK key was pressed
+	ret	nz		;0455 - Return if the BREAK key wasn’t pressed
 	rst	28h		;0456
 	ret			;0457
 ;
@@ -1426,32 +1432,32 @@ DSPCOF:	xor	a		;04bd
 ; ----------------------------------------------------------------------
 ; 04C0H – Home the cursor – “DSPHOM”
 ; ----------------------------------------------------------------------
-DSPHOM:	ld	hl,vidmem	;04c0
-	ld	a,(CAST)	;04c3 - Shaddow of Cassete Port
-	and	~CAST32		;04c6 ; $F7 - Not $08 - ie turn the bit off
-	ld	(CAST),a	;04c8
-	out	(vidcmt),a	;04cb
+DSPHOM:	ld	hl,vidmem	;04c0 - starting address of video memory
+	ld	a,(CAST)	;04c3 - Shadow of Cassette Port
+	and	~CAST32		;04c6 - turn off the 32 char mode bit
+	ld	(CAST),a	;04c8 - save shadow copy
+	out	(vidcmt),a	;04cb - write to the cassette port
 	ret			;04cd
 ; ----------------------------------------------------------------------
 ; 04CEH – Backspace – “DSPBSP”
 ; ----------------------------------------------------------------------
 DSPBSP:	dec	hl		;04ce
-	ld	a,(CAST)	;04cf
-	and	CAST32		;04d2 - 32 char mode
-	jr	z,DSPBS2	;04d4
+	ld	a,(CAST)	;04cf - get shadow copy of Cassette port
+	and	CAST32		;04d2 - check for 32 char mode
+	jr	z,DSPBS2	;04d4 - 64 char mode sip forward
 	dec	hl		;04d6 - back again if 32 char mode
 DSPBS2:	ld	(hl),' '	;04d7 - Clear the character under cursor
 	ret			;04d9
 ; ----------------------------------------------------------------------
 ; 04DAH – Cursor Left – “DSPLFT”
 ; ----------------------------------------------------------------------
-DSPLFT:	ld	a,(CAST)	;04da
-	and	CAST32		;04dd - 32 char mode
-	call	nz,DSPLF2	;04df
-DSPLF2:	ld	a,l		;04e2
-	and	$3F		;04e3
-	dec	hl		;04e5
-	ret	nz		;04e6
+DSPLFT:	ld	a,(CAST)	;04da - get shadow copy of Cassette port
+	and	CAST32		;04dd - check for 32 char mode
+	call	nz,DSPLF2	;04df - if 32 char mode, move back twice
+DSPLF2:	ld	a,l		;04e2 - get the lower order address
+	and	$3F		;04e3 - mask 64 char line for RET below
+	dec	hl		;04e5 - move back 1
+	ret	nz		;04e6 - Return if still on the same line
 ; ----------------------------------------------------------------------
 ; 04E7H – Cursor Down – “DSPDWN”
 ; ----------------------------------------------------------------------
@@ -1474,14 +1480,14 @@ DSPUP:	ld	de,$FFC0	;04f1
 ; ----------------------------------------------------------------------
 ; 04F6H – Set up 32-Character mode – “DSPETB”
 ; ----------------------------------------------------------------------
-DSPETB:	ld	a,(CAST)	;04f6
-	or	CAST32		;04f9 - 32 char mode
-	ld	(CAST),a	;04fb
+DSPETB:	ld	a,(CAST)	;04f6 - get shadow copy of Cassette port
+	or	CAST32		;04f9 - Set the 32 Char mode bit
+	ld	(CAST),a	;04fb - save shadow copy of cassette port
 	out	(vidcmt),a	;04fd - output setting the HW register
-	inc	hl		;0500
-	ld	a,l		;0501
-	and	$FE		;0502
-	ld	l,a		;0504
+	inc	hl		;0500 - Increment the current cursor position
+	ld	a,l		;0501 - get lower order byte
+	and	$FE		;0502 - mask out the LSB bit, not relevant for 32char
+	ld	l,a		;0504 - write it back to L, adjusting cursor position
 	ret			;0505
 ; ----------------------------------------------------------------------
 ; 0506H – Process control characters – “DSPCTL”
@@ -1524,10 +1530,10 @@ DSPCTL:	ld	de,DSPSKP	;0506
 ; ----------------------------------------------------------------------
 DSPOUT:	ld	(hl),a		;0541 - write the charater to vide ram
 	inc	hl		;0542 - next screen position
-	ld	a,(CAST)	;0543 - cassete port shaddow byte
-	and	CAST32		;0546 - mask out 32 char mode
+	ld	a,(CAST)	;0543 - cassette port shadow byte
+	and	CAST32		;0546 - mask out 32 char mode bit
 	jr	z,DSPOT2	;0548 - if not 32 character mode, skip over
-	inc	hl		;054a - Skip another screen loaction (32 char)
+	inc	hl		;054a - Skip another screen location (32 char)
 DSPOT2:	ld	a,h		;054b
 	cp	$40		;054c - past end of screen at $40000
 	ret	nz		;054e - nothing to do
@@ -1807,7 +1813,7 @@ KLNCR:	push	af		;0662
 ;     On reset, A=0: 64 char video mode, CMT motor relay off, CMT out = 0.85 V.
 ; ----------------------------------------------------------------------
 INIT:
-	out	(vidcmt),a	;0674 - reset the Video cassette latch
+	out	(vidcmt),a	;0674 - reset the Video cassette latch, A=0
 ;
 INITA1:	ld	hl,INITR	;0676
 	ld	de,RAM		;0679 - starting address of the communications region
@@ -2814,7 +2820,8 @@ VALSNG:	ld	a,VTSNG		;0aef - single precision number type flag (of 4)
 ;
 ; ----------------------------------------------------------------------
 ; 0AF4H-0AFAH – LEVEL II BASIC STRING CONVERSION ROUTINE – “CHKSTR”
-;   This routine will force the ACCUmlator to be a STRING. Only Register A is modified.
+;   This routine calls 20H (RST 20H) and returns if NTF=3 (string) else if NTF is not 3
+;   then it generates a TM ERROR. BC, DE, and HL are saved
 ; ----------------------------------------------------------------------
 CHKSTR:	TSTDAT			;0af4
 	ret	z		;0af5
@@ -5052,10 +5059,10 @@ FUNDSP:
 	.DW	FNSIN		; SIN()
 	.DW	FNTAN		; TAN()
 	.DW	ATAN		; ATAN()
-	.DW	PEEK		; PEEK
+	.DW	PEEK		; PEEK - ($E5)
 ;
 ; DISK IO FUNCTIONS (VECTORS) offset from base
-	.DW	DVCVI		; CVI
+	.DW	DVCVI		; CVI - ($E6)
 	.DW	DVCVS		; CVS
 	.DW	DVCVD		; CVD
 	.DW	DVEOF		; EOF
@@ -5063,9 +5070,10 @@ FUNDSP:
 	.DW	DVLOF		; LOF
 	.DW	DVMKI		; MKI
 	.DW	DVMKS		; MKS
-	.DW	DVMKD		; MKD
+	.DW	DVMKD		; MKD - ($EE)
+; END of DISK IO Functions
 ;
-	.DW	FRCINT		; CINT()
+	.DW	FRCINT		; CINT() - ($EF)
 	.DW	FRCSNG		; CSNG()
 	.DW	FRCDBL		; CDBL
 	.DW	FNFIX		; FIX
@@ -5076,7 +5084,7 @@ FUNDSP:
 	.DW	FNCHR		; CHR$
 	.DW	FNLEFT		; LEFT$
 	.DW	FNRGT		; RIGHT$
-	.DW	FNMID		; MID$ - ($FA)
+	.DW	FNMID		; MID$ - Disk Basic Token - ($FA)
 ;
 ; ----------------------------------------------------------------------
 ; 1650-1821 - Reserved key word list (in token order)
@@ -5091,9 +5099,9 @@ RESLST:
 	.DB	$D2,"ESET"	; RESET - $82
 	.DB	$D3,"ET"	; SET   - $83
 	.DB	$C3,"LS"	; CLS
-	.DB	$C3,"MD"	; CMD (disk)
+	.DB	$C3,"MD"	; CMD (disk) - $85
 	.DB	$D2,"ANDOM"	; RANDOM
-	.DB	$CE,"EXT"	; NEXT
+	.DB	$CE,"EXT"	; NEXT  - $87
 	.DB	$C4,"ATA"	; DATA  - $88
 	.DB	$C9,"NPUT"	; INPUT
 	.DB	$C4,"IM"	; DIM
@@ -5101,9 +5109,9 @@ RESLST:
 	.DB	$CC,"ET"	; LET
 	.DB	$C7,"OTO"	; GOTO  - $8D
 	.DB	$D2,"UN"	; RUN
-	.DB	$C9,"F"		; IF
+	.DB	$C9,"F"		; IF    - $8F
 	.DB	$D2,"ESTORE"	; RESTORE
-	.DB	$C7,"OSUB"	; GOSUB
+	.DB	$C7,"OSUB"	; GOSUB - $91
 	.DB	$D2,"ETURN"	; RETURN
 	.DB	$D2,"EM"	; REM   - $93
 	.DB	$D3,"TOP"	; STOP
@@ -5114,13 +5122,13 @@ RESLST:
 	.DB	$C4,"EFINT"	; DEFINT
 	.DB	$C4,"EFSNG"	; DEFSNG
 	.DB	$C4,"EFDBL"	; DEFDBL
-	.DB	$CC,"INE"	; LINE (disk)
+	.DB	$CC,"INE"	; LINE (disk) - $9C
 	.DB	$C5,"DIT"	; EDIT
-	.DB	$C5,"RROR"	; ERROR
-	.DB	$D2,"ESUME"	; RESUME
+	.DB	$C5,"RROR"	; ERROR  - $9E
+	.DB	$D2,"ESUME"	; RESUME - $9F
 	.DB	$CF,"UT"	; OUT
-	.DB	$CF,"N"		; ON
-	.DB	$CF,"PEN"	; OPEN (disk)
+	.DB	$CF,"N"		; ON     - $A1
+	.DB	$CF,"PEN"	; OPEN (disk) - $A2
 	.DB	$C6,"IELD"	; FIELD (disk)
 	.DB	$C7,"ET"	; GET (disk)
 	.DB	$D0,"UT"	; PUT (disk)
@@ -5131,10 +5139,10 @@ RESLST:
 	.DB	$CB,"ILL"	; KILL (disk)
 	.DB	$CC,"SET"	; LSET (disk)
 	.DB	$D2,"SET"	; RSET (disk)
-	.DB	$D3,"AVE"	; SAVE (disk)
+	.DB	$D3,"AVE"	; SAVE (disk) - $AD
 	.DB	$D3,"YSTEM"	; SYSTEM
 	.DB	$CC,"PRINT"	; LPRINT
-	.DB	$C4,"EF"	; DEF (disk)
+	.DB	$C4,"EF"	; DEF (disk) - $B0
 	.DB	$D0,"OKE"	; POKE
 	.DB	$D0,"RINT"	; PRINT - $B2
 	.DB	$C3,"ONT"	; CONT
@@ -5160,7 +5168,7 @@ RESLST:
 	.DB	$D3,"TRING$"	; STRING$
 	.DB	$C9,"NSTR"	; INSTR
 	.DB	$D0,"OINT"	; POINT
-	.DB	$D4,"IME$"	; TIME$ (disk)
+	.DB	$D4,"IME$"	; TIME$ (disk) - $C7
 	.DB	$CD,"EM"	; MEM
 	.DB	$C9,"NKEY$"	; INKEY$
 	.DB	$D4,"HEN"	; THEN
@@ -5195,7 +5203,7 @@ RESLST:
 	.DB	$D4,"AN"	; TAN
 	.DB	$C1,"TN"	; ATN
 	.DB	$D0,"EEK"	; PEEK
-	.DB	$C3,"VI"	; CVI (disk)
+	.DB	$C3,"VI"	; CVI (disk) - $E6
 	.DB	$C3,"VS"	; CVS (disk)
 	.DB	$C3,"VD"	; CVD (disk)
 	.DB	$C5,"OF"	; EOF (disk)
@@ -5203,7 +5211,7 @@ RESLST:
 	.DB	$CC,"OF"	; LOF (disk)
 	.DB	$CD,"KI$"	; MKI$ (disk)
 	.DB	$CD,"KS$"	; MKS$ (disk)
-	.DB	$CD,"KD$"	; MKD$ (disk)
+	.DB	$CD,"KD$"	; MKD$ (disk) - $ED
 	.DB	$C3,"INT"	; CINT
 	.DB	$C3,"SNG"	; CSNG
 	.DB	$C3,"DBL"	; CDBL
@@ -5439,7 +5447,7 @@ FNDFOR:	ld	hl,$0004	;1936
 	add	hl,sp		;1939
 LOOPER:	ld	a,(hl)		;193a
 	inc	hl		;193b
-	cp	$81		;193c
+	cp	TKFOR		;193c - Check (which is the current STACK pointer – 4) is a FOR token to make sure that the item in the STACK was associated with a FOR loop
 	ret	nz		;193e
 	ld	c,(hl)		;193f
 	inc	hl		;1940
@@ -5950,7 +5958,7 @@ KLOOP:	ld	a,(hl)		;1bcc
 	cp	SPACE		;1bcd
 	jp	z,STUFFH	;1bcf
 	ld	b,a		;1bd2
-	cp	$22		;1bd3
+	cp	'"'		;1bd3 - Check to see if the current character is a "
 	jp	z,STRNG		;1bd5
 	or	a		;1bd8
 	jp	z,CRDONE	;1bd9
@@ -5958,7 +5966,7 @@ KLOOP:	ld	a,(hl)		;1bcc
 	or	a		;1bdf
 	ld	a,(hl)		;1be0
 	jp	nz,STUFFH	;1be1
-	cp	'?'		;1be4
+	cp	'?'		;1be4 - Check to see if is a ? (PRINT statement)
 	ld	a,TKPRNT	;1be6
 	jp	z,STUFFH	;1be8
 	ld	a,(hl)		;1beb
@@ -5998,7 +6006,7 @@ LOPPSI:	inc	de		;1c1d
 	jp	m,FOUND		;1c20
 	ld	c,a		;1c23
 	ld	a,b		;1c24
-	cp	$8D		;1c25
+	cp	TKGOTO		;1c25 - Check to see if the current reserved word is GOTO
 	jr	nz,NTGOTO	;1c27
 	GETCHR			;1c29 - rst 10h
 	dec	hl		;1c2a
@@ -6238,21 +6246,21 @@ GONE1:	GETCHR			;1d5a - rst 10h
 	ld	de,NEWSTT	;1d5b
 	push	de		;1d5e
 GONE3:	ret	z		;1d5f
-GONE2:	sub	$80		;1d60
-	jp	c,LET		;1d62
-	cp	TKTAB-$80	;1d65 - if the token is below the TAB( token
-	jp	nc,ISMID	;1d67
-	rlca			;1d6a
+GONE2:	sub	TKOFF		;1d60 - Check for a token >= 80H
+	jp	c,LET		;1d62 - this must be a LET so jump to 1F21H
+	cp	TKTAB-TKOFF	;1d65 - if the token is below the TAB( token
+	jp	nc,ISMID	;1d67 - If the token >= TAB token
+	rlca			;1d6a - Multiply the token value in Register A by two
 	ld	c,a		;1d6b
-	ld	b,$00		;1d6c
-	ex	de,hl		;1d6e save the BASIC program pointer DE into HL
-	ld	hl,STMDSP	;1d6f list of BASIC execution addresses (Statement Dispatch Table)
-	add	hl,bc		;1d72
-	ld	c,(hl)		;1d73
+	ld	b,$00		;1d6c - address offset into BC
+	ex	de,hl		;1d6e - save the BASIC program pointer DE into HL
+	ld	hl,STMDSP	;1d6f - list of BASIC execution addresses (Statement Dispatch Table)
+	add	hl,bc		;1d72 - add the offset
+	ld	c,(hl)		;1d73 - get low order byte
 	inc	hl		;1d74
-	ld	b,(hl)		;1d75
-	push	bc		;1d76 Save execution address in BC to the STACK
-	ex	de,hl		;1d77 restore the BASIC program pointer into DE
+	ld	b,(hl)		;1d75 - het high order byte
+	push	bc		;1d76 - Save execution address in BC to the STACK
+	ex	de,hl		;1d77 - restore the BASIC program pointer into DE
 ;
 ; ======================================================================
 ; 1D78-1D90 – RST 0010H CODE – “CHRGTR”
@@ -6514,9 +6522,9 @@ MORLIN:	GETCHR			;1e5e - rst 10h
 	add	hl,de		;1e6d
 	add	hl,hl		;1e6e
 	pop	af		;1e6f
-	sub	$30		;1e70
+	sub	'0'		;1e70 - Convert the ASCII digit to binary
 	ld	e,a		;1e72
-	ld	d,$00		;1e73
+	ld	d,$00		;1e73 - DE will be binary 0000 through 0009
 	add	hl,de		;1e75
 	ex	de,hl		;1e76
 	pop	hl		;1e77
@@ -6574,7 +6582,7 @@ GOSUB:	ld	c,$03		;1eb1
 	push	hl		;1eb8
 	ld	hl,(CURLIN)	;1eb9
 	ex	(sp),hl		;1ebc
-	ld	a,$91		;1ebd
+	ld	a,TKGOSU	;1ebd - Load A with a GOSUB token
 	push	af		;1ebf
 	inc	sp		;1ec0
 RUNC2:	push	bc		;1ec1
@@ -6610,7 +6618,7 @@ RETURN:	ret	nz		;1ede
 	call	FNDFOR		;1ee1
 	ld	sp,hl		;1ee4
 	ld	(SAVSTK),hl	;1ee5
-	cp	$91		;1ee8
+	cp	TKGOSU		;1ee8 - Check if is a GOSUB token
 	ld	e,ERRRG		;1eea
 	jp	nz,ERROR	;1eec
 	pop	hl		;1eef
@@ -6644,9 +6652,9 @@ REMER:	ld	a,(hl)		;1f0e
 	cp	b		;1f11
 	ret	z		;1f12
 	inc	hl		;1f13
-	cp	$22		;1f14
+	cp	'"'		;1f14 - Check to see if is a quote "
 	jr	z,EXCHQT	;1f16
-	sub	$8F		;1f18
+	sub	TKIF		;1f18 - Check to see if is a IF token
 	jr	nz,REMER	;1f1a
 	cp	b		;1f1c
 	adc	a,d		;1f1d
@@ -6705,8 +6713,8 @@ COPNUM:	call	VMOVE		;1f66
 ; ----------------------------------------------------------------------
 ; 1F6C-1FAE - LEVEL II BASIC ERROR ON ROUTINE - "ONGOTO"
 ; ----------------------------------------------------------------------
-ONGOTO:	cp	$9E		;1f6c
-	jr	nz,NTOERR	;1f6e
+ONGOTO:	cp	TKERRO		;1f6c - is an ERROR token (meant to be ON ERROR)
+	jr	nz,NTOERR	;1f6e - Not ON ERROR check for other ON statements
 	GETCHR			;1f70 - rst 10h
 	SYNTAX	(TKGOTO)	;1f71 - rst 08h
 	call	LINGET		;1f73
@@ -6729,12 +6737,14 @@ RESTRP:	ex	de,hl		;1f83
 	ld	e,a		;1f91
 	jp	ERRESM		;1f92
 ; ----------------------------------------------------------------------
+; We know it isn't ON ERROR. We now need to deal with the possibility
+; that it was an ON n GOTO or ON n GOSUB
 ; ----------------------------------------------------------------------
 NTOERR:	call	GETBYT		;1f95
 	ld	a,(hl)		;1f98
 	ld	b,a		;1f99
-	cp	$91		;1f9a
-	jr	z,ISGOSU	;1f9c
+	cp	TKGOSU		;1f9a - IS Register A a GOSUB token
+	jr	z,ISGOSU	;1f9c - Skip the next 2 opcodes since a GOSUB
 	SYNTAX	(TKGOTO)	;1f9e - rst 08h
 	dec	hl		;1fa0
 ISGOSU:	ld	c,e		;1fa1
@@ -6756,7 +6766,7 @@ RESUME:	ld	de,ONEFLG	;1faf
 	ld	(ERRFLG),a	;1fb8
 	ld	(de),a		;1fbb
 	ld	a,(hl)		;1fbc
-	cp	$87		;1fbd
+	cp	TKNEXT		;1fbd - Check to see if it is a NEXT token
 	jr	z,RESNXT	;1fbf
 	call	LINGET		;1fc1
 	ret	nz		;1fc4
@@ -6980,9 +6990,9 @@ PRINTC:	jp	z,FINPRT	;20a0
 	or	a		;20cf - set flags
 	jp	m,LINCH2	;20d0 - If we writing to a cassette
 	jr	z,ISTTY		;20d3 - If NOT LPRINT
-	ld	a,(LPTPOS)	;20d5 - Wwe have a LPRINT, Get carriage POS
+	ld	a,(LPTPOS)	;20d5 - We have a LPRINT, Get carriage POS
 	add	a,(hl)		;20d8
-	cp	$84		;20d9
+	cp	132		;20d9 - Is the adjusted length greater than 132
 	jr	LINCHK		;20db
 ; ----------------------------------------------------------------------
 ; 20DDH – LEVEL II BASIC PRINT@ ROUTINE – “ISTTY”
@@ -7082,11 +7092,9 @@ NOTABR:	pop	hl		;2164
 ;        necessary. CALLs Disk BASIC link at 41BEH prior to return.
 ; ----------------------------------------------------------------------
 FINPRT:
-#IFNDEF _EMBED
 	ld	a,(PRTFLG)	;2169 - current output device flag
 	or	a		;216c - check the flags
 	call	m,CTOFF		;216d - If cassette, turn it off
-#ENDIF
 	xor	a		;2170
 	ld	(PRTFLG),a	;2171 - set current output device type = VIDEO
 	call	FINDRT		;2174 - DOS Exit Point
@@ -7119,14 +7127,14 @@ TRMNOK:	ld	a,(FLGINP)	;217f
 INPUT:	call	ERRDIR		;219a
 	ld	a,(hl)		;219d
 	call	EXUNKN		;219e
-	sub	'#'		;21a1 ; compare with #
+	sub	'#'		;21a1 - compare with #
 	ld	(CASFLG),a	;21a3
 	ld	a,(hl)		;21a6
 	jr	nz,INTCAS	;21a7
 	call	CSRDON		;21a9
 	push	hl		;21ac
-	ld	b,$FA		;21ad ; 250, max characters which can be read
-	ld	hl,(BUFPNT)	;21af ; input buffer
+	ld	b,250		;21ad - Max characters which can be read
+	ld	hl,(BUFPNT)	;21af - input buffer
 FILBUF:	call	CASIN		;21b2
 	ld	(hl),a		;21b5
 	inc	hl		;21b6
@@ -7387,6 +7395,15 @@ LOOPDN:	ld	sp,hl		;2324
 ;   note that on exit Register A does not necessarily reflect the term char
 ; ----------------------------------------------------------------------
 FRMPRN:	SYNTAX	('(')		;2335 - rst 08h
+;----------------------------------------------------------------------
+; FRMEVL evaluates a BASIC expression pointed to by the HL register pair and
+; stores the result in the ACC. The expression must be terminated with zero byte,
+; comma, right bracket or colon. After execution, HL will point to the delimiter and,
+; in the case of string expressions, the ACC will contain the address of the first of
+; three bytes that contain string length and string address. Note that the stack is used
+; frequently and the machine should be formatted for RUN mode in order to use this
+; routine. (See sample program in Appendix 1 for an application of this routine).
+;----------------------------------------------------------------------
 FRMEVL:	dec	hl		;2337
 FRMCHK:	ld	d,$00		;2338
 LPOPER:	push	de		;233a
@@ -8443,7 +8460,16 @@ STRFIN:	cp	$22		;2878
 	ld	a,c		;2880
 	call	STRAD2		;2881
 PUTNEW:	ld	de,DSCTMP	;2884
-	ld	a,$D5		;2887
+;
+       	.DB	LDANN		;2887 - Z80 Trick LD A,nn - skip next instruction - load it into A
+;
+; ----------------------------------------------------------------------
+; PUTTMP - A JUMP point in DOS Basic to process a new string in the
+; DEF FN routine. When JUMPed to 2888H, a PUSH DE is processed
+; ----------------------------------------------------------------------
+PUTTMP:
+	push	de		;2888 - Save a pointer to the stat of the string to the STACK
+;
 	ld	hl,(TEMPPT)	;2889
 	ld	(FACLO),hl	;288c
 	ld	a,VTSTR		;288f - value type String
@@ -8569,8 +8595,8 @@ ARYVAR:	ex	de,hl		;2921
 	jr	nz,ARYVA2	;2933
 	ld	(TEMP3),hl	;2935
 	pop	hl		;2938
-	ld	c,(hl)		;2939
-	ld	b,$00		;293a
+	ld	c,(hl)		;2939 - Load C with num of subscripts for the array HL pointer
+	ld	b,$00		;293a - Zero B so that BC holds the number of dimensions
 	add	hl,bc		;293c
 	add	hl,bc		;293d
 	inc	hl		;293e
@@ -8701,12 +8727,16 @@ MOVLP:	dec	l		;29cf
 ; ----------------------------------------------------------------------
 ; 29D7-29F4 – STRING ROUTINE – “FRESTR”
 ;
-;   FRETMP is passed a pointer to a string descriptor in Register Pair DE
-;   and is returned in Register Pair HL. All the other registers are modified.
+;   This routine makes the HL register pair point to the first
+;   of the three bytes containing string length followed by the string address
 ; ----------------------------------------------------------------------
 FRESTR:	call	CHKSTR		;29d7
 FREFAC:	ld	hl,(FACLO)	;29da
 FRETM2:	ex	de,hl		;29dd
+;
+;   FRETMP is passed a pointer to a string descriptor in Register Pair DE
+;   and is returned in Register Pair HL. All the other registers are modified.
+;
 FRETMP:	call	FRETMS		;29de
 	ex	de,hl		;29e1
 	ret	nz		;29e2
@@ -8922,10 +8952,17 @@ PREAM2:	pop	bc		;2ae2
 	ret			;2ae6
 ; ----------------------------------------------------------------------
 ; 2AE7H-2AEE – Process a LEFT-HAND-SIDE MID$– “ISMID$”
+;
+; This routine is designed to handle a left-size MID$ call.
+; So check to see if the character at the location of the current BASIC
+; program pointer in Register A is trying to process a left hand side MID$.
+; If they match, the Z FLAG is set, and otherwise the NZ FLAG is set.
+; If A < the checked value, then the C FLAG is set.
+; If A >= the checked value, the NC FLAG is set.
 ; ----------------------------------------------------------------------
-ISMID:	cp	$7A		;2ae7
+ISMID:	cp	TKMID-TKOFF	;2ae7 - Check the Mid Token.
 	jp	nz,SNERR	;2ae9
-	jp	DLHSMD		;2aec
+	jp	DLHSMD		;2aec JUMP to DOS to see if DOS wants to deal with this.
 ;
 ; ----------------------------------------------------------------------
 ; 2AEF-2AF7 – LEVEL II BASIC INP ROUTINE– “FNINP”
@@ -9150,7 +9187,7 @@ CSAVE:	call	CWRTON		;2bf5
 	call	FRMEVL		;2bf8
 	push	hl		;2bfb
 	call	ASC2		;2bfc
-	ld	a,$D3		;2bff
+	ld	a,$D3		;2bff - the filename header byte (=D3H which is a “S” with the sign bit on)
 	call	CASOUT		;2c01
 	call	TWOCSO		;2c04
 	ld	a,(de)		;2c07
@@ -9507,7 +9544,7 @@ ENDNUM:	pop	hl		;2db5
 	cp	25		;2dc5 - total number of characters in Register A is greater than 24
 	jp	nc,FCERR	;2dc7
 	ld	a,d		;2dca
-	or	$80		;2dcb
+	or	$80		;2dcb - Turn on the “USING” bit in the flags
 	call	PUFOUT		;2dcd
 	call	STROUT		;2dd0
 FNSTRF:	pop	hl		;2dd3
@@ -9516,7 +9553,7 @@ FNSTRF:	pop	hl		;2dd3
 	scf			;2dd6
 	jr	z,CRDNUS	;2dd7
 	ld	(FLGINP),a	;2dd9
-	cp	SEMICO		;2ddc - compare with semicolin ';'
+	cp	SEMICO		;2ddc - compare with semicolon ';'
 	jr	z,SEMUSN	;2dde
 	cp	','		;2de0
 	jp	nz,SNERR	;2de2
@@ -9689,36 +9726,36 @@ NOTDGI:	push	hl		;2eb0
 	inc	d		;2eb6
 	jp	nz,NTZERD	;2eb7
 	inc	d		;2eba
-NTZERD:	cp	$D8		;2ebb
+NTZERD:	cp	$D8		;2ebb - Check to see if the character is a BACKSPACE character
 	jp	z,DELED		;2ebd
-	cp	$DD		;2ec0
+	cp	$DD		;2ec0 - Check to see if the character is a CARRIAGE RETURN.
 	jp	z,CRED		;2ec2
-	cp	$F0		;2ec5
+	cp	$F0		;2ec5 - Check to see if the character is a SPACE.
 	jr	z,SPED		;2ec7
-	cp	$31		;2ec9
+	cp	$31		;2ec9 - Check to see if the character is lowercase
 	jr	c,NOTLW4	;2ecb
-	sub	$20		;2ecd
-NOTLW4:	cp	$21		;2ecf
+	sub	$20		;2ecd - Convert the lowercase character to uppercase
+NOTLW4:	cp	'Q'-$30		;2ecf - Check to see if the character is a Q (Quit)
 	jp	z,QED		;2ed1
-	cp	$1C		;2ed4
+	cp	'L'-$30		;2ed4 - Check to see if the character is an L (Branch)
 	jp	z,LED		;2ed6
-	cp	$23		;2ed9
+	cp	'S'-$30		;2ed9 - Check to see if the character is an S (Search)
 	jr	z,SED		;2edb
-	cp	$19		;2edd
+	cp	'I'-$30		;2edd - Check to see if the character is an I (Insert)
 	jp	z,IED		;2edf
-	cp	$14		;2ee2
+	cp	'D'-$30		;2ee2 - Check to see if the character is a D (Delete)
 	jp	z,DED		;2ee4
-	cp	$13		;2ee7
+	cp	'C'-$30		;2ee7 - Check to see if the character is a C (Change)
 	jp	z,CED		;2ee9
-	cp	$15		;2eec
+	cp	'E'-$30		;2eec - Check to see if the character is an E (End)
 	jp	z,EED		;2eee
-	cp	$28		;2ef1
+	cp	'X'-$30		;2ef1 - Check to see if the character is an X (Extend)
 	jp	z,XED		;2ef3
-	cp	$1B		;2ef6
+	cp	'K'-$30		;2ef6 - Check to see if the character is a K (Kill)
 	jr	z,KED		;2ef8
-	cp	$18		;2efa
+	cp	'H'-$30		;2efa - Check to see if the character is an H (Hack)
 	jp	z,HED		;2efc
-	cp	$11		;2eff
+	cp	'A'-$30		;2eff - Check to see if the character is an A (Again)
 	ret	nz		;2f01
 ; ----------------------------------------------------------------------
 ; 2F02 – EDIT Command – Cancel and Restore Logic.
@@ -10096,27 +10133,27 @@ DVLINE:	.EQU	ERCALL+81	; LINE  $41A3
 ; DOS Exits, Pass control between Level II BASIC and Disk BASIC (41A6-41E2)
 ; initially these are all populated with RET statements by code at (009F)
 DEXT:	.EQU	RAM+$1A6	; Base Address for DOS Exits
-EXDSKR:	.EQU	DEXT+0		; (19EC) Disk Basic ERROR handling
-USROUT:	.EQU	DEXT+3		; (27FE) USR N - to expand function to provide up to ten USR calls
-PRGFIN:	.EQU	DEXT+6		; (1A1C) BASIC start up. Just before BASIC's 'READY' message
-INLINE:	.EQU	DEXT+9		; (0368) At start of keyboard input
-DIRDO:	.EQU	DEXT+12		; (1AA1) Input scanner after tokenizing current statement
-EXFIND:	.EQU	DEXT+15		; (1AEC) Input scanner after updating program statement table
-EXFIN2:	.EQU	DEXT+18		; (1AF2) Input scanner after reinitializing BASIC.
-CLSALL:	.EQU	DEXT+21		; (1D**) Initializing BASIC for new routine. During END processing
-FINDRT:	.EQU	DEXT+24		; (2174) During initializing of system output device
-EXOUTC:	.EQU	DEXT+27		; (032C) During writing to system output device.
-EXINC:	.EQU	DEXT+30		; (0358) When scanning keyboard.
-LRUN:	.EQU	DEXT+33		; (1EA6) At start of RUN NNN processing.
-FILGET:	.EQU	DEXT+36		; (206F) At beginning of PRINT processing.
-EXDSKL:	.EQU	DEXT+39		; (20C6) During PRINT # or PRINT item processing.
-EXDSCR:	.EQU	DEXT+42		; (2103) When skipping to next line on video during a output op
-EXPDOS:	.EQU	DEXT+45		; (21**) At start of PRINT on cassette and during PRINT TAB.
-EXUNKN:	.EQU	DEXT+48		; (219E) At beginning of INPUT processing
-DLHSMD:	.EQU	DEXT+51		; (2AEC)
-FILIND:	.EQU	DEXT+54		; (222D) During READ processing when a variable has been read.
-EXCHDS:	.EQU	DEXT+57		; (2***) From List, At end of READ processing
-SYSOUT:	.EQU	DEXT+60		; (02B2) During SYSTEM command operation
+EXDSKR:	.EQU	DEXT+0		; (19EC) Disk Basic ERROR handling (41A6)
+USROUT:	.EQU	DEXT+3		; (27FE) USR N - to expand function to provide up to ten USR calls (41A9)
+PRGFIN:	.EQU	DEXT+6		; (1A1C) BASIC start up. Just before BASIC's 'READY' message (41AC)
+INLINE:	.EQU	DEXT+9		; (0368) At start of keyboard input (41AF)
+DIRDO:	.EQU	DEXT+12		; (1AA1) Input scanner after tokenizing current statement (41B2)
+EXFIND:	.EQU	DEXT+15		; (1AEC) Input scanner after updating program statement table (41B5)
+EXFIN2:	.EQU	DEXT+18		; (1AF2) Input scanner after reinitializing BASIC. (41B8)
+CLSALL:	.EQU	DEXT+21		; (1D**) Initializing BASIC for new routine. During END processing (41BB)
+FINDRT:	.EQU	DEXT+24		; (2174) During initializing of system output device (41BE)
+EXOUTC:	.EQU	DEXT+27		; (032C) During writing to system output device. (41C1)
+EXINC:	.EQU	DEXT+30		; (0358) When scanning keyboard. (41C4)
+LRUN:	.EQU	DEXT+33		; (1EA6) At start of RUN NNN processing. (41C7)
+FILGET:	.EQU	DEXT+36		; (206F) At beginning of PRINT processing. (41CA)
+EXDSKL:	.EQU	DEXT+39		; (20C6) During PRINT # or PRINT item processing. (41CD)
+EXDSCR:	.EQU	DEXT+42		; (2103) When skipping to next line on video during a output op (41D0)
+EXPDOS:	.EQU	DEXT+45		; (21**) At start of PRINT on cassette and during PRINT TAB. (41D3)
+EXUNKN:	.EQU	DEXT+48		; (219E) At beginning of INPUT processing (41D6)
+DLHSMD:	.EQU	DEXT+51		; (2AEC) MID$ function DOS EXIT (41D9)
+FILIND:	.EQU	DEXT+54		; (222D) During READ processing when a variable has been read. (41DC)
+EXCHDS:	.EQU	DEXT+57		; (2***) From List, At end of READ processing (41DF)
+SYSOUT:	.EQU	DEXT+60		; (02B2) During SYSTEM command operation (41E2)
 ;
 BUFINI:	.EQU	RAM+$1E5	; String Buffer initialised colon null comma
 SMPSTK:	.EQU	RAM+$1F8	; Initial Stack address.
