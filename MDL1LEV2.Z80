@@ -751,6 +751,9 @@ TBIT:	and	c		;0192
 ; 019DH-01C8H – LEVEL II BASIC INKEY$ ROUTINE – “INKEY”
 ; ----------------------------------------------------------------------
 INKEY:	GETCHR			;019d - rst 10h
+; ----------------------------------------------------------------------
+; 019E - Create 1 character string from keyboard input (TAS)
+; ----------------------------------------------------------------------
 	push	hl		;019e
 	ld	a,(CHARC)	;019f
 	or	a		;01a2
@@ -3824,7 +3827,8 @@ FINEDO:	ld	e,$32		;0fa2
 	jp	FINEC		;0fa4
 ; ----------------------------------------------------------------------
 ; 0FA7H-0FAEH – DISPLAY MESSAGE ROUTINE – “INPRT”
-;   This routine is to output a floating point number.
+;   Display "IN " and integer stored in HL. Used to display messages
+;   such as "BREAK IN nnnnn"
 ; ----------------------------------------------------------------------
 INPRT:	push	hl		;0fa7
 	ld	hl,m_INTX	;0fa8
@@ -6498,7 +6502,7 @@ FCERR:	ld	e,ERRFC		;1e4a
 ;
 ; ----------------------------------------------------------------------
 ; 1E4F-1E79 - Line Number Conversion Routine 1 - "LINSPC"
-;   LINSPC and LINGET are identical except t hat LINSPC also permits the
+;   LINSPC and LINGET are identical except that LINSPC also permits the
 ;   use of a '.' to act as the current line number. Otherwise, They read
 ;   the line number from the current position in the BASIC program.
 ;   Possible line numbers are 00000-65529. On exit, DE holds the line
@@ -6515,11 +6519,11 @@ LINSPC:	ld	a,(hl)		;1e4f
 ;
 ; ======================================================================
 ; 1E5A - ASCII To Integer - "LINGET"
-;
 ;   Converts numeric ASCII string pointed to by the HL Register Pair,
-;   to HEX and places the result in the DE Register Pair
+;   and places the result in the DE Register Pair
 ;   Conversion will cease when the first non-numeric character
-;   is found.
+;   is found. A value of zero is returned if no numeric value is found
+;   Maximum allowable value is 65529
 ; ----------------------------------------------------------------------
 LINGET:	dec	hl		;1e5a
 LINGT2:	ld	de,$0000	;1e5b
@@ -7176,6 +7180,20 @@ NOTQTI:	push	hl		;21db
 	call	QINLIN		;21dc - Print '?' - and get the input from the keyboard
 	pop	bc		;21df
 	jp	c,STPEND	;21e0
+; -----------------------------------------------------------------------
+; 21E3 - ASSIGN STRING(S) TO BASIC VARIABLE(S) (TAS)
+;   This routine is part of the BASIC INPUT command routine , and can be
+;   used to process input obtained from CALLing one of the keyboard input
+;   routines at 1BB3H, 0361H, etc. On entry, BC must point to the first
+;   character of a string that contains the variable name(s) (if more than
+;   one variable name is used the names must be separatedby commas, and a
+;   zero byte or colon must be placed after the last variable name). HL
+;   must point to the byte just prior to the beginning of the input string
+;   (this is where placed by the above - mentioned input routines -
+;   that this byte is altered by this routine), and the string may
+;   contain input for more than one variable (items must be separated by
+;   commas).
+; -----------------------------------------------------------------------
 	inc	hl		;21e3
 	ld	a,(hl)		;21e4
 	or	a		;21e5
@@ -7187,7 +7205,6 @@ INPCN3:	ld	(hl),','	;21eb
 ;
 ; ----------------------------------------------------------------------
 ; 21EF – READ logic – “READ”
-; ----------------------------------------------------------------------
 READ:	push	hl		;21ef
 	ld	hl,(DATPTR)	;21f0
 ;
@@ -7770,9 +7787,12 @@ NTVARP:	cp	TKUSR		;24ff - USR Function
 ; ----------------------------------------------------------------------
 ; 252CH – Other Function Routine – If we pass through to here, the only
 ; other possibility is that it is a function in parenthesis – “PARCHK”
+;
+; EVALUATE PARENTHESIZED EXPRESSION (TAS)
+;   Call here to Evaluate a basic expression enclosed in parenthesis ()
 ; ----------------------------------------------------------------------
-PARCHK:	call	FRMPRN		;252c
-	SYNTAX	(')')		;252f - rst 08h
+PARCHK:	call	FRMPRN		;252c - Evaluation expression starting with (
+	SYNTAX	(')')		;252f - rst 08h = check for closing )
 	ret			;2531
 ; ----------------------------------------------------------------------
 ; 2532 – Binary Minus Routine – “DOMIN”
@@ -7786,6 +7806,10 @@ LABBCK:	pop	hl		;253e
 	ret			;253f
 ; ----------------------------------------------------------------------
 ; 2540 – MATH ROUTINE – “ISVAR”
+;   LOAD ACCUM WITH VALUE OF BASIC VARIABLE (TAS)
+;   Get value of BASIC variable and put in ACCUM (also put precision of
+;   variable in NFT) On entry HL mush point to first char of var name
+;   On exit HL will point to first char following var name
 ; ----------------------------------------------------------------------
 ISVAR:	call	PTRGET		;2540
 RETVAR:	push	hl		;2543
@@ -7866,6 +7890,12 @@ STRCMP:	call	FRESTR		;258c
 	inc	hl		;259e
 	ld	b,(hl)		;259f
 	pop	hl		;25a0
+; ----------------------------------------------------------------------
+; 25A1 - Compare 2 strings in Memory
+;   On entry HL must point to String 1, while BC must point to string 2
+;   the D and E registers must point to the lengths of string 1 and 2.
+;   On exit A register will 0, 1, FF, with Z and C flags set accordingly
+; ----------------------------------------------------------------------
 CSLOOP:	ld	a,e		;25a1
 	or	d		;25a2
 	ret	z		;25a3
@@ -7985,7 +8015,12 @@ DIM:	ld	bc,DIMCON	;2608
 	.DB	ORNN		;260c - Z80 Trick - OR nn - causes NZ flag - skip next instruction
 ;
 ; ----------------------------------------------------------------------
-; 260D – Variable location and creation logic – “PTRGET”
+; 260D – LOCATE OR CREATE A BASIC VARIABLE
+;   Variable location and creation logic – “PTRGET”
+;   locate storage area for existing variable if not exists will create
+;   On entry HL must point to first char of variable name
+;   On exit HL will point to next char after var name
+;   and DE will point to the address of the variable storage
 ; ----------------------------------------------------------------------
 PTRGET:	xor	a		;260d
 	ld	(DIMFLG),a	;260e
@@ -8340,6 +8375,9 @@ FNFRE:	ld	hl,(STREND)	;27d4
 	add	hl,sp		;27db
 	TSTDAT			;27dc
 	jr	nz,GIVDBL	;27dd
+; ----------------------------------------------------------------------
+; 27DF - Get number of bytes free string space to ACCUM (TAS)
+; ----------------------------------------------------------------------
 	call	FREFAC		;27df
 	call	GARBA2		;27e2
 	ld	hl,(STKTOP)	;27e5
@@ -8410,6 +8448,13 @@ IDERR:	ld	e,ERRID		;2831
 	jp	ERROR		;2833
 ; ----------------------------------------------------------------------
 ; 2836-2856 – STRING ROUTINE – STR$ logic– “FNSTR”
+;   Convert number in ACCUM to string.
+;   On entry, the number to be converted to a string must be in the ACCUM
+;   with the NTF set appropriately. PUSH the return address onto the
+;   stack, PUSH HL, and BC (HL and BC are restored on exit from the
+;   routine) . Then jump to 2836H (don't CALL).
+;   On exit the VARPTR to the string created by this routine will be
+;   found in the ACCUM, with the NTF set to 3
 ; ----------------------------------------------------------------------
 FNSTR:	call	FOUT		;2836
 	call	STRLIT		;2839
@@ -8692,6 +8737,17 @@ CAT:	push	bc		;298f
 	call	EVAL		;2995
 	ex	(sp),hl		;2998
 	call	CHKSTR		;2999
+; ----------------------------------------------------------------------
+; 299C - Concatenate 2 Strings (TAS)
+;   On entry, the stack must be prepared as follows.
+;   PUSH the return address on the stack, PUSH BC and HL
+;   (BC and HL will be restored on exit from the routine).
+;   The HL register must contain the VARPTR for string number 1, and
+;   the ACCUM must contain the VARPTR for string number 2 (NTF must
+;   contain the value of 3). Then jump to 299CH (don't CALL).
+;   On exit, the VARPTR to the string created by this routine
+;   will be found in the ACCUM, with the NTF set to 3.
+; ----------------------------------------------------------------------
 	ld	a,(hl)		;299c
 	push	hl		;299d
 	ld	hl,(FACLO)	;299e
@@ -8782,6 +8838,7 @@ FRETMS:	ld	hl,(TEMPPT)	;29f5
 	ret			;2a02
 ; ----------------------------------------------------------------------
 ; 2A03-2A0E – LEVEL II BASIC LEN ROUTINE– “FNLEN”
+;   Get length (number of bytes) of a string to ACCUM
 ; ----------------------------------------------------------------------
 FNLEN:	ld	bc,SNGFLT	;2a03
 	push	bc		;2a06
@@ -8793,6 +8850,7 @@ LEN1:	call	FRESTR		;2a07
 	ret			;2a0e
 ; ----------------------------------------------------------------------
 ; 2A0F-2A1E – LEVEL II BASIC ASC ROUTINE – “FNASC”
+;   Get ASCII value of first character of string to ACCUM
 ; ----------------------------------------------------------------------
 FNASC:	ld	bc,SNGFLT	;2a0f
 	push	bc		;2a12
@@ -8806,6 +8864,7 @@ ASC2:	call	LEN1		;2a13
 	ret			;2a1e
 ; ----------------------------------------------------------------------
 ; 2A1F-2A2E – LEVEL II BASIC CHR$ ROUTINE – “FNCHR”
+;   Make a one - character string - ASCII value in ACCUM
 ; ----------------------------------------------------------------------
 FNCHR:	ld	a,$01		;2a1f
 	call	STRINI		;2a21
@@ -8824,6 +8883,9 @@ STRNGS:	GETCHR			;2a2f - rst 10h
 	SYNTAX	(',')		;2a36 - rst 08h
 	call	FRMEVL		;2a38
 	SYNTAX	(')')		;2a3b - rst 08h
+; ----------------------------------------------------------------------
+; 2A3D - Make a string of multiple bytes of one character (TAS)
+; ----------------------------------------------------------------------
 	ex	(sp),hl		;2a3d
 	push	hl		;2a3e
 	TSTDAT			;2a3f
@@ -8851,6 +8913,9 @@ SPLPS:	ld	(hl),a		;2a5a
 ; 2A61-2A90 – LEVEL II BASIC LEFT$( ROUTINE – “FNLEFT”
 ; ----------------------------------------------------------------------
 FNLEFT:	call	PREAM		;2a61
+; ----------------------------------------------------------------------
+; 2A64 - Make a string of the leftmost n characters of string (TAS)
+; ----------------------------------------------------------------------
 	xor	a		;2a64
 LEFT3:	ex	(sp),hl		;2a65
 	ld	c,a		;2a66
@@ -8891,6 +8956,9 @@ ALLSTR:	ld	c,$00		;2a70
 ; 2A91-2A99 – LEVEL II BASIC RIGHT$ ROUTINE – “FNRGT”
 ; ----------------------------------------------------------------------
 FNRGT:	call	PREAM		;2a91
+; ----------------------------------------------------------------------
+; 2A94 - Make a string of the rightmost n characters of string (TAS)
+; ----------------------------------------------------------------------
 	pop	de		;2a94
 	push	de		;2a95
 	ld	a,(de)		;2a96
@@ -8913,6 +8981,9 @@ FNMID:	ex	de,hl		;2a9a
 	call	GETBYT		;2aad
 MID2:	SYNTAX	(')')		;2ab0 - rst 08h
 	pop	af		;2ab2
+; ----------------------------------------------------------------------
+; 2AB3 - Make a string from a portion of another string (TAS)
+; ----------------------------------------------------------------------
 	ex	(sp),hl		;2ab3
 	ld	bc,LEFT2	;2ab4
 	push	bc		;2ab7
@@ -8998,6 +9069,12 @@ FNOUT:	call	SETIO		;2afb
 ;   This evaluates an expression and leaves the result in DE as an integer.
 ; ----------------------------------------------------------------------
 GETINT:	GETCHR			;2b01 - rst 10h
+;
+; ----------------------------------------------------------------------
+; 2B02H - LOAD INTEGER EXPRESSION IN DE
+;   Same as routine at 1E46H except allows negative argument.
+;   Number must evaluate within range -32768 to 32767.
+; ----------------------------------------------------------------------
 GETIN2:	call	FRMEVL		;2b02
 ;
 ; ----------------------------------------------------------------------
@@ -10072,7 +10149,7 @@ TEMPST:	.EQU	RAM+$B5		; String variable VARPTR storage area
 ;
 DSCTMP:	.EQU	RAM+$D3		; VARPTR storage area for string being created
 FRETOP:	.EQU	RAM+$D6		; Pointer to next free byte in string storage area
-TEMP3:	.EQU	RAM+$D8		; temporary storage location
+TEMP3:	.EQU	RAM+$D8		; temporary storage location by multiple routines
 DATLIN:	.EQU	RAM+$DA		; Line number of last DATA item read
 SUBFLG:	.EQU	RAM+$DC		; If 64 a FOR-NEXT loop is being processed
 BFKLFL:	.EQU	RAM+$DD		; Flag indicates whether inputing text
