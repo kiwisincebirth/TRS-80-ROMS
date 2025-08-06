@@ -4,6 +4,7 @@
 ; ----------------------------------------------------------------------
 ;
 ; Rom Version Definition
+; #DEFINE VER13   ; Set by Default if VER12 is not defined, dont uncomment
 ; #DEFINE VER12	  ; Uncomment for V1.2, Leave Commented for V1.3
 ; #DEFINE EACA80  ; Uncomment to enable System-80 (EACA) hardware support
 ;
@@ -57,20 +58,13 @@
 ; ======================================================================
 ;
 #IFNDEF VER12
-#DEFINE VER13	; Ensure 1.3 is the default if 1.2 is not defined.
+    #DEFINE VER13	; Ensure 1.3 is the default if 1.2 is not defined.
 #ENDIF
 ;
 #IFDEF FREHDBT
-		; Constants used by FreHD
-ROM_MODEL_1:	.EQU 1			; TRS model : passed by the patched rom
-READROM:	.EQU $C4		; read only
-WRITEROM	.EQU $C5		; write only
-ROM_LOAD	.EQU $5000		; where the extra "rom is loaded
-;
-#IFNDEF VER13
-#DEFINE VER13 	; VER13 must be used if FreHD is defined
-#ENDIF
-;
+    #IFNDEF VER13
+        #DEFINE VER13 	; VER13 must be used if FreHD is defined
+    #ENDIF
 #ENDIF
 ;
 #IFDEF NO37EXH
@@ -214,6 +208,17 @@ SEMICO	.EQU	$3B	; Note ';' in code; was breaking some assemblers
 UPARRW	.EQU	$5B	; (UP Arrow) Special Up Arrow ↑ Character in TRS Charset
 CURCHR  .EQU	$5F	; _ cursor character
 ;
+; ----------------------------------------------------------------------
+; Constants used by FreHD
+; ----------------------------------------------------------------------
+#IFDEF FREHDBT
+;
+ROM_MODEL_1:	.EQU 1			; TRS model : passed by the patched rom
+READROM:	.EQU $C4		; read only
+WRITEROM	.EQU $C5		; write only
+ROM_LOAD	.EQU $5000		; where the extra "rom is loaded
+;
+#ENDIF
 ; ======================================================================
 ; MACROS
 ; ======================================================================

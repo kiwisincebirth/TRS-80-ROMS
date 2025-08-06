@@ -55,7 +55,7 @@ The base ROM version can be defined.
 
 There are several optional features.
 * `#DEFINE FREHDBT` - Enables the FreHD auto boot feature, i.e. the Auto boot ROM. This requires version 1.3 
-  ROM as a base, please do NOT define `VER12` 
+  ROM as a base, please do NOT define `VER12` as it is not compatible (it will be ignored anyway) 
   Consider also enabling NMIHARD to ensure reset (on non-floppy machine) will force a reset.
 * `#DEFINE NO37EXH` - Disable the use of memory mapped hardware at `37Exh`, Floppy disk, Printer, etc.
   This is useful in machines where these peripherals are not needed (e.g. in a FreHD only system)
