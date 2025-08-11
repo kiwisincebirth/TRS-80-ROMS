@@ -1360,56 +1360,68 @@ KEYRT2:	ld	bc,3500		;044c - delay count (3500)
 ;   should be in the C register. On exit, A would contain the character
 ;   at the cursor (if called for an INPUT). This routine handles scrolling etc.
 ;
-;   Register IX points to the DCB, so IX+0 = the DCB type, IX+1 = LSB of the
-;   Driver Address, IX+2 = MSB of the Driver Address, IX+3 = LSB of the Cursor
-;   Position, IX+4 = MSB of the Cursor Position, IX+5 = Cursor Character,
+;   Register IX points to the DCB, so
+;   IX+0 = the DCB type,
+;   IX+1 = LSB of the Driver Address, IX+2 = MSB of the Driver Address,
+;   IX+3 = LSB of the Cursor Position, IX+4 = MSB of the Cursor Position,
+;   IX+5 = Cursor Character, cursor on off flag
 ;   IX+6 = “D”, and IX+7=”O”
 ; ----------------------------------------------------------------------
 DSPDRV:
-	ld	l,(ix+3)	;0458
-	ld	h,(ix+4)	;045b
-	jr	c,DSPRD		;045e
-	ld	a,(ix+5)	;0460
-	or	a		;0463
-	jr	z,DSPGRP	;0464
-	ld	(hl),a		;0466
+	ld	l,(ix+3)	;0458 - LSB of the current cursor position
+	ld	h,(ix+4)	;045b - MSB of the current cursor position
+	jr	c,DSPRD		;045e - Jump if get last character
+	ld	a,(ix+5)	;0460 - cursor on/off flag
+	or	a		;0463 - set flags
+	jr	z,DSPGRP	;0464 - Jump if the cursor is off
+	ld	(hl),a		;0466 - Display the character under the cursor at the current cursor position
 DSPGRP:	ld	a,c		;0467 - convert and display the charater
 	cp	$20		;0468 - is it a control code <$20
 	jp	c,DSPCTL	;046a - display control code
 	cp	$80		;046d - is it a graphic >= $80
 	jr	nc,DSPGRC	;046f - display graphic
-	cp	$40		;0471 - is it number or symbol $20-$40
 #IFDEF LOWCASE
-	jr	DSPCHR		;Disabe all Alpha CHR translation
+	jr	DSPCHR		;0471 - Disable all Alpha CHR translation
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
 #ELSE
+	cp	$40		;0471 - is it number or symbol $20-$40
 	jr	c,DSPCHR	;0473 - then display it
-#ENDIF
 	sub	$40		;0475 - So now upper case A is 01h
 	cp	$20		;0477 - is it upper case case
 	jr	c,DSPCHR	;0479 - display it
 	sub	$20		;047b - convert from lower to upper case
-DSPCHR:	call	DSPOUT		;047d
-DSPSKP:	ld	a,h		;0480
-	and	$03		;0481
-	or	$3C		;0483
-	ld	h,a		;0485
-	ld	d,(hl)		;0486
-	ld	a,(ix+5)	;0487
-	or	a		;048a
-	jr	z,DSPRTN	;048b
-	ld	(ix+5),d	;048d
+#ENDIF
+DSPCHR:	call	DSPOUT		;047d - Display the character in A (and scroll if necessary)
+DSPSKP:	ld	a,h		;0480 - the MSB of the current cursor position
+	and	$03		;0481 - Convert Cursor Pos to Vid Mem Address, clear upper bits.
+	or	$3C		;0483 - then force the MSB to be 3C-3Fh (Vid Ram
+	ld	h,a		;0485 - save it back.
+	ld	d,(hl)		;0486 - get the value at the location of the current cursor position
+	ld	a,(ix+5)	;0487 - cursor on off flag
+	or	a		;048a - Check to see if the cursor is on or off
+	jr	z,DSPRTN	;048b - Jump if the cursor is off
+	ld	(ix+5),d	;048d - cursor is on, save the character being displayed as the flag
 	ld	(hl),CURCHR	;0490 - Display the cursor character
-DSPRTN:	ld	(ix+3),l	;0492 - Save current cursor position
-	ld	(ix+4),h	;0495
-	ld	a,c		;0498
+DSPRTN:	ld	(ix+3),l	;0492 - Save LSB of current cursor position
+	ld	(ix+4),h	;0495 - Save MSB of current cursor position
+	ld	a,c		;0498 - the character that was displayed
 	ret			;0499
 ; ----------------------------------------------------------------------
 ; 049AH – Read the character at the current position of the display – “DSPRD”
 ; ----------------------------------------------------------------------
-DSPRD:	ld	a,(ix+5)	;049a
-	or	a		;049d
-	ret	nz		;049e
-	ld	a,(hl)		;049f
+DSPRD:	ld	a,(ix+5)	;049a - the cursor on/off flag
+	or	a		;049d - Check to see if the cursor is on or off
+	ret	nz		;049e - RET if cursor is on and covering the character
+	ld	a,(hl)		;049f - If cursor off, get char at the current cursor position
 	ret			;04a0
 ; ----------------------------------------------------------------------
 ; 04A1H – Go to the beginning of the line – “DSPBOL”
@@ -10161,8 +10173,10 @@ mRST6:	.EQU	RAM+$0F		; RST 30h (DOS DEBUG entry point) Vector.
 mRST7:	.EQU	RAM+$12		; RST 38h (Interrupt Service) Vector.
 ;
 mKDCB:	.EQU	RAM+$15		; Keyboard Device Block
+;
 mDDCB:	.EQU	RAM+$1D		; Video Device Block
 CURSOR:	.EQU	RAM+$20		; Video Device Block - CURSOR
+;
 mPDCB:	.EQU	RAM+$25		; Printer Device Block
 ;
 CIOSS:	.EQU	RAM+$33		; call device driver ala dos - CIO$
