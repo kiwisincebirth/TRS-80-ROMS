@@ -477,16 +477,16 @@ NMI:	ld	sp,$0600	;0066 - wrong Stack Pointer. Replaced latter
 ; ----------------------------------------------------------------------
 ; 0075H-0104H – INITIALIZATION ROUTINE – "INIT2"
 ;  This is part of the Level II initialization procedure. It moves
-;  division support routine from 18F7H to 191EH up to 4080H to 40A7H.
+;  several support routine from 18F7H to 191EH up to 4080H to 40A7H.
 ; ----------------------------------------------------------------------
-INIT2:	ld	de,FDIVC	;0075
-	ld	hl,CONSTR	;0078
-	ld	bc,$0027	;007b
-	ldir			;007e
+INIT2:	ld	de,FDIVC	;0075 - Ram location - of Level II BASIC support routines.
+	ld	hl,CONSTR	;0078 - Rom Location - of Level II BASIC support routines.
+	ld  bc,CONSTR2-CONSTR+1 ;007b - Size of the Routine(s) to move
+	ldir			;007e - Move the routines
 ;
 ;  Initialises String Buffer
-	ld	hl,BUFINI	;0080
-	ld	(hl),':'	;0083
+	ld	hl,BUFINI	;0080 - $41E5 RAM String Buffer Pointer
+	ld	(hl),':'	;0083 - save a colon
 	inc	hl		;0085
 	ld	(hl),b		;0086
 	inc	hl		;0087
@@ -5487,6 +5487,8 @@ CONSTR:	sub	$00		;4080 Note Argument is set into working RAM
 	.DW	MEMEND+$14C	;40A0 - String Storage Area (434C)
 	.DW	$FFFE		;40A2 - Current BASIC Line Number
 	.DW	MEMEND+$E9	;40A4 - BASIC Program Statement Table Pointer
+;
+CONSTR2:
 ;
 ; ----------------------------------------------------------------------
 ; 191D-1923 – MESSAGE STORAGE LOCATION – "ERR"
