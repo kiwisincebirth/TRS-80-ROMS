@@ -1,6 +1,8 @@
 ;
 ; ======================================================================
-;     TRS-80 Model I Level II BASIC ROM - (Dissassembled Code)
+;        TRS-80 Model I Level II BASIC ROM - (Disassembled)
+; ----------------------------------------------------------------------
+;     NOTE: this code has been formatted with 8 character tabs
 ; ----------------------------------------------------------------------
 ;
 ; Rom Version Definition
@@ -58,7 +60,9 @@
 ; ======================================================================
 ;
 #IFNDEF VER12
-    #DEFINE VER13	; Ensure 1.3 is the default if 1.2 is not defined.
+    #IFNDEF VER13
+    	#DEFINE VER13	; Ensure 1.3 is the default if 1.2 is not defined.
+    #ENDIF
 #ENDIF
 ;
 #IFDEF FREHDBT
@@ -508,7 +512,7 @@ ERLOPS:	ld	(hl),OPJPNN	;0096 - opcode (1st byte) for JP nnnn
 	inc	hl		;009a
 	ld	(hl),d		;009b - address high order
 	inc	hl		;009c
-	djnz	ERLOPS		;009d
+	djnz	ERLOPS		;009d - and loop bas as required
 ;
 ; Set DOS Exit links to RET instructions (41A6-41E2)
 	ld	b,21		;009f - 21 DOS Exits
@@ -548,33 +552,35 @@ LOOPMM:	inc	hl		;00c7 - next ram location
 	ld	(hl),b		;00d1 - and save original value back
 	jr	z,LOOPMM	;00d2 - loop back until the end of memory is found
 	jr	USEDEF		;00d4 - If the address didn’t exist, have reached HIMEM
-TYPMEM:	call	LINGET		;00d6
-	or	a		;00d9
-	jp	nz,SNERR	;00da
-	ex	de,hl		;00dd
-	dec	hl		;00de
+;
+; process the users input to MEMORY SIZE ?
+TYPMEM:	call	LINGET		;00d6 - convert user input string (HL) into value in DE
+	or	a		;00d9 - Set Flags
+	jp	nz,SNERR	;00da - Display a ?SN ERROR if Register A is not equal to zero
+	ex	de,hl		;00dd - move value to HL
+	dec	hl		;00de - minus 1
 	ld	a,$8F		;00df - Load Register A with a memory test value
-	ld	b,(hl)		;00e1
-	ld	(hl),a		;00e2
-	cp	(hl)		;00e3
-	ld	(hl),b		;00e4
-	jr	nz,MEMGET	;00e5
-USEDEF:	dec	hl		;00e7
-	ld	de,MEMEND+$214	;00e8 - the minimum MEMORY SIZE? response, which is 300 bytes (012CH) past ENBINI
-	CPDEHL			;00eb
-	jp	c,OMERR		;00ec
+	ld	b,(hl)		;00e1 - read and save current value
+	ld	(hl),a		;00e2 - write the test value
+	cp	(hl)		;00e3 - read and compare to see if value was saved
+	ld	(hl),b		;00e4 - restore the original value
+	jr	nz,MEMGET	;00e5 - if not a usaable ram adress, back to MEM SIZE prompt
+USEDEF:	dec	hl		;00e7 - minus 1
+	ld	de,MEMEND+$214	;00e8 - the minimum MEMORY SIZE? response.
+	CPDEHL			;00eb - RST 18 - compare DE (input)  and HL (minimum)
+	jp	c,OMERR		;00ec - less than memory required, so OM ERROR
 	ld	de,$FFCE	;00ef - Subtract 32 Bytes
 	ld	(MEMSIZ),hl	;00f2 - Save the MEMORY SIZE? amount
-	add	hl,de		;00f5
+	add	hl,de		;00f5 - subtract 32 bytes from the memory size
 	ld	(STKTOP),hl	;00f6 - start of string space pointer MEMSIZE-32
-	call	SCRTCH		;00f9
+	call	SCRTCH		;00f9 - init the Level II variables and pointers
 #IFNDEF FREHDBT
 	; FreHD does not print this message, saving 6 bytes here
-	ld	hl,HDGMSG	;00fc
-	call	STROUT		;00ff
+	ld	hl,HDGMSG	;00fc - Radio Shack L2 Basic - Message
+	call	STROUT		;00ff - print the message
 #ENDIF
 ; then it jumps to the entry point for the BASIC command mode
-	jp	READY		;0102
+	jp	READY		;0102 - Level II BASIC READY routine
 ;
 #IFDEF VER13
 ;
@@ -587,8 +593,8 @@ USEDEF:	dec	hl		;00e7
 ; using space saved by HDGMSG startup message
 ; ----------------------------------------------------------------------
 HDBOOT:	ld	a,ROM_MODEL_1	;00ff - ROM parameter to FreHD. 1 for Model1.
-        out	(WRITEROM),a	;0101
-        in	a,(READROM)	;0103
+        out	(WRITEROM),a	;0101 - write the value
+        in	a,(READROM)	;0103 - read response
         cp	0FEh		;0105 - FE is FreHD present and valid code!
         ret	nz		;0107 - return if no FreHD or old firmware
         ld	hl,ROM_LOAD	;0108 - load more "rom" from FreHD
@@ -797,10 +803,10 @@ NULRT:	ld	hl,m_REDDY-1	;01bc
 ;   Clear the screen, select 64 characters and home the cursor.
 ;   All registers are used.
 ; ----------------------------------------------------------------------
-CLS:	ld	a,CHOME		;01c9 - cursor Home
-	call	OUT2D		;01cb
-	ld	a,CLRKEY	;01ce - erase to end of frame
-	jp	OUT2D		;01d0
+CLS:	ld	a,CHOME		;01c9 - ascii for cursor Home
+	call	OUT2D		;01cb - display it
+	ld	a,CLRKEY	;01ce - ascii for erase to end of frame
+	jp	OUT2D		;01d0 - call and return
 ;
 ; ======================================================================
 ; 01D3H – LEVEL II BASIC REFRESH RANDOM ROUTINE – “RANDOM”
@@ -1402,7 +1408,11 @@ DSPGRP:	ld	a,c		;0467 - convert and display the charater
 	jr	c,DSPCHR	;0479 - display it
 	sub	$20		;047b - convert from lower to upper case
 #ENDIF
+;
 DSPCHR:	call	DSPOUT		;047d - Display the character in A (and scroll if necessary)
+;
+; Completion of the Display Routines, after characters have been printed.
+;
 DSPSKP:	ld	a,h		;0480 - the MSB of the current cursor position
 	and	$03		;0481 - Convert Cursor Pos to Vid Mem Address, clear upper bits.
 	or	$3C		;0483 - then force the MSB to be 3C-3Fh (Vid Ram
@@ -1527,15 +1537,15 @@ DSPETB:	ld	a,(CAST)	;04f6 - get shadow copy of Cassette port
 ; ----------------------------------------------------------------------
 ; 0506H – Process control characters – “DSPCTL”
 ; ----------------------------------------------------------------------
-DSPCTL:	ld	de,DSPSKP	;0506
-	push	de		;0509
-	cp	BACKS		;050a  - is a backspace
-	jr	z,DSPBSP	;050c
+DSPCTL:	ld	de,DSPSKP	;0506 - Completion of video display routines
+	push	de		;0509 - Save the return address on the STACK
+	cp	BACKS		;050a - is a backspace 08h
+	jr	z,DSPBSP	;050c - then process a backspace
 	cp	LINEF		;050e - is less than a line feed 0A character
-	ret	c		;0510
-	cp	CURON		;0511 - cursor on
-	jr	c,DSPCR		;0513
-	jr	z,DSPCON	;0515
+	ret	c		;0510 - then nothing further to check
+	cp	CURON		;0511 - compare with cursor on 0Eh
+	jr	c,DSPCR		;0513 - process a CR/LF which is 0Dh
+	jr	z,DSPCON	;0515 - process a cursor on.
 	cp	CUROFF		;0517 - cursor off
 	jr	z,DSPCOF	;0519
 	cp	MODE32		;051b - turn on the 32 character per line mode
@@ -1605,13 +1615,13 @@ DSPCR:	ld	a,l		;0564 - LSB of the current cursor position
 ; 0573H – Part of the Display routine – “DSPEOL”
 ;   Erase to the end of the line
 ; ----------------------------------------------------------------------
-DSPEOL:	push	hl		;0573
-	ld	d,h		;0574
-	ld	a,l		;0575
-	or	$3F		;0576
-	ld	e,a		;0578
-	inc	de		;0579
-	jr	DSPERA		;057a
+DSPEOL:	push	hl		;0573 - Save cursor position on the STACK
+	ld	d,h		;0574 - MSB of the current cursor position
+	ld	a,l		;0575 - LSB of the current cursor position
+	or	$3F		;0576 - Set he EOL by setting the lower bits
+	ld	e,a		;0578 - EOL of the current line
+	inc	de		;0579 - starting character of next line
+	jr	DSPERA		;057a - blank to address in DE, and return
 ; ----------------------------------------------------------------------
 ; 057CH – Part of the Display routine – “DSPEOF”
 ;   Erase to the end of the frame. clear the video screen from (including)
@@ -1978,34 +1988,35 @@ INITR:
 	nop
 ; Keyboard DCB
 	.DB	1		; 4015 - Device Type = 1 for KB (Read only)
-	.DW	KBDDRV		; KBD driver address
-	.DB	0
-	.DB	0
-	.DB	0
-	.DB	"K"
-	.DB	"I"
+	.DW	KBDDRV		; 4016 - keyboard driver address
+	.DB	0		; 4017 - unused
+	.DB	0		; 4018 - unused
+	.DB	0		; 4019 - unused
+	.DB	"KI"
 ; Display DCB
 	.DB	7		; 401D - Device Type = 7 for VID
-	.DW	DSPDRV		; DISPLAY driver address
-	.DW	vidmem		; Cursor Position (3C00H to 3FFFH)
-	.DB	0		; Character "covered" on video by Cursor
-	.DB	"D"
-	.DB	"O"
+	.DW	DSPDRV		; 401E - DISPLAY driver address
+	.DW	vidmem		; 4020 - Cursor Position (3C00H to 3FFFH)
+	.DB	0		; 4022 - Character "covered" on video by Cursor
+	.DB	"DO"
 ; Printer DCB
 	.DB	6		; 4025 - Device Type = 6 for Printer
-	.DW	PRTDRV		; driver address
-	.DB	43h		; lines per page
-	.DB	0		; Current Line Number
-	.DB	0		; Number of chars printed on current line
-	.DB	"P"
-	.DB	"R"
+	.DW	PRTDRV		; 4026 - printer driver address
+	.DB	67		; 4028 - lines per page
+	.DB	0		; 4029 - Current Line Number
+	.DB	0		; 402A - Number of chars printed on current line
+	.DB	"PR"
 ;
-	jp	$5000		; 402D - MAKE SYS1 (10) DOS REQUEST
+; Normal Disk Operating System re-entry vector.
+	jp	$5000		; 402D - MAKE SYS1 (10) DOS REQUEST,
+				; typically JP 4400H
+; Abnormal DOS re-entry
 	rst	00h		; 4030 - DOS REQUEST CODE FOR SYS1
+	nop			; typically LD A,A3 followed by RST 28
 	nop
-	nop
-	ld	a, 0		; 4033 - CALL DEVICE DRIVER ALA DOS
-	ret
+; DOS Device Vectoring Routine
+	ld	a, 0		; 4033 - CALL DOS DEVICE DRIVER
+	ret			; typically will JP 44BBh
 ;
 ; ======================================================================
 ; MATH ROUTINES
