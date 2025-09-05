@@ -2,18 +2,20 @@
 
 ## Model 1 ROM Disassembled
 
-This repository contains reverse engineered source code for Tandy TRS-80 Model 1 Level 2 BASIC ROMS. 
+This repository contains Disassembled well commented source code for Tandy TRS-80 Model 1 Level 2 BASIC ROMS. 
 
 This source code has support for both V1.3 (the default), and V1.2 of the ROMS. For more information on the 
 differences see references below. Several additional (optional) patches can be applied (e.g. FreHD autoboot)
 be setting a #DEFINE in the code
 
+> NOTE: For best results view the code with 8 spaces per tab.
+
 ### Motivation
 
 I read a post asking why Model 1 BASIC hadn’t been ported to a modern hobbyist CP/M environment. Of course there are 
 many reasons why this has not been done but one of the issues is (after doing a search) I could not locate original 
-source code, which would be needed for such a port. I did locate several disassemblies, but none we adequately 
-complete, and would 
+source code, which would be needed for such a port. I did locate several disassembles, but none we adequately 
+complete, well formatted, or well documented
 
 I am unsure why the original source code has not been published (in its original form), since the ROM contents have 
 been very heavily documented over the years. However, this repository aims to address this.
@@ -23,6 +25,7 @@ been very heavily documented over the years. However, this repository aims to ad
 Main Features
 * Fully Compilable Source Code for Model 1 Level 2 12KB ROMS
 * Both 1.3 and 1.2 versions, plus EACA clone hardware.
+* Several optional patches have been included via `#DEFINE`
 
 While based of a disassembly (which can be low quality) the following work has been done: 
 * Replaced all disassembler generated labels with meaningful labels
@@ -45,20 +48,25 @@ compatibility of the generated output.
 ### Build Options
 
 There are several `DEFINE`'s that can be set in the code (very start) to enable certain features.
-By default the build will create a Version 1.3
+By default, the build will create a Version 1.3
 
 The base ROM version can be defined.
-* `#DEFINE VER12` - uncomment this the degrade from V1.3 to V1.2 of the ROM.
+* `#DEFINE VER12` - uncomment this to degrade from V1.3 to V1.2 of the ROM.
+* `#DEFINE VER13` - this is the default if VER12 is not defined, and doesnt need to be uncommented
 * `#DEFINE EACA80` - uncomment to enable Dick Smith System-80 (EACA) hardware support. 
   NOTE: While not mandatory you should also define `VER12` since the System-80 ROM was based on V1.2.
   V1.3 has not been formally tested, but assume should work, and opens ability to also specify `FREHDBT`  
 
 There are several optional features.
 * `#DEFINE FREHDBT` - Enables the FreHD auto boot feature, i.e. the Auto boot ROM. This requires version 1.3 
-  ROM as a base, please do NOT define `VER12` 
+  ROM as a base, please do NOT define `VER12` as it is not compatible (it will be ignored anyway) 
   Consider also enabling NMIHARD to ensure reset (on non-floppy machine) will force a reset.
+* `#DEFINE NO37EXH` - Disable the use of memory mapped hardware at `37Exh`, Floppy disk, Printer, etc.
+  This is useful in machines where these peripherals are not needed (e.g. in a FreHD only system)
+  and allows the use of the 2kb memory `3000h - 37FFh` without interference from the ROM code. 
+  This also implies `NMIHARD` since the reset function check based on floppy disk availability
 * `#DEFINE NMIHARD` - Set NMI (reset) as always perform a hard reset. Normally on non-floppy systems NMI performs
-  a soft reset returing to the `READY>` prompt with the basic program intact. This is useful in system without 
+  a soft reset returning to the `READY>` prompt with the basic program intact. This is useful in system without 
   floppy disk to force a full reset (0066h)
 * `#DEFINE LOWCASE` - Disable Alpha character translation of letters A-Z,a-z to the values on range 00h to 1Fh. 
   This is useful when a lower case mod is installed, but an alternate video driver has not been installed, 
@@ -80,13 +88,13 @@ Experimental - use at your own risk
 I have created an implementation of Level 2 Basic that runs as an executable CP/M 2.2 (or greater). 
 
 Switch to the branch "cpmbasic" which takes this source code and you will find TBASIC.Z80 which will
-compile to a CP/M COM executable file. It is not well documented (see in the the ASM file), it has many
+compile to a CP/M COM executable file. It is partially documented in the TBASIC.ASM file, it has many
 limitations but does work. 
 
 i.e. You do need to be careful though RAM starts at 3000H (not 4000H), so POKE's to what would normally be video
-RAM would easily corrupt your program
+RAM would easily corrupt your program. No attempt has been mad to address these issues. 
 
-It also includes the LOAD filename.bas which will load a TRS-80 basic program.
+It also includes the `LOAD filename.BAS` which will load a TRS-80 basic program from CP/M filesystem
 
 ## Fine Print
 
@@ -112,4 +120,4 @@ Following References
 * [https://wikiti.brandonw.net/index.php?title=Z80_Optimization#Better_else] - Better Else optimisation
 * [https://www.cpcalive.com/docs/TASMMAN.HTM] - Telemark Assembler
 * Microsoft BASIC Decoded & Other Mysteries - James Farvour
-
+* TRS-80 Rom Routines Documented (The Alternate Source) - Jack Decker
