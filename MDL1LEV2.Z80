@@ -1943,7 +1943,7 @@ CLRAM:	ld	(de),a		;0687 - zero byte in memory starting at 4036h
 ; THIS REPLACES THE BOOT CODE BELOW!!!!
 ; ----------------------------------------------------------------------
 BOOT:	jp	_START		;069f - If a disk is present START as if power-up
-	.FILL	(06CCh - $,0)	; fill the space to next routine with ZERO's
+	.FILL	(RESETR - $,0)	; fill the space to next routine with ZERO's
 ;
 #ELSE
 ;
@@ -9296,6 +9296,10 @@ LIST4:	ld	hl,$FFFF	;2b33
 	jr	LIST4		;2b73
 ; ----------------------------------------------------------------------
 ; 2B75-2B7D – DISPLAY MESSAGE ROUTINE – “LISPRT”
+;  Output a string to device indicated by device type flag stored
+;  at 409CH. On entry, HL registers must point to address of start of string.
+;  String must end with zero byte. Calls routine at 032AH
+;  (note warning for that routine)
 ; ----------------------------------------------------------------------
 LISPRT:	ld	a,(hl)		;2b75
 	or	a		;2b76
