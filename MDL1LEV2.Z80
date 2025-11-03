@@ -1422,9 +1422,9 @@ DSPDRV:
 	ld	a,(ix+5)	;0460 - cursor on/off flag
 	or	a		;0463 - set flags
 	jr	z,DSPGRP	;0464 - Jump if the cursor is off
-	ld	(hl),a		;0466 - Display the character under the cursor at the current cursor position
+	ld	(hl),a		;0466 - Display the character under the cursor
 DSPGRP:	ld	a,c		;0467 - convert and display the charater
-	cp	$20		;0468 - is it a control code <$20
+	cp	SPACE		;0468 - is it a control code <$20
 	jp	c,DSPCTL	;046a - display control code
 	cp	$80		;046d - is it a graphic >= $80
 	jr	nc,DSPGRC	;046f - display graphic
@@ -1446,9 +1446,9 @@ DSPCHR:	call	DSPOUT		;047d - Display the character in A (and scroll if necessary
 ;
 DSPSKP:	ld	a,h		;0480 - the MSB of the current cursor position
 	and	$03		;0481 - Convert Cursor Pos to Vid Mem Address, clear upper bits.
-	or	$3C		;0483 - then force the MSB to be 3C-3Fh (Vid Ram
+	or	$3C		;0483 - then force the MSB to be 3C-3Fh (Vid Ram)
 	ld	h,a		;0485 - save it back.
-	ld	d,(hl)		;0486 - get the value at the location of the current cursor position
+	ld	d,(hl)		;0486 - get the value at the location of the cursor
 	ld	a,(ix+5)	;0487 - cursor on off flag
 	or	a		;048a - Check to see if the cursor is on or off
 	jr	z,DSPRTN	;048b - Jump if the cursor is off
@@ -1517,7 +1517,7 @@ DSPBSP:	dec	hl		;04ce - move cursor back 1 character
 	and	CAST32		;04d2 - check for 32 char mode
 	jr	z,DSPBS2	;04d4 - 64 char mode sip forward
 	dec	hl		;04d6 - back again if 32 char mode
-DSPBS2:	ld	(hl),' '	;04d7 - Clear the character under cursor
+DSPBS2:	ld	(hl),SPACE	;04d7 - Clear the character under cursor
 	ret			;04d9
 ; ----------------------------------------------------------------------
 ; 04DAH – Cursor Left – “DSPLFT”
@@ -1604,7 +1604,7 @@ DSPCTL:	ld	de,DSPSKP	;0506 - Completion of video display routines
 ;   scrolling the screen if necessary
 ;   HL contains the current screen address
 ; ----------------------------------------------------------------------
-DSPOUT:	ld	(hl),a		;0541 - write the charater to vide ram
+DSPOUT:	ld	(hl),a		;0541 - write the character to video ram
 	inc	hl		;0542 - next screen position
 	ld	a,(CAST)	;0543 - cassette port shadow byte
 	and	CAST32		;0546 - mask out 32 char mode bit
@@ -1689,9 +1689,9 @@ PRTDRV:	ld	a,c		;058d
 	xor	a		;0599
 	or	(ix+3)		;059a
 	jr	z,PRTIT		;059d - Jump if zero lines are to be skipped
-PRTVT:	ld	a,(ix+3)	;059f
-	sub	(ix+4)		;05a2
-	ld	b,a		;05a5
+PRTVT:	ld	a,(ix+3)	;059f - number of lines on the page
+	sub	(ix+4)		;05a2 - number of lines printed
+	ld	b,a		;05a5 - number of lines left to print
 PRTFF:	call	PRTSTA		;05a6 - Call the GET PRINTER STATUS routine
 	jr	nz,PRTFF	;05a9 - Loop back until the printer is ready
 	ld	a,LINEF		;05ab - We print line feed character(s)

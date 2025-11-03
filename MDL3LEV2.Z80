@@ -13,6 +13,15 @@
 ;
 ; Rom Version Definition
 ;
+; === Rom Bug Fixes ===
+; #DEFINE BUGFIX27 ; Uncomment to Fix Bug 27 - 0072H - Basic Entry*
+; #DEFINE BUGFIX28 ; Uncomment to Fix Bug 28 - 02B5H - Stack*
+; #DEFINE BUGFIX29 ; Uncomment to Fix Bug 29 - 02C3H - Basic Entry*
+; #DEFINE BUGFIX30 ; Uncomment to Fix Bug 30 - 034BH - 32 char Mode
+; #DEFINE BUGFIX31 ; Uncomment to Fix Bug 31 - Issues with Stack*
+; #DEFINE BUGFIX40 ; Uncomment to Fix Bug 40 - 05D1H - Printer Status
+;   (*) - Indicates the Bug is not fixed
+;
 ; Rom Additional Features
 ;
 ; Build Features
@@ -171,7 +180,7 @@ CLRKEY:	.EQU	$1F	; (CLEAR Key) erase from Cursor to end of frame
 SPACE:	.EQU 	$20
 SEMICO	.EQU	$3B	; Note ';' in code; was breaking some assemblers
 UPARRW	.EQU	$5B	; (UP Arrow) Special Up Arrow ↑ Character in TRS Charset
-CURCHR  .EQU	$5F	; _ cursor character
+CURCHR  .EQU	$B0	; (block graphic) _ cursor character
 ;
 ; ======================================================================
 ; MACROS
@@ -429,13 +438,13 @@ NMI:	jp NMIHAND		;0066
 ;
 ; ------------------------------------------
 ; 0069 - "$INITIO" - A call to $INITIO restores all I/O drivers to their initial default conditions, including I/O routes. No entry conditions. All registers are altered.
-;
+; ------------------------------------------
 INITIO:
-	jp l0452h		;0069
+	jp INITIO2		;0069 - Jump to the actual Routine
 ;
 ; ------------------------------------------
 ; 006C - "$ROUTE" - Change I/O Device Routing
-;
+; ------------------------------------------
 ROUTE:
 	ld de,IOROUT		;006c - 421D IO Router DCB
 	jr _PUT			;006f - invoke the Driver
@@ -863,36 +872,42 @@ CASOUT1:
 	ex 	(sp),hl		;0251 - put he actual vector on the stack
 	ret			;0252 - and return to the routine
 ;
-; todo the below is new code and needs documenting.
-; -------------------------------------------------------
-; -------------------------------------------------------
 l0253h:
-	ex 	(sp),hl		;0253
-	ld 	a,(04211h)	;0254
-	or 	a		;0257
-	jr 	z,l025dh	;0258
-	inc 	hl		;025a
+	ex 	(sp),hl		;0253 - RETURN ADDRESS of whoever called this routine
+	ld 	a,(TAPEBD)	;0254 - Tape Baud rate select
+	or 	a		;0257 - set flags
+	jr 	z,CASOUT5	;0258 - zero if 500 baud
+	inc 	hl		;025a - not zero, HL+3 to get the fast vector.
 	inc 	hl		;025b
 	inc 	hl		;025c
-l025dh:
-	ex 	(sp),hl		;025d
-	ret			;025e
+CASOUT5:
+	ex 	(sp),hl		;025d - Put HL as the RETURN ADDRESS and restore HL.
+	ret			;025e - return to the Vector
+;
 l025fh:
-	pop 	bc		;025f
+	pop 	bc		;025f - clean the stack
 	ret			;0260
+;
+; -------------------------------------------------------
+; 0264 - "$CSOUT" - Output a byte to cassette.
+;
+;   After writing the header with $CSHWR, use this $CSOUT to write the data,
+;   one byte at a time. You MUST call $CSOUT often enough to keep up with the baud rate.
+;   Register A needs to hold the data byte on entry.
+; -------------------------------------------------------
 TWOCSO:
 	call 	CASOUT		;0261
 CASOUT:
-	jr 	CASOUT1		;0264
+	jr 	CASOUT1		;0264 - output one byte to cassette
 ;
 ; -------------------------------------------------------
-; 0266 - Storage location for the maximum number of seconds in a minute, minutes in an hour, hours in a day, and days in a month
+; 0266 - Storage location for TIME related constants
 ; -------------------------------------------------------
 ;
-l0266h:
-	.DB	60, 60, 24 		;0266 - Time Data (60, 60, 24).
-	.DB	$1F, $1C, $1F, $1E 	;0269 Month Lengths.
-	.DB	$1F, $1E, $1F, $1F	;026D For DATE$.
+TIMEDATA:
+	.DB	60, 60, 24 		;0266 - max time data (60 seconds, 60 minutes, 24 hours)
+	.DB	$1F, $1C, $1F, $1E 	;0269 - twelve bytes which contain the length of each of the twelve months
+	.DB	$1F, $1E, $1F, $1F	;026D
 	.DB	$1E, $1F, $1E, $1F	;0271
 	.DB	0, 0			;0275 UNUSED
 MSGDISK:
@@ -902,54 +917,64 @@ MSGDISK:
 	.DB	$F2			;0283 UNUSED
 ;
 ; -------------------------------------------------------
-; 0284 - This subroutine is called by 2076H to turn the tape on, no header - it jumps out to 023DH
+; 0284 - This subroutine is called by 2076H to turn the tape on,
+;   no header - it jumps out to 023DH
 ; -------------------------------------------------------
 CWRTON:
-	JP 0287H		;0284
+	JP 	CSHWR		;0284 - jump to next instruction
 ;
 ; -------------------------------------------------------
 ; 0287 - Write Leader and Sync Byte - "$CSHWR"
+;    turns on the cassette and writes out this header.
+;    There are no entry conditions. A is altered by this routine.
 ; -------------------------------------------------------
 CSHWR:
-	di			;0287
-	call	JT_CTON		;0288
-	jr 	CSHWR1		;028b
+	di			;0287 - no interrupt
+	call	JT_CTON		;0288 - turn on the cassette.
+	jr 	CSHWR1		;028b - set the CASSETTE WRITE VECTOR.
 ;
-sub_028dh:
-	ld 	a,(03840h)	;028d
-	and 	004h		;0290
+; -------------------------------------------------------
+; 028DH - "$KBBRK" - Check for a BREAK key only.
+;   This is a fast key scan routine which looks solely for the BREAK key.
+;   Use this routine if you want to minimize the keyboard scan time
+;   without totally locking out the keyboard.
+;   On exit NZ will be set if BREAK was set. This subroutine is called by 0444H
+;   (in the middle of the PRINTER ROUTINE) to check for a BREAK key.
+; -------------------------------------------------------
+KBBRK:
+	ld   a,(kbdmatrix+$40)	;028d - scan the break key line
+	and  004h		;0290 - check for the break key
 	ret			;0292
 ;
 ; -------------------------------------------------------
 ; 0293 - CASSETTE ROUTINE - Read the Header and Sync Bytes
+;   Search for Cassette Header and Sync Byte
 ; -------------------------------------------------------
 CSRDON:
 	jp 	CSRDON1		;0293
-CSRDON3:
+CSHIN:
 	jr 	CSRDON1		;0296
 ;
 ; -------------------------------------------------------
+; 0298 - Enable the Clock Display - "CLKON"
+;   No entry conditions. A is altered by this routine.
 ; -------------------------------------------------------
+CLKON:
 	ld 	a,(SHADEC)	;0298 - shadow Port EC
-	set 	0,a		;029b
-l029dh:
+	set 	0,a		;029b - set the bit
+WRITEC:
 	ld 	(SHADEC),a	;029d - Shadow Port EC
 	ret			;02a0
+;
 ; -------------------------------------------------------
 ; 02A1 - Disable the Clock Display - "CLKOFF"
 ;   No entry conditions. A is altered by this routine.
 ; -------------------------------------------------------
 CLKOFF:
 	ld 	a,(SHADEC)	;02a1 - 4210H holds the bit mask for port ECH. Port ECH stores miscellaneous controls.
-	res 	0,a		;02a4
-	jr 	l029dh		;02a6
+	res 	0,a		;02a4 - reset the BIT
+	jr 	WRITEC		;02a6 - Write the $EC shadow register
 	ret			;02a8 - NOT USED
-;
-
-
-
-
-
 ;
 ; -------------------------------------------------------
 ; 02A9-02B1 - LEVEL II SYSTEM ROUTINE-ENTRY POINT- "GSYSTR"
@@ -1062,8 +1087,17 @@ OUT2D:	push	de		;033a
 ; 0348H-0357H – VIDEO ROUTINE – “DSPPOS”
 ;   Works out horizontal cursor position based on (CURSOR) vid ram pointer
 ; ----------------------------------------------------------------------
-DSPPOS:	ld	a,(CAST)	;0348 - get shadow copy of casette port
-	and	CAST32		;034b - mask of the 32 char mode bit
+DSPPOS:
+;
+#IFDEF BUGFIX30
+	; This CODE fixes BUG in Original Model 3 ROMS
+	ld 	a,(SHADEC)	;0348 - shadow copy of port EC
+	and 	SHADM32		;04ef - check for 32 char mode
+#ELSE
+	; This is a CODE BUG since it only works in Model 1
+	ld	a,($403D)	;0348 - get shadow copy of casette port
+	and	$08		;034b - mask of the 32 char mode bit
+#ENDIF
 	ld	a,(CURSOR)	;034d - LSB of the current cursor position
 	jr	z,NT32PS	;0350 - 64 characters per line mode?
 	rrca			;0352 - divide by 2
@@ -1170,109 +1204,133 @@ LZRPOS:	ld	a,e		;03b6
 ;   to be sent to the printer, and [IX] should point to the DCB,
 ; ----------------------------------------------------------------------
 PRTDRV:
-	ld a,c			;03c2 - the current character
-	cp ' '			;03c3 - Check to see if the character is a control character
-	jr nc,PRTDRV2		;03c5 - not control character - skip past some tests
-; todo new code please document
-	cp 00dh			;03c7
-	jr z,PRTDRV3		;03c9
-	cp FORMF		;03cb
-	jr nz,PRTDRV4		;03cd
-	ld a,(ix+3)		;03cf
-	sub (ix+4)		;03d2
-	ld b,a			;03d5
-PRTDRV1:
-	call sub_0440h		;03d6
-	ld a,LINEF		;03d9
-	out (lineprt),a		;03db
-	djnz PRTDRV1		;03dd
-	ld (ix+5),000h		;03df
-	jr l0439h		;03e3
+	ld 	a,c		;03c2 - the current character
+	cp 	SPACE		;03c3 - Check to see if the character is a control character
+	jr 	nc,PRTDRV2	;03c5 - not control character - skip past some tests
+	cp 	ENTER		;03c7 - is it a carriage return
+	jr 	z,PRTCR		;03c9 - handle printing CR
+	cp 	FORMF		;03cb - is it a form feed
+	jr 	nz,PRTDRV4	;03cd - handle it.
+	ld 	a,(ix+3)	;03cf - number of lines on the page
+	sub 	(ix+4)		;03d2 - number of lines printed
+	ld 	b,a		;03d5 - number of lines left to print
+PRTFF:
+	call 	PRTSTA		;03d6 - printer status with break key check
+	ld 	a,LINEF		;03d9
+	out 	(lineprt),a	;03db - write the line feed
+	djnz 	PRTFF		;03dd - jump back until no lines left.
+	ld 	(ix+5),0	;03df - reset the character  counter
+	jr 	PRTDRV8		;03e3 - set number of lines printed to 0 and exit
 PRTDRV2:
-	cp 080h			;03e5
-	jr nc,PRTDRV6		;03e7
-	ld b,000h		;03e9
-	sub 020h		;03eb
-	ld c,a			;03ed
-	ld hl,l3145h		;03ee
-	add hl,bc		;03f1
-	ld c,(hl)		;03f2
-	jr PRTDRV5		;03f3
-PRTDRV3:
-	ld a,(ix+5)		;03f5
-	or a			;03f8
-	ld a,c			;03f9
-	jr nz,PRTDRV4		;03fa
-	ld a,00ah		;03fc
-	ld c,a			;03fe
+	cp	$80		;03e5 - is it a graphic
+	jr 	nc,PRTDRV6	;03e7 - handle the graphics character.
+	ld 	b,0		;03e9 - set MSB to 0
+	sub 	020h		;03eb - adjust A character to print table.
+	ld 	c,a		;03ed - load to C. BC now has character offset
+	ld 	hl,PRTABLE	;03ee - the printer character table
+	add 	hl,bc		;03f1 - add the offset
+	ld 	c,(hl)		;03f2 - load the print char
+	jr 	PRTDRV5		;03f3 - print it.
+PRTCR:
+	ld 	a,(ix+5)	;03f5 - num chars printer
+	or 	a		;03f8 - set flags
+	ld 	a,c		;03f9 - the character to print
+	jr 	nz,PRTDRV4	;03fa - If there were ANY characters printed on the line
+	ld 	a,LINEF		;03fc - line feed
+	ld 	c,a		;03fe - into C
 PRTDRV4:
-	cp 020h			;03ff
-	jr c,PRTDRV6		;0401
+	cp	SPACE		;03ff - check for a control character
+	jr 	c,PRTDRV6	;0401 - JUMP If it is a control character
+;
+; C holds the printable character from the PRINTER CHARACTER TABLE.
+;
 PRTDRV5:
-	ld a,(ix+6)		;0403
-	inc a			;0406
-	jr z,PRTDRV6		;0407
-	cp (ix+5)		;0409
-	jr nc,PRTDRV6		;040c
-	call sub_0440h		;040e
-	ld a,00dh		;0411
-	out (lineprt),a		;0413
-	ld (ix+5),000h	;0415
+	ld 	a,(ix+6)	;0403 - MAXIMUM PRINT WIDTH
+	inc 	a		;0406 - plus 1
+	jr 	z,PRTDRV6	;0407 - if unlimited then jump
+	cp 	(ix+5)		;0409 - is the line full
+	jr 	nc,PRTDRV6	;040c - If the line is NOT full, jump
+	call 	PRTSTA		;040e - wait until the printer is ready honoring BREAK
+	ld 	a,ENTER		;0411 - carrage return
+	out 	(lineprt),a	;0413 - write the byte
+	ld 	(ix+5),0	;0415 - reset the character position
 PRTDRV6:
-	call sub_0440h		;0419
-	ld a,c			;041c
-	out (lineprt),a		;041d
-	inc (ix+5)		;041f
-	cp 00dh			;0422
-	jr z,PRTDRV7		;0424
-	cp 00ah			;0426
-	jr nz,l043dh		;0428
+	call 	PRTSTA		;0419 - wait until the printer is ready honoring BREAK
+	ld 	a,c		;041c - character into A
+	out 	(lineprt),a	;041d - write the character to printer
+	inc 	(ix+5)		;041f - bump the character counter
+	cp 	ENTER		;0422 - check for carrage return
+	jr 	z,PRTDRV7	;0424 - jump if was a CR
+	cp 	LINEF		;0426 - was it a line feed
+	jr 	nz,PRTDRV9	;0428 - jump if NOT a LF
+;
+; We have a LINE FEED or a CARRIAGE RETURN in A.
+;
 PRTDRV7:
-	ld (ix+5),000h	;042a
-	inc (ix+4)		;042e
-	ld a,(ix+4)		;0431
-	cp (ix+3)		;0434
-	jr nz,l043dh		;0437
-l0439h:
-	ld (ix+4),001h	;0439
-l043dh:
-	xor a			;043d
-l043eh:
-	ld a,c			;043e
+	ld 	(ix+5),0	;042a - Reset the number of characters printed.
+	inc 	(ix+4)		;042e - bump the line counter
+	ld 	a,(ix+4)	;0431 - get the line counter
+	cp 	(ix+3)		;0434 - compare with number of lines
+	jr 	nz,PRTDRV9	;0437 - still on page so skip next line
+PRTDRV8:
+	ld	(ix+4),1	;0439 - at top of page so set the number of lines printed to 01
+PRTDRV9:
+	xor 	a		;043d - clear flags
+	ld 	a,c		;043e - and return Char in A
 	ret			;043f
-sub_0440h:
-	call sub_044bh		;0440
-	ret z			;0443
-	call sub_028dh		;0444
-	jr z,sub_0440h		;0447
-	pop af			;0449
+;
+; ======================================================================
+; 440H – Get printer status routine – “PRTSTA”
+;
+;   Returns the status of the line printer in the status register as
+;   zero if the printer is ready, and non-zero if not ready.
+;   RESPECTS THE BREAK KEY
+; ----------------------------------------------------------------------
+PRTSTA:
+	call PRTSTA1		;0440 - get the status
+	ret z			;0443 - ret if everthing is ok
+	call KBBRK		;0444 - Check for a BREAK key only
+	jr z,PRTSTA		;0447 - loop around if no break
+	pop af			;0449 - restore stack and return
 	ret			;044a
-sub_044bh:
-	in a,(0f8h)		;044b
-	and 0f0h		;044d
-	cp 030h			;044f
+;
+; Subroutine to check to see if PRINTER READY by polling port F8H
+; NOT BUSY (Bit 7=0),
+; NOT OUT OF PAPER (Bit 6=0),
+; SELECTED (Bit 5=1),
+; NO PRINTER FAULT (Bit 4=1).
+;
+PRTSTA1:
+	in 	a,(lineprt)	;044b - get printer status byte
+	and 	$F0		;044d - mask bits 3-0, leaving BITS 7-4 intact.
+	cp 	$30		;044f - check if printer is ready
 	ret			;0451
-l0452h:
-	ld hl,KEYDCB		;0452 - Copy from ROM default DCB Table
-	ld de,mKDCB		;0455 - to 4015 Memory Keyboard Device Control block
-	ld bc,3*8		;0458 - Copy the 3 DCB's Key, Vid, and LPT
+;
+; ----------------------------------------
+; 0452-0468 - Initialize DCB's for KEYB, DISP, PRINT,
+;   and the serial DCB's for RIN, ROUT and RINIT
+; ----------------------------------------
+INITIO2:
+	ld 	hl,KEYDCB	;0452 - Copy from ROM default DCB Table
+	ld 	de,mKDCB	;0455 - to 4015 Memory Keyboard Device Control block
+	ld 	bc,3*8		;0458 - Copy the 3 DCB's Key, Vid, and LPT
 	ldir			;045b
-	ld hl,SERDCB		;045d - Source Defaut DCB's for SERIAL - 36F9
-	ld de,SERINP		;0460 - Target address 41E5 Serial Input DCB
-	ld bc,3*8		;0463 - to 41E5H-41FDH. 3 DCB's ae Copied
+	ld 	hl,SERDCB	;045d - Source Defaut DCB's for SERIAL - 36F9
+	ld 	de,SERINP	;0460 - Target address 41E5 Serial Input DCB
+	ld 	bc,3*8		;0463 - to 41E5H-41FDH. 3 DCB's ae Copied
 	ldir			;0466
-	ret			;0468
+	ret			;0468 - ret
 ;
 	.DB	$20, $DA	;0469 - UNUSED
 ;
 ; ----------------------------------------
 ; 046B-0472 - Zeroes out the PROTECTED SCREEN LINES
 ;   (if any) and point HL to the start of data
-;
-sub_046bh:
-	xor a			;046b
-	ld (04214h),a		;046c - todo ram constant fix
-	ld hl,(040a4h)		;046f - todo ram constant fix
+; ----------------------------------------
+SCROLLP:
+	xor a			;046b - ZERO
+	ld (VDSCPR),a		;046c - Video Lines Scroll Protect
+	ld hl,(TXTTAB)		;046f - Start of Basic Program Storage. Pointer
 	ret			;0472
 
 ; ======================================================================
@@ -1291,104 +1349,133 @@ sub_046bh:
 ; ----------------------------------------------------------------------
 DSPDRV:
 	di			;0473
-	ld l,(ix+3)		;0474
-	ld h,(ix+4)		;0477
-	ld a,(ix+5)		;047a
-	or a			;047d
-	jr z,l0481h		;047e
-	ld (hl),a		;0480
-l0481h:
-	ld a,c			;0481
-	cp 020h			;0482
-	jp c,l0521h		;0484
-	cp 0c0h			;0487
-	jr nc,l04b7h		;0489
-l048bh:
-	call sub_0576h		;048b
-l048eh:
-	ld a,h			;048e
-	and 003h		;048f
-	or 03ch			;0491
-	ld h,a			;0493
-	ld d,(hl)		;0494
-	ld a,(ix+5)		;0495
-	or a			;0498
-	jr z,l04a8h		;0499
-	ld (ix+5),d		;049b
-	ld a,(ix+6)		;049e
-	cp 020h			;04a1
-	jr nc,l04a7h		;04a3
-	ld a,0b0h		;04a5
-l04a7h:
-	ld (hl),a		;04a7
-l04a8h:
-	ld (ix+3),l		;04a8
-	ld (ix+4),h		;04ab
-	xor a			;04ae
-	ld a,c			;04af
+	ld 	l,(ix+3)	;0474 - LSB of the current cursor position
+	ld 	h,(ix+4)	;0477 - MSB of the current cursor position
+	ld 	a,(ix+5)	;047a - cursor on/off flag
+	or 	a		;047d - set flags
+	jr 	z,DSPGRP	;047e - Jump if the cursor is off
+	ld 	(hl),a		;0480 - Display the character under the cursor
+DSPGRP:
+	ld 	a,c		;0481 - convert and display the charater
+	cp 	SPACE		;0482 - is it a control code <$20
+	jp 	c,DSPCTL	;0484 - display control code
+	cp 	$C0		;0487 - upper bound of graphics characters
+	jr 	nc,DSPGRC	;0489 - JUMP if we have a TAB or SPECIAL CHARACTER
+;
+; Output the character, it is not a control character, tab, or special characters
+;
+DSPCHR:
+	call 	DSPOUT		;048b - display the character on the screen
+;
+; Completion of the Display Routines, after characters have been printed.
+;
+DSPSKP:
+	ld 	a,h		;048e - the MSB of the current cursor position
+	and 	$03		;048f - Convert Cursor Pos to Vid Mem Address, clear upper bits.
+	or 	$3C		;0491 - then force the MSB to be 3C-3Fh (Vid Ram)
+	ld 	h,a		;0493 - save it back.
+	ld 	d,(hl)		;0494 - get the value at the location of the cursor
+	ld 	a,(ix+5)	;0495 - cursor on off flag
+	or 	a		;0498 - Check to see if the cursor is on or off
+	jr 	z,DSPRTN	;0499 - Jump if the cursor is off
+	ld 	(ix+5),d	;049b - cursor is on, save the character being displayed as the flag
+	ld 	a,(ix+6)	;049e - Load A with the cursor character.
+	cp 	SPACE		;04a1 - is it a control character
+	jr 	nc,DSPSKP1	;04a3 - Jump if not a control character
+	ld 	a,CURCHR	;04a5 - A = the graphic cursor of B0H.
+DSPSKP1:
+	ld 	(hl),a		;04a7 - This should display the cursor
+DSPRTN:
+	ld 	(ix+3),l	;04a8 - Save LSB of current cursor position
+	ld 	(ix+4),h	;04ab - Save MSB of current cursor position
+	xor 	a		;04ae - clear flags
+	ld 	a,c		;04af - the character that was displayed
 	ei			;04b0
 	ret			;04b1
-l04b2h:
-	ld a,l			;04b2
-	and 0c0h		;04b3
-	ld l,a			;04b5
+;
+; ----------------------------------------------------------------------
+; 04B2 - Cursor Management - Go to the beginning of the line – “DSPBOL”
+; ----------------------------------------------------------------------
+DSPBOL:
+	ld 	a,l		;04b2 - the LSB of the current position
+	and 	$C0		;04b3 - point to the beginning of the line, zero the lowest 6 bits
+	ld 	l,a		;04b5 - save it back
 	ret			;04b6
-l04b7h:
-	ld a,(ix+7)		;04b7
-	or a			;04ba
-	ld a,c			;04bb
-	jr nz,l048bh		;04bc
-	sub 0c0h		;04be
-	jr z,l048eh		;04c0
-	ld b,a			;04c2
-l04c3h:
-	ld a,020h		;04c3
-	call sub_0576h		;04c5
-	djnz l04c3h		;04c8
-	jr l048eh		;04ca
-l04cch:
-	ld a,(hl)		;04cc
-l04cdh:
-	ld (ix+5),a		;04cd
+;
+; ----------------------------------------------------------------------
+; We have EITHER a TAB or SPECIAL CHARACTER.
+; ----------------------------------------------------------------------
+DSPGRC:
+	ld 	a,(ix+7)	;04b7 - to check for TABS or SPECIAL CHARACTERS.
+	or 	a		;04ba - set flags
+	ld 	a,c		;04bb - the character to print
+	jr 	nz,DSPCHR	;04bc - print it.
+	sub 	$C0		;04be - Subtract C0H (Binary: 1100 0000) to compute a TAB.
+	jr 	z,DSPSKP	;04c0 - $C0 means display 0 spaces, so Finish
+	ld 	b,a		;04c2 - load the number of spaces to print
+;
+; ----------------------------------------------------------------------
+; 04C3H – Handle Space Compression characters – “DSPSPC”
+; ----------------------------------------------------------------------
+DSPSPC:
+	ld 	a,SPACE		;04c3 - Load A with a SPACE.
+	call 	DSPOUT		;04c5 - display it
+	djnz 	DSPSPC		;04c8 - Dec B, If more spaces then loop back
+	jr 	DSPSKP		;04ca - Finish Off
+DSPCON:	ld 	a,(hl)		;04cc - get char at current cursor position
+DSPCN2:	ld 	(ix+5),a	;04cd - save it as the cursor on/off flag
 	ret			;04d0
-l04d1h:
-	xor a			;04d1
-	jr l04cdh		;04d2
-l04d4h:
-	ld hl,vidmem		;04d4 - 3c00 video memory
-	ld a,(SHADEC)		;04d7 - shadow port EC
-	and 0fbh		;04da
-	call sub_0570h		;04dc
-	ld a,(04214h)		;04df
-	and 007h		;04e2
-l04e4h:
-	ret z			;04e4
-	call sub_0504h		;04e5
-	dec a			;04e8
-	jr l04e4h		;04e9
-l04ebh:
-	dec hl			;04eb
-	ld a,(SHADEC)		;04ec - shadow port EC
-	and 004h		;04ef
-	jr z,l04f4h		;04f1
-l04f3h:
-	dec hl			;04f3
-l04f4h:
-	ld (hl),020h		;04f4
+; ----------------------------------------------------------------------
+; 04D1 - Turn the cursor off (Jumped to from 0539H) – “DSPCOF”
+; ----------------------------------------------------------------------
+DSPCOF:
+	xor 	a		;04d1 - clear the flag to ZERO, indicating No cursor
+	jr 	DSPCN2		;04d2 - save the Flag, and return
+; ----------------------------------------------------------------------
+; 04D4H – Home the cursor – “DSPHOM”
+; ----------------------------------------------------------------------
+DSPHOM:
+	ld 	hl,vidmem	;04d4 - 3c00 video memory
+	ld 	a,(SHADEC)	;04d7 - shadow port EC
+	and 	$FB		;04da - turn off Bit 2.
+	call 	sub_0570h	;04dc - Save A to Port EC, and shadow memory 4210H
+	ld 	a,(VDSCPR)	;04df - Video Lines Scroll Protect
+	and 	$07		;04e2 - Mask out the number of lines
+DSPHOM1:
+	ret 	z		;04e4 - If A is ZERO (no lines to protect) then RETURN.
+	call 	sub_0504h	;04e5 - protect some lines. First, move the cursor down
+	dec 	a		;04e8
+	jr 	DSPHOM1		;04e9 - Loop BACK
+; ----------------------------------------------------------------------
+; 04EBH – Backspace – “DSPBSP”
+; ----------------------------------------------------------------------
+DSPBSP:
+	dec 	hl		;04eb - move cursor back 1 char
+	ld 	a,(SHADEC)	;04ec - shadow copy of port EC
+	and 	SHADM32		;04ef - check for 32 char mode
+	jr 	z,DSPBSP2	;04f1 - 64 char mode sip forward
+	dec	 hl		;04f3 - back again if 32 char mode
+DSPBSP2:
+	ld 	(hl),SPACE	;04f4 - Clear the character under cursor
 	ret			;04f6
-l04f7h:
-	ld a,(SHADEC)		;04f7 - shadow Port EC
-	and 004h		;04fa
-	call nz,sub_04ffh	;04fc
-sub_04ffh:
-	ld a,l			;04ff
-	and 03fh		;0500
-	dec hl			;0502
-	ret nz			;0503
+;
+; ----------------------------------------------------------------------
+; 04F7 – Cursor Left – “DSPLFT”
+; ----------------------------------------------------------------------
+DSPLFT:
+	ld 	a,(SHADEC)	;04f7 - shadow Port EC
+	and 	SHADM32		;04fa
+	call 	nz,DSPLFT2	;04fc
+DSPLFT2:
+	ld 	a,l		;04ff
+	and 	03fh		;0500
+	dec 	hl		;0502
+	ret 	nz		;0503
 sub_0504h:
-	ld de,64		;0504 - (If we are at the start of the screen) we need to move down one line, 64 chars
-	add hl,de		;0507
+	ld 	de,64		;0504 - If at the start of the screen - move down one line, 64 chars
+	add 	hl,de		;0507
 	ret			;0508
+; todo new code please document from here down until several line breaks
 l0509h:
 	inc hl			;0509
 	ld a,l			;050a
@@ -1399,27 +1486,27 @@ l050eh:
 	add hl,de		;0511
 	ret			;0512
 l0513h:
-	ld a,(SHADEC)		;0513 - shadow port EC
-	or 004h			;0516
+	ld 	a,(SHADEC)	;0513 - shadow port EC
+	or 	SHADM32		;0516 - test for 32 character mode
 	call sub_0570h		;0518
 	inc hl			;051b
 	ld a,l			;051c
 	and 0feh		;051d
 	ld l,a			;051f
 	ret			;0520
-l0521h:
-	ld de,l048eh		;0521
+DSPCTL:
+	ld de,DSPSKP		;0521
 	push de			;0524
 	cp 008h			;0525
-	jr z,l04ebh		;0527
+	jr z,DSPBSP		;0527
 	cp 00ah			;0529
 	jp z,l05afh		;052b
 	cp 00dh			;052e
 	jp z,l05afh		;0530
 	cp 00eh			;0533
-	jr z,l04cch		;0535
+	jr z,DSPCON		;0535
 	cp 00fh			;0537
-	jr z,l04d1h		;0539
+	jr z,DSPCOF		;0539
 	sub 015h		;053b
 	jr z,l0560h		;053d
 	dec a			;053f
@@ -1427,7 +1514,7 @@ l0521h:
 	dec a			;0542
 	jr z,l0513h		;0543
 	dec a			;0545
-	jr z,l04f7h		;0546
+	jr z,DSPLFT		;0546
 	dec a			;0548
 	jr z,l0509h		;0549
 	dec a			;054b
@@ -1435,9 +1522,9 @@ l0521h:
 	dec a			;054e
 	jr z,l050eh		;054f
 	dec a			;0551
-	jp z,l04d4h		;0552
+	jp z,DSPHOM		;0552
 	dec a			;0555
-	jp z,l04b2h		;0556
+	jp z,DSPBOL		;0556
 	dec a			;0559
 	jr z,l05bch		;055a
 	dec a			;055c
@@ -1454,24 +1541,31 @@ l056bh:
 	xor 008h		;056e
 sub_0570h:
 	ld (SHADEC),a		;0570 - shadow port EC
-	out (contprt),a		;0573
+	out (contprt),a		;0573 - write to control port
 	ret			;0575
-sub_0576h:
-	ld (hl),a		;0576
-	inc hl			;0577
-	ld a,(SHADEC)		;0578 - shadow port EC
-	and 004h		;057b
-	jr z,l0580h		;057d
-	inc hl			;057f
-l0580h:
-	ld a,h			;0580
-	cp 040h			;0581
-	ret nz			;0583
-	call l050eh		;0584
-	push hl			;0587
+;
+; ----------------------------------------------------------------------
+; 0576 - “DSPOUT” - This routine displays a character,
+;   Output the character held in Register A and move the cursor,
+;   scrolling the screen if necessary
+;   HL contains the current screen address
+; ----------------------------------------------------------------------
+DSPOUT:
+	ld 	(hl),a		;0576 - write the character to video ram
+	inc 	hl		;0577 - next screen position
+	ld 	a,(SHADEC)	;0578 - shadow port EC
+	and 	SHADM32		;057b - mask out the double wide bit
+	jr 	z,DSPOT2	;057d - if not 32 character mode, skip over
+	inc 	hl		;057f - Skip another screen location (32 char)
+DSPOT2:
+	ld 	a,h		;0580
+	cp 	$40		;0581 - past end of screen at (4000h)
+	ret 	nz		;0583 - nothing to do
+	call 	l050eh		;0584 - todo keep fixing from here
+	push 	hl		;0587
 l0588h:
-	ld a,(04214h)		;0588
-	and 007h		;058b
+	ld a,(VDSCPR)		;0588 - Video Lines Scroll Protect
+	and 007h		;058b - mask so 0-7
 	ld hl,vidmem		;058d - 3c00 video memory
 	ld de,PRTDRV4+1		;0590
 	push bc			;0593
@@ -1497,7 +1591,7 @@ l0598h:
 	ex de,hl		;05ac
 	jr l05c6h		;05ad
 l05afh:
-	call l04b2h		;05af
+	call DSPBOL		;05af
 	push hl			;05b2
 	call sub_0504h		;05b3
 	ld a,h			;05b6
@@ -1528,15 +1622,22 @@ l05c9h:
 
 ;
 ; ======================================================================
-; 05D1H – Get printer status routine – “PRTSTA”
-;
-;   Returns the status of the line printer in the status register as
-;   zero if the printer is ready, and non-zero if not ready.
+; 05D1H – Get printer status routine – “PRTSTA” (Broken) -
+;	See 044BH which has the correct code, and definition.
 ; ----------------------------------------------------------------------
-PRTSTA:
-	ld 	d,d		;05d1
-	ld 	c,a		;05d2
-	ld 	c,(hl)		;05d3
+PRTSTA_BROKEN:
+;
+#IFDEF BUGFIX40
+	; Correctly read the printer status byte from Line Printer Port
+	nop
+	in 	a,(lineprt)	;05d1 - get printer status byte
+#ELSE
+	; Rumor has it that this is a malicious destruction of the
+	; "printer ready" function was used to hide the name "RON"
+        ld 	d,d		;05d1 - R
+	ld 	c,a		;05d2 - O
+	ld 	c,(hl)		;05d3 - N
+#ENDIF
 	and	$F0		;05d4
 	cp	$30		;05d6
 	ret			;05d8
@@ -5749,7 +5850,7 @@ SCRTCH:	ld	hl,(TXTTAB)	;1b4d
 ;   common to NEW as well, so NEW just does the special NEW stuff
 ;   and than passes right through to here to reset the rest.
 ; ----------------------------------------------------------------------
-RUNC:	call 	sub_046bh	;1b5d
+RUNC:	call 	SCROLLP		;1b5d - clear video scroll protection
 	dec	hl		;1b60
 ;
 ; ----------------------------------------------------------------------
@@ -9195,7 +9296,7 @@ GETCHZ:	call	CASIN		;2c98
 	or	a		;2c9b
 	jr	nz,ZERSRF	;2c9c
 	djnz	GETCHZ		;2c9e
-	call	CSRDON3		;2ca0
+	call	CSHIN		;2ca0
 	jr	LOPCLK		;2ca3
 ; ----------------------------------------------------------------------
 ; 2CA5-2CA9 – MESSAGE STORAGE LOCATION – “NOOKCS”
@@ -10039,7 +10140,7 @@ sub_3120h:
 ; -------------------------------------------------
 ; 3145 - Printer Character Table Codes 32-127.
 ;
-l3145h:
+PRTABLE:
 	.DB	$20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $2A, $2B, $2C, $2D, $2E, $2F
 	.DB	$30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $3A, $3B, $3C, $3D, $3E, $3F
 	.DB	$40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $4A, $4B, $4C, $4D, $4E, $4F
@@ -10071,7 +10172,7 @@ sub_31bdh:
 ;
 ; -------------------------------------------------
 ; 31C0 - Turn Off The Cassette
-;
+; -------------------------------------------------
 l31c0h:
 	ld a,(04213h)		;31c0
 	out (maskprt),a		;31c3
@@ -10136,7 +10237,7 @@ l3221h:
 	in a,(vidcmt)		;3221
 	rla			;3223
 	jr c,l322eh		;3224
-	call sub_028dh		;3226
+	call KBBRK		;3226 - Check for a BREAK key only
 	jr z,l3221h		;3229
 	jp l335ch		;322b
 l322eh:
@@ -10395,9 +10496,9 @@ l33a3h:
 	jr z,l33b4h		;33b0
 	ld a,01fh		;33b2
 l33b4h:
-	ld (04224h),a		;33b4
-	ld bc,03801h		;33b7
-	ld hl,04036h		;33ba
+	ld (04224h),a		;33b4 - todo fix
+	ld bc,03801h		;33b7 - todo kbd matrix ?
+	ld hl,04036h		;33ba - todo fix
 	ld d,000h		;33bd
 l33bfh:
 	ld a,(bc)		;33bf
@@ -10514,7 +10615,7 @@ l3455h:
 	ld bc,64		;3484 - move 64 bytes
 	ldir			;3487
 	call CLS		;3489
-	call sub_028dh		;348c
+	call KBBRK		;348c - Check for a BREAK key only
 	jp nz,l37afh		;348f
 	in a,(0f0h)		;3492
 	inc a			;3494
@@ -10628,13 +10729,13 @@ l3554h:
 l3556h:
 	ld (hl),a		;3556
 l3557h:
-	ld hl,04216h		;3557
-	dec (hl)		;355a
-	ret nz			;355b
-	ld (hl),01eh		;355c
-	inc hl			;355e
-	ld de,l0266h		;355f
-	ld b,003h		;3562
+	ld 	hl,04216h	;3557 - todo fix
+	dec 	(hl)		;355a
+	ret 	nz		;355b
+	ld 	(hl),01eh	;355c
+	inc 	hl		;355e
+	ld 	de,TIMEDATA	;355f - pointer to time data constants data
+	ld 	b,003h		;3562
 l3564h:
 	inc (hl)		;3564
 	ld a,(de)		;3565
@@ -10830,7 +10931,7 @@ l3667h:
 	jr nz,l367ah		;366b
 	bit 1,(ix+4)		;366d
 	ret z			;3671
-	call sub_028dh		;3672
+	call KBBRK		;3672 - Check for a BREAK key only
 	jr z,l3667h		;3675
 	jp 04203h		;3677
 l367ah:
@@ -10851,7 +10952,7 @@ l3689h:
 	jr nz,l369ch		;368d
 	bit 1,(ix+4)		;368f
 	ret z			;3693
-	call sub_028dh		;3694
+	call KBBRK		;3694 - Check for a BREAK key only
 	jr z,l3689h		;3697
 	jp 04203h		;3699
 l369ch:
@@ -11076,7 +11177,7 @@ l37b5h:
 	jr 	nz,l37b5h	;37d1
 	xor 	a		;37d3
 l37d4h:
-	ld 	(04211h),a	;37d4
+	ld 	(TAPEBD),a	;37d4 - Tape Baud rate select
 sub_37d7h:
 	ld 	a,00dh		;37d7
 	jp 	_DSP		;37d9
@@ -11158,9 +11259,6 @@ CIOSS:	.EQU	RAM+$33		; call device driver ala dos - CIO$
 KYBTSS:	.EQU	RAM+$36		; Keyboard driver work area (to 403C) - KYB$
 				; Stores contents of keyboard rows to see if key just
 				; pressed or if it was pressed previously.
-CAST:	.EQU	RAM+$3D		; Video Display Control Attributes (shadow IO Port $FF)
-;
-CAST32	.EQU	$08		; Cassette 32 Character Mode Bit
 ;
 TMPSTK:	.EQU	RAM+$7D		; Stack pointer for initial DISK, bootstrap.
 ;
@@ -11310,7 +11408,13 @@ SERINI: .EQU	RAM+$1F5	; Serial RS-232 Initialization DCB
 ;
 TAPEWR: .EQU	RAM+$20C	; TAPE WRITE VECTOR, either Fast of Slow tape routines
 TAPERD: .EQU	RAM+$20E	; TAPE READ  VECTOR, either Fast of Slow tape routines
+;
 SHADEC: .EQU	RAM+$210	; CURRENT PORT 0ECH SHADOW OUTPUT BITS
+SHADM32	.EQU	$04		; PORT $EC 32 Character Mode Bit
+;
+TAPEBD	.EQU	RAM+$211	; Cassette Baud Rate Select (0=500 baud, not 0=1500 baud)
+VDSCPR	.EQU	RAM+$214	; Video scroll protect: # Video Lines To Protect (0-7).
+
 IOROUT: .EQU	RAM+$21D	; IO ROUTER DCB
 ;
 SYSSTK:	.EQU	RAM+$288	; Stack address usd by SYSTEM command
