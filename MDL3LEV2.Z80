@@ -9999,11 +9999,11 @@ JT_DATTIM:
 ; ------------------
 ;
 NMIHAND:
-	in a,(0e4h)		;3039 - todo we need t define all the in and out ports.
-	bit 5,a			;303b
-	jp l351ch		;303d
-	jr JT_BOOTS		;3040
-	jp l37b5h		;3042
+	in 	a,(0e4h)	;3039 - todo we need t define all the in and out ports.
+	bit 	5,a		;303b
+	jp 	l351ch		;303d
+	jr 	JT_BOOTS	;3040
+	jp 	l37b5h		;3042
 ;
 ; -------------------------------------------------
 ; 3045 - Keyboard Rows 0-3, Unshifted, No Caps Lock
@@ -10150,22 +10150,22 @@ PRTABLE:
 ;
 ; -------------------------------------------------
 ; 31A5 - Output the TIMING MARK to the cassette
-;
+; -------------------------------------------------
 sub_31a5h:
-	ld a,01h		;31a5
-	out (vidcmt),a		;31a7
-	ld b,00dh		;31a9
+	ld 	a,01h		;31a5
+	out 	(vidcmt),a	;31a7
+	ld 	b,00dh		;31a9
 l31abh:
-	djnz l31abh		;31ab
-	ld a,002h		;31ad
-	out (vidcmt),a		;31af
-	ld b,00dh		;31b1
+	djnz 	l31abh		;31ab
+	ld 	a,002h		;31ad
+	out 	(vidcmt),a	;31af
+	ld 	b,00dh		;31b1
 l31b3h:
-	djnz l31b3h		;31b3
-	call sub_31f3h		;31b5
-	ld b,078h		;31b8
+	djnz 	l31b3h		;31b3
+	call 	sub_31f3h	;31b5
+	ld 	b,078h		;31b8
 l31bah:
-	djnz l31bah		;31ba
+	djnz 	l31bah		;31ba
 	ret			;31bc
 sub_31bdh:
 	ld hl,NOOKCS		;31bd - NOTE: 2CA5H is the ?BAD? message string.
@@ -10174,26 +10174,33 @@ sub_31bdh:
 ; 31C0 - Turn Off The Cassette
 ; -------------------------------------------------
 l31c0h:
-	ld a,(04213h)		;31c0 - todo fix
-	out (maskprt),a		;31c3
-	in a,(vidcmt)		;31c5
-	ld a,(SHADEC)		;31c7 - shadow port EC
-	and 0fdh		;31ca
-	call sub_31edh		;31cc
+	ld 	a,(04213h)	;31c0 - todo fix
+	out 	(maskprt),a	;31c3
+	in 	a,(vidcmt)	;31c5
+	ld 	a,(SHADEC)	;31c7 - shadow port EC
+	and 	0fdh		;31ca
+	call 	sub_31edh	;31cc
 	ei			;31cf
 	ret			;31d0
+;
+; -------------------------------------------------
+; 31D1 - Turn On The Cassette
+; -------------------------------------------------
 l31d1h:
-	ex de,hl		;31d1
-	ex (sp),hl		;31d2
-	push bc			;31d3
-	push hl			;31d4
-	ex de,hl		;31d5
-	in a,(0ech)		;31d6
-	ld de,02020h		;31d8
-	ld (03c3eh),de		;31db
-	call sub_31e8h		;31df
-	ld bc,07d00h		;31e2
-	jp DELAY		;31e5
+	ex 	de,hl		;31d1
+	ex 	(sp),hl		;31d2
+	push 	bc		;31d3
+	push 	hl		;31d4
+	ex 	de,hl		;31d5
+	in 	a,(0ech)	;31d6
+	ld 	de,02020h	;31d8
+	ld 	(03c3eh),de	;31db
+	call 	sub_31e8h	;31df
+	ld 	bc,07d00h	;31e2
+	jp 	DELAY		;31e5
+;
+; Actually Set the Bit Mask and Output the Command
+;
 sub_31e8h:
 	ld a,(SHADEC)		;31e8 - shadow port EC
 	or 002h			;31eb
@@ -10201,10 +10208,16 @@ sub_31edh:
 	ld (SHADEC),a		;31ed - shadow port EC
 	out (contprt),a		;31f0
 	ret			;31f2
+;
+; -------------------------------------------------
+; 31F3 - Reset the Cassette Port.
+;   This routine OUTputs a 0 to the Cassette Port FFH
+; -------------------------------------------------
 sub_31f3h:
 	xor a			;31f3
 	out (vidcmt),a		;31f4
 	ret			;31f6
+	; todo keep adding secton headers from here down
 l31f7h:
 	ld 	a,(hl)		;31f7
 	sub 	023h		;31f8
@@ -10439,8 +10452,8 @@ l3353h:
 	di			;335b
 l335ch:
 	ld hl,04b42h		;335c
-	ld (03c3eh),hl		;335f
-	jp 04203h		;3362 - todo fix
+	ld (03c3eh),hl		;335f - todo ?
+	jp 	BRKVEC		;3362 - Break Vector -> JP 022Eh
 l3365h:
 	ld e,001h		;3365
 	jr l336bh		;3367
@@ -10477,7 +10490,7 @@ l338eh:
 	call sub_3060h		;338e
 	jr nz,l33a3h		;3391
 	ld bc,03880h		;3393
-	ld hl,04018h		;3396 - todo fix
+	ld hl,mKDCB+3		;3396 - keyboard DCB
 	ld a,(bc)		;3399
 	and 002h		;339a
 	ld e,a			;339c
@@ -10562,7 +10575,7 @@ l3421h:
 	jr z,l3427h		;3423
 	set 6,d			;3425
 l3427h:
-	ld a,(04019h)		;3427 - todo fix
+	ld a,(mKDCB+4)		;3427 - keyboard DCB
 	or a			;342a
 	jr z,l342fh		;342b
 	set 7,d			;342d
@@ -10651,60 +10664,60 @@ l34c7h:
 	dec e			;34c7
 	jr nz,l34adh		;34c8
 l34cah:
-	ld a,081h		;34ca
-	out (0f4h),a		;34cc
-	ld hl,l3502h		;34ce
-	ld (0404ah),hl		;34d1 - todo fix
-	ld a,0c3h		;34d4
-	ld (04049h),a		;34d6 - todo fix
-	ld a,080h		;34d9
-	out (nonmask),a		;34db
-	ld bc,000f3h		;34dd
-	ld hl,04300h		;34e0
-	ld a,001h		;34e3
-	out (0f2h),a		;34e5
-	ld a,080h		;34e7
-	out (0f0h),a		;34e9
-	call sub_3518h		;34eb
+	ld 	a,081h		;34ca
+	out 	(0f4h),a	;34cc
+	ld 	hl,l3502h	;34ce
+	ld 	(0404ah),hl	;34d1 - todo fix
+	ld 	a,OPJPNN	;34d4 - JP op code
+	ld 	(NMIVEC),a	;34d6 - NMI Vector
+	ld 	a,080h		;34d9
+	out 	(nonmask),a	;34db
+	ld 	bc,000f3h	;34dd
+	ld 	hl,04300h	;34e0
+	ld 	a,001h		;34e3
+	out 	(0f2h),a	;34e5
+	ld 	a,080h		;34e7
+	out 	(0f0h),a	;34e9
+	call	sub_3518h	;34eb
 l34eeh:
 	in a,(0f0h)		;34ee
 	and 002h		;34f0
 	jp z,l34eeh		;34f2
 	ini			;34f5
 l34f7h:
-	ld a,081h		;34f7
-	or 040h			;34f9
-	out (0f4h),a		;34fb
+	ld 	a,081h		;34f7
+	or 	040h		;34f9
+	out 	(0f4h),a	;34fb
 	ini			;34fd
-	jp l34f7h		;34ff
+	jp 	l34f7h		;34ff
 l3502h:
-	xor a			;3502
-	out (nonmask),a		;3503
-	ld hl,045edh		;3505
-	ld (04049h),hl		;3508 - todo fix
-	call sub_3518h		;350b
-	in a,(0f0h)		;350e
-	pop hl			;3510
-	and 01ch		;3511
-	jp z,04300h		;3513
-	jr l34cah		;3516
+	xor 	a		;3502
+	out 	(nonmask),a	;3503
+	ld 	hl,$45ED	;3505 - ???
+	ld 	(NMIVEC),hl	;3508 - NMI Vector
+	call 	sub_3518h	;350b
+	in 	a,(0f0h)	;350e
+	pop 	hl		;3510
+	and 	01ch		;3511
+	jp 	z,04300h	;3513 - todo
+	jr 	l34cah		;3516
 sub_3518h:
 	push bc			;3518
 	pop bc			;3519
 	nop			;351a
 	ret			;351b
 l351ch:
-	jp nz,04049h		;351c - todo fix
+	jp 	nz,NMIVEC	;351c - NMI Vector
 l351fh:
 	in 	a,(0e4h)	;351f
 	bit 	5,a		;3521
 	jr 	z,l351fh	;3523
 	jp 	_START		;3525 - Jump to 0000H to restart the computer.
-	rst 	38h		;3528 - todo fix the RST replace with macro
+	rst 	38h		;3528
 	ld 	de,l3591h	;3529
 	push 	de		;352c
 	in 	a,(0ech)	;352d
-	ld 	a,(04022h)	;352f - todo fix
+	ld 	a,(mDDCB+5)	;352f - video DCB
 	or 	a		;3532
 	jr 	z,l3557h	;3533
 	ld 	a,(0401ch)	;3535
@@ -10721,14 +10734,14 @@ l351fh:
 	ld 	(hl),a		;3549
 	ld 	hl,(CURSOR)	;354a
 	jr 	z,l3554h	;354d
-	ld 	a,(04023h)	;354f - todo fix
+	ld 	a,(mDDCB+6)	;354f - Display DCB
 	jr 	l3556h		;3552
 l3554h:
 	ld a,020h		;3554
 l3556h:
 	ld (hl),a		;3556
 l3557h:
-	ld 	hl,04216h	;3557 - todo fix
+	ld 	hl,CLKHRT	;3557 - clock heartbeat
 	dec 	(hl)		;355a
 	ret 	nz		;355b
 	ld 	(hl),01eh	;355c
@@ -10779,7 +10792,7 @@ l3591h:
 	ld a,(SHADEC)		;3591 - shadow port EC
 	bit 0,a			;3594
 	ret z			;3596
-	ld a,(04216h)		;3597 - todo fix
+	ld 	a,(CLKHRT)	;3597 - clock heartbeat
 	cp 01eh			;359a
 	ret nz			;359c
 	ld hl,03c35h		;359d
@@ -10788,7 +10801,7 @@ l3591h:
 ; TIME$
 ;
 l35a0h:
-	ld de,04219h		;35a0 - todo fix
+	ld 	de,CLKHRS	;35a0 - CLOCK HOURS
 	ld c,03ah		;35a3
 l35a5h:
 	ld b,003h		;35a5
@@ -10814,7 +10827,7 @@ l35abh:
 ; DATE$
 ;
 l35bbh:
-	ld de,0421ch		;35bb - todo fix
+	ld de,CLKMNT		;35bb - clock MONTHS
 	ld c,02fh		;35be
 	jr l35a5h		;35c0
 ;
@@ -10828,33 +10841,33 @@ l35c2h:
 	jp nc,l3365h		;35c6
 	rra			;35c9
 	jp nc,l3369h		;35ca
-	push bc			;35cd
-	push de			;35ce
-	push hl			;35cf
-	push ix			;35d0
-	push iy			;35d2
-	ld hl,l35f1h		;35d4
-	push hl			;35d7
+	push 	bc		;35cd
+	push 	de		;35ce
+	push 	hl		;35cf
+	push 	ix		;35d0
+	push 	iy		;35d2
+	ld 	hl,l35f1h	;35d4
+	push 	hl		;35d7
 	rra			;35d8
-	jp nc,04046h		;35d9 - todo fix
+	jp 	nc,IVECT2	;35d9 - interrupt vector 3 -> 4046
 	rra			;35dc
-	jp nc,0403dh		;35dd - todo fix
+	jp 	nc,IVECT3	;35dd - interrupt vector 3 -> 403D
 	rra			;35e0
-	jp nc,04206h		;35e1 - todo fix
+	jp 	nc,IVECT4	;35e1 - interrupt vector 4 -> 4206
 	rra			;35e4
-	jp nc,04209h		;35e5 - todo fix
+	jp 	nc,IVECT5	;35e5 - interrupt vector 5 -> 4209
 	rra			;35e8
-	jp nc,04040h		;35e9 - todo fix
+	jp 	nc,IVECT6	;35e9 - interrupt vector 6
 	rra			;35ec
-	jp nc,04043h		;35ed - todo fix
-	pop hl			;35f0
+	jp 	nc,IVECT7	;35ed - interrupt vector 7
+	pop 	hl		;35f0
 l35f1h:
-	pop iy			;35f1
-	pop ix			;35f3
-	pop hl			;35f5
-	pop de			;35f6
-	pop bc			;35f7
-	pop af			;35f8
+	pop 	iy		;35f1
+	pop 	ix		;35f3
+	pop 	hl		;35f5
+	pop 	de		;35f6
+	pop 	bc		;35f7
+	pop 	af		;35f8
 	ei			;35f9
 	ret			;35fa
 ;
@@ -10901,13 +10914,13 @@ l363fh:
 	inc c			;3641
 	djnz l363fh		;3642
 sub_3644h:
-	ld hl,041e8h		;3644 -todo ram address fix
+	ld 	hl,SERINP+3	;3644 - rs232 serial input DCB
 	ld b,003h		;3647
 l3649h:
 	ld (hl),000h		;3649
 	inc hl			;364b
 	djnz l3649h		;364c
-	ld hl,041f0h		;364e -todo ram address fix
+	ld 	hl,SEROUT+3	;364e - rs232 output DCB 41F0
 	ld b,003h		;3651
 l3653h:
 	ld (hl),000h		;3653
@@ -10919,8 +10932,8 @@ l3653h:
 ; RS232 INPUT ROUTINE
 ;
 l365ah:
-	ld ix,SERINP		;365a - serial input DCB 41E5
-	xor a			;365e
+	ld 	ix,SERINP	;365a - serial input DCB 41E5
+	xor 	a		;365e
 	ld (ix+3),a		;365f
 	bit 2,(ix+4)		;3662
 	ret z			;3666
@@ -10932,7 +10945,7 @@ l3667h:
 	ret z			;3671
 	call KBBRK		;3672 - Check for a BREAK key only
 	jr z,l3667h		;3675
-	jp 04203h		;3677 - todo fix
+	jp 	BRKVEC		;3677 - Break Vector -> JP 022Eh
 l367ah:
 	in a,(0ebh)		;367a
 	ld (ix+3),a		;367c
@@ -10953,7 +10966,7 @@ l3689h:
 	ret z			;3693
 	call KBBRK		;3694 - Check for a BREAK key only
 	jr z,l3689h		;3697
-	jp 04203h		;3699 - todo fix
+	jp 	BRKVEC		;3699 - Break Vector -> JP 022Eh
 l369ch:
 	ld a,(ix+3)		;369c
 	or a			;369f
@@ -11146,7 +11159,7 @@ l3799h:
 	push 	hl		;379a
 	ld 	a,011h		;379b
 	call 	STRINI		;379d
-	ld 	hl,(040d4h)	;37a0 - todo memory address
+	ld 	hl,(DSCPTR)	;37a0 - 2byte address to buffer where ASCII decimal written.
 	call 	l35bbh		;37a3
 	ld 	(hl),020h	;37a6
 	inc 	hl		;37a8
@@ -11182,7 +11195,7 @@ sub_37d7h:
 	jp 	_DSP		;37d9
 l37dch:
 	ld 	hl,JT_DATTIM	;37dc - JP Vector for TIME$ routine
-	ld 	(04177h),hl	;37df - todo fix - 4177H is the TIME$ vector, so that jump needs to be 3030H
+	ld 	(DVTIME+1),hl	;37df - write to 4177H the disc basic function exit
 	jp 	READYE		;37e2
 ;
 	.DB	$AA		;37e5 - UNUSED
@@ -11259,6 +11272,12 @@ KYBTSS:	.EQU	RAM+$36		; Keyboard driver work area (to 403C) - KYB$
 				; Stores contents of keyboard rows to see if key just
 				; pressed or if it was pressed previously.
 ;
+IVECT3	.EQU	RAM+$3D		; Interrupt Vector 3
+IVECT6	.EQU	RAM+$40		; Interrupt Vector 6 - JP 35FAH
+IVECT7	.EQU	RAM+$43		; Interrupt Vector 7 - JP 35FAH
+IVECT2	.EQU	RAM+$46		; Interrupt Vector 2 - JP 35A9H
+NMIVEC	.EQU	RAM+$49		; RST 0 NMI Vector (Reset If So)
+;
 TMPSTK:	.EQU	RAM+$7D		; Stack pointer for initial DISK, bootstrap.
 ;
 FDIVC:	.EQU	RAM+$80		; Subtraction routine used by division code...
@@ -11301,6 +11320,7 @@ TEMPPT:	.EQU	RAM+$B3		; next location for three-byte string variable
 TEMPST:	.EQU	RAM+$B5		; String variable VARPTR storage area
 ;
 DSCTMP:	.EQU	RAM+$D3		; VARPTR storage area for string being created
+DSCPTR:	.EQU	RAM+$D4		; 2byte address to buffer where ASCII decimal written.
 FRETOP:	.EQU	RAM+$D6		; Pointer to next free byte in string storage area
 TEMP3:	.EQU	RAM+$D8		; temporary storage location by multiple routines
 DATLIN:	.EQU	RAM+$DA		; Line number of last DATA item read
@@ -11406,6 +11426,9 @@ SERINP:	.EQU	RAM+$1E5	; Serial RS-232 Driver Input DCB
 SEROUT:	.EQU	RAM+$1ED	; Serial RS-232 Driver Output DCB
 SERINI: .EQU	RAM+$1F5	; Serial RS-232 Initialization DCB
 ;
+BRKVEC:	.EQU	RAM+$203	; Break Key Vector, used during cass or serial. JP 022EH.
+IVECT4	.EQU	RAM+$206	; Interrupt Vector 4
+IVECT5	.EQU	RAM+$209	; Interrupt Vector 5
 TAPEWR: .EQU	RAM+$20C	; TAPE WRITE VECTOR, either Fast of Slow tape routines
 TAPERD: .EQU	RAM+$20E	; TAPE READ  VECTOR, either Fast of Slow tape routines
 ;
@@ -11414,7 +11437,11 @@ SHADM32	.EQU	$04		; PORT $EC 32 Character Mode Bit
 ;
 TAPEBD	.EQU	RAM+$211	; Cassette Baud Rate Select (0=500 baud, not 0=1500 baud)
 VDSCPR	.EQU	RAM+$214	; Video scroll protect: # Video Lines To Protect (0-7).
-
+;
+CLKHRT:	.EQU	RAM+$216	; Clock Data: Heartbeat Counter
+CLKHRS:	.EQU	RAM+$219	; Clock Data: Hours (Value: 00-23)
+CLKMNT:	.EQU	RAM+$21C	; Clock Data: Month (Value: 01-12)
+;
 IOROUT: .EQU	RAM+$21D	; IO ROUTER DCB
 ;
 SYSSTK:	.EQU	RAM+$288	; Stack address usd by SYSTEM command
