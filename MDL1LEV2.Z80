@@ -1,7 +1,7 @@
 ;
 ; ======================================================================
 ;        TRS-80 Model I Level II BASIC ROM - (Disassembled)
-; ----------------------------------------------------------------------
+; ======================================================================
 ;     NOTE: this code has been formatted with 8 character tabs
 ; ----------------------------------------------------------------------
 ;
@@ -235,9 +235,11 @@ ROM_LOAD	.EQU $5000		; where the extra "rom is loaded
 #DEFINE	CPDEHL		rst 18h
 #DEFINE	TSTDAT		rst 20h
 ;
+;
 ; ======================================================================
 ;   START OF PROGRAM CODE
-; ----------------------------------------------------------------------
+; ======================================================================
+;
 ;
 	.ORG	$0000	; Start of ROM Code Base
 RAM:	.EQU	$4000	; Start of RAM Communications area
@@ -2012,6 +2014,7 @@ RESETR:	ld	bc,STPRDY	;06cc - Address of
 ;   Note These $36 bytes are moved to RAM at address $4000 during init
 ; ----------------------------------------------------------------------
 INITR:
+; RST Code vectors, each is a 3 byte instruction
 	jp	SYNCHR		;4000 - RST 00H
 	jp	CHRGTR		;4003 - RST 10H
 	jp	DCOMPR		;4006 - RST 18H
@@ -2043,7 +2046,7 @@ INITR:
 	.DW	PRTDRV		; 4026 - printer driver address
 	.DB	67		; 4028 - lines per page
 	.DB	0		; 4029 - Current Line Number
-	.DB	0		; 402A - Number of chars printed on current line
+	.DB	0		; 402A - unused
 	.DB	"PR"
 ;
 ; Normal Disk Operating System re-entry vector.
@@ -10194,6 +10197,12 @@ QED:	pop	bc		;2ff6
 	.DB	$C3		;2ffd - serves no purpose used for checksum
 	.DB	$44		;2ffe - serves no purpose used for checksum
 	.DB	$B2		;2fff - serves no purpose used for checksum
+;
+;
+; ======================================================================
+;                END OF CODE
+; ======================================================================
+;
 ;
 ; ----------------------------------------------------------------------
 ;  Input Output Map
