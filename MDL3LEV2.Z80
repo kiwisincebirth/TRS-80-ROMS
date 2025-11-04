@@ -1914,83 +1914,83 @@ CIORET:
 ; additional code used by the LIST and LLIST commands (069AH - 0707H)
 ; ----------------------------------------------------------------------
 l069ah:
-	xor a			;069a
-	ld (PARQTD),a		;069b
-	ld d,0ffh		;069e
-	jp PLOOP3		;06a0
+	xor 	a		;069a
+	ld 	(PARQTD),a	;069b
+	ld 	d,0ffh		;069e
+	jp 	PLOOP3		;06a0
 l06a3h:
-	and 0fdh		;06a3
-	ld (PARQTD),a		;06a5
+	and 	0fdh		;06a3
+	ld 	(PARQTD),a	;06a5
 l06a8h:
-	ld a,03ah		;06a8
+	ld 	a,$3A		;06a8
 l06aah:
-	or a			;06aa
-	jp p,l06e2h		;06ab
-	ld a,(PARQTD)		;06ae
+	or 	a		;06aa
+	jp 	p,l06e2h	;06ab
+	ld 	a,(PARQTD)	;06ae
 	rra			;06b1
-	jr c,l06e2h		;06b2
+	jr 	c,l06e2h	;06b2
 	rra			;06b4
 	rra			;06b5
-	jr nc,l06f6h		;06b6
-	ld a,(hl)		;06b8
-	cp 0fbh			;06b9
-	push hl			;06bb
-	push bc			;06bc
-	ld hl,l06dfh		;06bd
-	push hl			;06c0
-	ret nz			;06c1
-	dec bc			;06c2
-	ld a,(bc)		;06c3
-	cp 04dh			;06c4
-	ret nz			;06c6
-	dec bc			;06c7
-	ld a,(bc)		;06c8
-	cp 045h			;06c9
-	ret nz			;06cb
-	dec bc			;06cc ; The 06CC BASIC Entry Point NO Longer Works!!!
-	ld a,(bc)		;06cd
-	cp 052h			;06ce
-	ret nz			;06d0
-	dec bc			;06d1
-	ld a,(bc)		;06d2
-	cp 03ah			;06d3
-	ret nz			;06d5
-	pop af			;06d6
-	pop af			;06d7
-	pop hl			;06d8
-	inc d			;06d9
-	inc d			;06da
-	inc d			;06db
-	inc d			;06dc
-	jr l0704h		;06dd
+	jr 	nc,l06f6h	;06b6
+	ld 	a,(hl)		;06b8
+	cp 	$FB		;06b9
+	push 	hl		;06bb
+	push 	bc		;06bc
+	ld 	hl,l06dfh	;06bd
+	push 	hl		;06c0
+	ret 	nz		;06c1
+	dec 	bc		;06c2
+	ld 	a,(bc)		;06c3
+	cp 	$4D		;06c4
+	ret 	nz		;06c6
+	dec 	bc		;06c7
+	ld 	a,(bc)		;06c8
+	cp 	045h		;06c9
+	ret 	nz		;06cb
+	dec 	bc		;06cc ; The 06CC BASIC Entry Point NO Longer Works!!!
+	ld 	a,(bc)		;06cd
+	cp 	$52		;06ce
+	ret 	nz		;06d0
+	dec 	bc		;06d1
+	ld 	a,(bc)		;06d2
+	cp 	$3A		;06d3
+	ret 	nz		;06d5
+	pop 	af		;06d6
+	pop 	af		;06d7
+	pop 	hl		;06d8
+	inc 	d		;06d9
+	inc 	d		;06da
+	inc 	d		;06db
+	inc 	d		;06dc
+	jr 	l0704h		;06dd
 l06dfh:
-	pop bc			;06df
-	pop hl			;06e0
-	ld a,(hl)		;06e1
+	pop 	bc		;06df
+	pop 	hl		;06e0
+	ld 	a,(hl)		;06e1
 l06e2h:
-	jp PLOOP		;06e2
+	jp 	PLOOP		;06e2
 sub_06e5h:
-	ld a,(PARQTD)		;06e5
-	or 002h			;06e8
+	ld 	a,(PARQTD)	;06e5
+	or 	$02		;06e8
 l06eah:
-	ld (PARQTD),a		;06ea
-	xor a			;06ed
+	ld 	(PARQTD),a	;06ea
+	xor 	a		;06ed
 	ret			;06ee
 sub_06efh:
-	ld a,(PARQTD)		;06ef
-	or 004h			;06f2
-	jr l06eah		;06f4
+	ld 	a,(PARQTD)	;06ef
+	or 	$04		;06f2
+	jr 	l06eah		;06f4
 l06f6h:
 	rla			;06f6
-	jr c,l06e2h		;06f7
-	ld a,(hl)		;06f9
-	cp 088h			;06fa
-	call z,sub_06e5h	;06fc
-	cp 093h			;06ff
-	call z,sub_06efh	;0701
+	jr 	c,l06e2h	;06f7
+	ld 	a,(hl)		;06f9
+	cp 	088h		;06fa
+	call 	z,sub_06e5h	;06fc
+	cp 	$93		;06ff
+	call 	z,sub_06efh	;0701
 l0704h:
-	ld a,(hl)		;0704
-	jp NRQTTK		;0705
+	ld 	a,(hl)		;0704
+	jp 	NRQTTK		;0705
 ;
 ; ======================================================================
 ; MATH ROUTINES
@@ -10052,35 +10052,35 @@ QED:	pop	bc		;2ff6
 ; JUMP TABLE
 ;
 JT_SLOWWR:
-	jp SLOWRITE		;3000 - Jump to 325EH for a SLOW tape header write
-	jp FASTWRITE		;3003 - Jump to 329BH for a FAST tape header write.
+	jp 	SLOWRITE	;3000 - Jump to 325EH for a SLOW tape header write
+	jp 	FASTWRITE	;3003 - Jump to 329BH for a FAST tape header write.
 JT_SLOWRD:
-	jp SLOWREAD		;3006 - Jump to 3274H for a SLOW tape header read.
-	jp FASTREAD		;3009 - Jump to 32DAH for a FAST tape header read.
+	jp 	SLOWREAD	;3006 - Jump to 3274H for a SLOW tape header read.
+	jp 	FASTREAD	;3009 - Jump to 32DAH for a FAST tape header read.
 JT_CTOFF:
-	jp CASSOFF		;300c - Jump to 31C0H for Cassette OFF.
+	jp 	CASSOFF		;300c - Jump to 31C0H for Cassette OFF.
 JT_CTON:
-	jp CASSON		;300f - Jump to 31D1H for Cassette ON.
+	jp 	CASSON		;300f - Jump to 31D1H for Cassette ON.
 JT_WARMB:
-	jp WARMBOOT		;3012 - Jump for Warm Boot.
+	jp 	WARMBOOT	;3012 - Jump for Warm Boot.
 JT_BOOTS:
-	jp BOOTSTP		;3015 - Jump for Bootstrap.
+	jp 	BOOTSTP		;3015 - Jump for Bootstrap.
 JT_INTHAND
-	jp INTHAND		;3018 - Jump to 35C2H for Maskable Interrupt Handler
-	jp RS232INIT		;301b - Jump to 35FBH for RS-232 Initialization.
-	jp RS232INP		;301e - Jump to 365AH for RS-232 Input
-	jp RS232OUT		;3021 - Jump to 3680H for RS-232 Output
+	jp 	INTHAND		;3018 - Jump to 35C2H for Maskable Interrupt Handler
+	jp 	RS232INIT	;301b - Jump to 35FBH for RS-232 Initialization.
+	jp 	RS232INP	;301e - Jump to 365AH for RS-232 Input
+	jp 	RS232OUT	;3021 - Jump to 3680H for RS-232 Output
 JT_KEYINPUT:
-	jp KEYINPUT		;3024 - Jump to 338EH for Keyboard Input
-	jp IOROUTER		;3027 - Jump for I/O Re-Router
+	jp 	KEYINPUT	;3024 - Jump to 338EH for Keyboard Input
+	jp 	IOROUTER	;3027 - Jump for I/O Re-Router
 JT_CTHEAD:
-	jp CASSHEAD		;302a - Jump to 31F7H for part of cassette header routine
+	jp 	CASSHEAD	;302a - Jump to 31F7H for part of cassette header routine
 JT_UNTOKEN
-	jp UNTOKEN		;302d - This is jumped to by 2B91 in the middle of the tokenize routine
+	jp 	UNTOKEN		;302d - This is jumped to by 2B91 in the middle of the tokenize routine
 JT_DATTIM:
-	jp DATETIME		;3030 - Jump for STRING=DATE$+""+TIME$
-	jp DATES		;3033 - Jump to 35BBH to put the DATE onto the upper right hand corner of the screen
-	jp TIMES		;3036 - Jump to 35A0H to put the TIME 10 characters from the upper right hand corner of the screen
+	jp 	DATETIME	;3030 - Jump for STRING=DATE$+""+TIME$
+	jp 	DATES		;3033 - Jump to 35BBH to put the DATE onto the upper right hand corner of the screen
+	jp 	TIMES		;3036 - Jump to 35A0H to put the TIME 10 characters from the upper right hand corner of the screen
 ;
 ; END JUMP TABLE
 ; ==============
@@ -10109,8 +10109,8 @@ l3045h:
 ; which is always 1 for a Model III and 0 for a Model 4.
 ;
 sub_3060h:
-	ld a,(l37eah)		;3060 - NOTE: 37EAH is a hard coded 01H.
-	or a			;3063
+	ld 	a,(l37eah)	;3060 - NOTE: 37EAH is a hard coded 01H.
+	or 	a		;3063
 	ret			;3064
 ;
 ; ----------------------------------------------------------------------
@@ -10139,12 +10139,12 @@ sub_3060h:
 ; 30A0 - MESS. 2 has it putting A into (HL), clearing A and FLAGS and RETURN.
 ;
 l30a0h:
-	ld (hl),a		;30a0 - Load the memory address pointed to by HL with A.
+	ld 	(hl),a		;30a0 - Load the memory address pointed to by HL with A.
 l30a1h:
-	xor a			;30a1 - Clear A and all flags.
-	ret			;30a2 - RET
-	xor d			;30a3 - UNUSED
-	xor d			;30a4 - UNUSED
+	xor 	a		;30a1 - Clear A and all flags.
+	ret			;30a2
+	xor 	d		;30a3 - UNUSED
+	xor 	d		;30a4 - UNUSED
 ;
 ; ----------------------------------------------------------------------
 ; 30A5 - Keyboard Rows 4-6, shifted, No Caps Lock.
@@ -10174,8 +10174,8 @@ CAPSLOCK:
 ; 30E0 - GOSUB to the PRINT SCREEN Routine, Clear A, and RETURN
 ;
 l30e0h:
-	call PRSCN		;30e0
-	xor a			;30e3
+	call 	PRSCN		;30e0
+	xor 	a		;30e3
 	ret			;30e4
 ;
 ; ----------------------------------------------------------------------
@@ -10193,8 +10193,8 @@ l30fdh:
 	jr	z,l30e0h	;30fd
 	and 	(hl)		;30ff
 	cp 	001h		;3100
-	ret nz			;3102
-	rst 28h			;3103
+	ret 	nz		;3102
+	rst 	28h		;3103
 	ret			;3104
 ;
 ; ----------------------------------------------------------------------
@@ -10207,9 +10207,9 @@ l30fdh:
 ; 3120 - Go to the next Keyboard row
 ;
 sub_3120h:
-	inc d			;3120
-	inc hl			;3121
-	rlc c			;3122
+	inc 	d		;3120
+	inc 	hl		;3121
+	rlc 	c		;3122
 	ret			;3124
 ;
 ; ----------------------------------------------------------------------
@@ -10260,7 +10260,7 @@ l31bah:
 	djnz 	l31bah		;31ba
 	ret			;31bc
 sub_31bdh:
-	ld hl,NOOKCS		;31bd - NOTE: 2CA5H is the ?BAD? message string.
+	ld 	hl,NOOKCS	;31bd - NOTE: 2CA5H is the ?BAD? message string.
 ;
 ; ----------------------------------------------------------------------
 ; 31C0 - Turn Off The Cassette
@@ -10285,7 +10285,7 @@ CASSON:
 	push 	hl		;31d4
 	ex 	de,hl		;31d5
 	in 	a,(contprt)	;31d6
-	ld 	de,02020h	;31d8 - 2 concective spaces
+	ld 	de,$2020	;31d8 - 2 concective spaces
 	ld 	(vidmem+$3E),de	;31db - write to top right of screen
 	call 	sub_31e8h	;31df
 	ld 	bc,$7D00	;31e2 - load a Delay
@@ -10481,119 +10481,119 @@ l32cfh:
 ;
 ; ----------------------------------------------------------------------
 FASTREAD:
-	push hl			;32da
-	ld hl,l32cah		;32db - address of he cassette read routine
-	ld (TAPERD),hl		;32de - Store the Address in tape read vector
-	ld a,001h		;32e1
-	out (maskprt),a		;32e3
+	push 	hl		;32da
+	ld 	hl,l32cah	;32db - address of he cassette read routine
+	ld 	(TAPERD),hl	;32de - Store the Address in tape read vector
+	ld 	a,1		;32e1
+	out 	(maskprt),a	;32e3
 l32e5h:
-	ld b,080h		;32e5
+	ld 	b,$80		;32e5
 l32e7h:
-	call sub_3350h		;32e7
-	ld a,c			;32ea
-	cp 00fh			;32eb
-	jr c,l32e5h		;32ed
-	cp 03eh			;32ef
-	jr nc,l32e5h		;32f1
-	djnz l32e7h		;32f3
+	call 	sub_3350h	;32e7
+	ld 	a,c		;32ea
+	cp 	00fh		;32eb
+	jr 	c,l32e5h	;32ed
+	cp 	$3E		;32ef
+	jr 	nc,l32e5h	;32f1
+	djnz 	l32e7h		;32f3
 l32f5h:
-	ld hl,0000h		;32f5
-	ld b,040h		;32f8
+	ld 	hl,0000h	;32f5
+	ld 	b,$40		;32f8
 l32fah:
-	call sub_3350h		;32fa
-	call sub_3350h		;32fd
-	ld d,c			;3300
-	call sub_3350h		;3301
-	ld a,d			;3304
-	sub c			;3305
-	jr nc,l330ah		;3306
+	call 	sub_3350h	;32fa
+	call 	sub_3350h	;32fd
+	ld 	d,c		;3300
+	call 	sub_3350h	;3301
+	ld 	a,d		;3304
+	sub 	c		;3305
+	jr 	nc,l330ah	;3306
 	neg			;3308
 l330ah:
-	cp 00dh			;330a
-	jr c,l3313h		;330c
-	inc h			;330e
-	djnz l32fah		;330f
-	jr l3316h		;3311
+	cp 	$0D		;330a
+	jr 	c,l3313h	;330c
+	inc 	h		;330e
+	djnz 	l32fah		;330f
+	jr 	l3316h		;3311
 l3313h:
-	inc l			;3313
-	djnz l32fah		;3314
+	inc 	l		;3313
+	djnz 	l32fah		;3314
 l3316h:
-	ld a,040h		;3316
-	cp h			;3318
-	jr z,l3325h		;3319
-	cp l			;331b
-	jr nz,l32f5h		;331c
-	ld a,002h		;331e
-	out (maskprt),a		;3320
-	call sub_3350h		;3322
+	ld 	a,$40		;3316
+	cp 	h		;3318
+	jr 	z,l3325h	;3319
+	cp 	l		;331b
+	jr 	nz,l32f5h	;331c
+	ld 	a,2		;331e
+	out 	(maskprt),a	;3320
+	call 	sub_3350h	;3322
 l3325h:
-	ld d,000h		;3325
+	ld 	d,0		;3325
 l3327h:
-	call sub_3350h		;3327
-	call sub_337ch		;332a
-	ld a,d			;332d
-	cp 07fh			;332e
-	jr nz,l3327h		;3330
-	jp l3290h		;3332
+	call 	sub_3350h	;3327
+	call 	sub_337ch	;332a
+	ld 	a,d		;332d
+	cp 	$7F		;332e
+	jr 	nz,l3327h	;3330
+	jp 	l3290h		;3332
 sub_3335h:
-	rlc c			;3335
-	jr nc,sub_333eh		;3337
-	ld de,01217h		;3339
-	jr l3341h		;333c
+	rlc 	c		;3335
+	jr 	nc,sub_333eh	;3337
+	ld 	de,$1217	;3339 - 1217H to set up a delay for 1 BIT
+	jr 	l3341h		;333c
 sub_333eh:
-	ld de,$2b2f		;333e - Load DE with 2B2F to set the delay for a 0 BIT
+	ld 	de,$2b2f	;333e - 2B2F to set the delay for a 0 BIT
 l3341h:
-	dec d			;3341
-	jr nz,l3341h		;3342
-	ld a,002h		;3344
+	dec 	d		;3341
+	jr 	nz,l3341h	;3342
+	ld 	a,2		;3344
 	out	(vidcmt),a	;3346
 l3348h:
-	dec e			;3348
-	jr nz,l3348h		;3349
-	ld a,001h		;334b
-	out (vidcmt),a		;334d
+	dec 	e		;3348
+	jr 	nz,l3348h	;3349
+	ld 	a,1		;334b
+	out 	(vidcmt),a	;334d
 	ret			;334f
 sub_3350h:
 	ei			;3350
-	ld c,000h		;3351
+	ld 	c,0		;3351
 l3353h:
-	inc c			;3353
-	ld a,(03840h)		;3354
-	and 004h		;3357
-	jr z,l3353h		;3359
+	inc 	c		;3353
+	ld    a,(kbdmatrix+$40)	;3354
+	and 	4		;3357
+	jr 	z,l3353h	;3359
 	di			;335b
 l335ch:
 	ld 	hl,04b42h	;335c - The string "BK"
 	ld 	(vidmem+$3E),hl	;335f - write to top right of screen
 	jp 	BRKVEC		;3362 - Break Vector -> JP 022Eh
 l3365h:
-	ld e,001h		;3365
-	jr l336bh		;3367
+	ld 	e,1		;3365
+	jr 	l336bh		;3367
 l3369h:
-	ld e,000h		;3369
+	ld 	e,0		;3369
 l336bh:
-	ld a,006h		;336b
-	add a,c			;336d
-	ld c,a			;336e
-	in a,(vidcmt)		;336f
-	and 001h		;3371
-	cp e			;3373
-	jr nz,l3379h		;3374
-	pop af			;3376
-	pop af			;3377
+	ld 	a,6		;336b
+	add 	a,c		;336d
+	ld 	c,a		;336e
+	in 	a,(vidcmt)	;336f
+	and 	1		;3371
+	cp 	e		;3373
+	jr 	nz,l3379h	;3374
+	pop 	af		;3376
+	pop 	af		;3377
 	ret			;3378
 l3379h:
-	pop af			;3379
+	pop 	af		;3379
 	ei			;337a
 	ret			;337b
 sub_337ch:
-	ld a,c			;337c
-	cp 022h			;337d
-	rl d			;337f
-	cp 00fh			;3381
-	jr c,l3388h		;3383
-	cp 03eh			;3385
-	ret c			;3387
+	ld 	a,c		;337c
+	cp 	$22		;337d
+	rl 	d		;337f
+	cp 	$0F		;3381
+	jr 	c,l3388h	;3383
+	cp 	$3E		;3385
+	ret 	c		;3387
 l3388h:
 	ld 	a,'D'		;3388 -
 	ld 	(vidmem+$3E),a	;338a - write to top right of screen
@@ -10618,7 +10618,7 @@ hd_boot2:
 #ELSE
 	call 	sub_3060h	;338e
 	jr 	nz,l33a3h	;3391
-	ld 	bc,03880h	;3393 - todo fix
+	ld   bc,kbdmatrix+$80	;3393
 	ld 	hl,mKDCB+3	;3396 - keyboard DCB
 	ld 	a,(bc)		;3399
 	and 	002h		;339a
@@ -10630,7 +10630,7 @@ hd_boot2:
 #ENDIF
 l33a3h:
 	ld 	a,$FF		;33a3
-	ld 	hl,03840h	;33a5 - todo fix
+	ld   hl,kbdmatrix+$40	;33a5
 	bit 	4,(hl)		;33a8
 	jr 	z,l33b4h	;33aa
 	sla 	l		;33ac
@@ -10639,7 +10639,7 @@ l33a3h:
 	ld 	a,$1F		;33b2
 l33b4h:
 	ld 	(KYBCTL),a	;33b4 - Control key flag
-	ld 	bc,03801h	;33b7 - todo kbd matrix ?
+	ld   bc,kbdmatrix+1	;33b7
 	ld 	hl,KYBTSS	;33ba
 	ld 	d,000h		;33bd
 l33bfh:
@@ -10702,14 +10702,14 @@ hd_boot3:
 	jp	ROM_LOAD
 	nop
 	nop
-frehd6:	ld	a,(3880h)	; todo fix - as below
+frehd6:	ld	a,(kbdmatrix+$80)
 #ELSE
 	jr 	c,l3417h	;3412
 	inc 	d		;3414
 	jr 	l3411h		;3415
 l3417h:
 	call 	sub_3060h	;3417
-	ld 	a,(03880h)	;341a - todo fix
+	ld   a,(kbdmatrix+$80)	;341a
 	jr 	nz,l3421h	;341d
 	and 	$01		;341f
 #ENDIF
@@ -10746,7 +10746,7 @@ l3433h:
 frehd7:	jp	30FDh
 
 hd_boot1:
-	jp	nz,37AFh		; non-disk
+	jp	nz,37AFh	; non-disk
 	jp	hd_boot2
 #ELSE
 	call 	sub_3060h	;343d
@@ -10777,7 +10777,7 @@ BOOTSTP:
 	or 	$20		;345c
 	out 	(contprt),a	;345e
 	ld 	a,$81		;3460
-	out	(0f4h),a	;3462
+	out	(fdcdrvp),a	;3462
 	ld 	a,$D0		;3464
 	out 	(fdccmdp),a	;3466
 	call 	SHRTDLY		;3468 - short delay
@@ -10820,50 +10820,50 @@ l349bh:
 ; ======================================================================
 ;
 WARMBOOT:
-	ld e,005h		;34ab
+	ld 	e,5		;34ab
 l34adh:
-	ld bc,0000h		;34ad - Set up for a loop of 65,536
+	ld 	bc,0000h		;34ad - Set up for a loop of 65,536
 l34b0h:
-	in a,(fdccmdp)		;34b0
-	bit 1,a			;34b2
-	jr nz,l34c7h		;34b4
-	dec bc			;34b6
-	ld a,081h		;34b7
-	out (fdcdrvp),a		;34b9
-	ld a,b			;34bb
-	or c			;34bc
-	jr nz,l34b0h		;34bd
-	ld hl,MSGDISK		;34bf
-	call VDLINE		;34c2
-	jr WARMBOOT		;34c5
+	in 	a,(fdccmdp)	;34b0
+	bit 	1,a		;34b2
+	jr 	nz,l34c7h	;34b4
+	dec 	bc		;34b6
+	ld 	a,$81		;34b7
+	out 	(fdcdrvp),a	;34b9
+	ld 	a,b		;34bb
+	or 	c		;34bc
+	jr 	nz,l34b0h	;34bd
+	ld 	hl,MSGDISK	;34bf
+	call 	VDLINE		;34c2
+	jr 	WARMBOOT	;34c5
 l34c7h:
-	dec e			;34c7
-	jr nz,l34adh		;34c8
+	dec 	e		;34c7
+	jr 	nz,l34adh	;34c8
 l34cah:
-	ld 	a,081h		;34ca
-	out 	(0f4h),a	;34cc
+	ld 	a,$81		;34ca
+	out 	(fdcdrvp),a	;34cc
 	ld 	hl,NMIJUMP	;34ce - jump address for NMI Vector
 	ld 	(NMIVEC+1),hl	;34d1 - write the jump address to NMI vector
 	ld 	a,OPJPNN	;34d4 - JP hhhh - Jump Op Code
 	ld 	(NMIVEC),a	;34d6 - write first byte of NMI Vector
-	ld 	a,080h		;34d9
+	ld 	a,$80		;34d9
 	out 	(nonmask),a	;34db
 	ld 	bc,000f3h	;34dd
 	ld 	hl,04300h	;34e0
-	ld 	a,001h		;34e3
-	out 	(0f2h),a	;34e5
-	ld 	a,080h		;34e7
-	out 	(0f0h),a	;34e9
-	call	SHRTDLY	;34eb - short delay
+	ld 	a,1		;34e3
+	out 	(fdcsect),a	;34e5
+	ld 	a,$80		;34e7
+	out 	(fdccmdp),a	;34e9
+	call	SHRTDLY		;34eb - short delay
 l34eeh:
-	in a,(fdccmdp)		;34ee
-	and 002h		;34f0
-	jp z,l34eeh		;34f2
+	in 	a,(fdccmdp)	;34ee
+	and 	2		;34f0
+	jp 	z,l34eeh	;34f2
 	ini			;34f5
 l34f7h:
-	ld 	a,081h		;34f7
-	or 	040h		;34f9
-	out 	(0f4h),a	;34fb
+	ld 	a,$81		;34f7
+	or 	$40		;34f9
+	out 	(fdcdrvp),a	;34fb
 	ini			;34fd
 	jp 	l34f7h		;34ff
 ;
@@ -10881,8 +10881,8 @@ NMIJUMP:
 	jp 	z,MEMEND	;3513
 	jr 	l34cah		;3516
 SHRTDLY:
-	push bc			;3518 - A short Delay
-	pop bc			;3519 - routine used
+	push 	bc		;3518 - A short Delay
+	pop 	bc		;3519 - routine used
 	nop			;351a - to delay for IO
 	ret			;351b - disk requests
 ;
@@ -10972,14 +10972,14 @@ HRTBEAT1:
 	dec 	hl		;357d
 	ld 	a,(hl)		;357e
 	inc 	hl		;357f
-	and 	3		;3580 - Mask (the year) - to test for a leap year
+	and 	$03		;3580 - Mask (the year) - to test for a leap year
 	ret 	z		;3582
 HRTBEAT2:
 	ld 	(hl),1		;3583 - update the Day to 1
 	inc 	hl		;3585
 	inc 	(hl)		;3586
 	ld 	a,(hl)		;3587
-	sub 	00dh		;3588
+	sub 	$0D		;3588
 	ret 	c		;358a
 	ld 	(hl),001h	;358b
 	dec 	hl		;358d
@@ -11006,45 +11006,45 @@ l3591h:
 ; ----------------------------------------------------------------------
 TIMES:
 	ld 	de,CLKHRS	;35a0 - CLOCK HOURS
-	ld 	c,03ah		;35a3
+	ld 	c,$3A		;35a3
 l35a5h:
-	ld 	b,003h		;35a5
+	ld 	b,3		;35a5
 l35a7h:
 	ld 	a,(de)		;35a7
 	dec 	de		;35a8
-	ld 	(hl),02fh	;35a9
+	ld 	(hl),$2F	;35a9
 l35abh:
-	inc (hl)		;35ab
-	sub 00ah		;35ac
-	jr nc,l35abh		;35ae
-	add a,03ah		;35b0
-	inc hl			;35b2
-	ld (hl),a		;35b3
-	inc hl			;35b4
-	dec b			;35b5
-	ret z			;35b6
-	ld (hl),c		;35b7
-	inc hl			;35b8
-	jr l35a7h		;35b9
+	inc 	(hl)		;35ab
+	sub 	$0A		;35ac
+	jr 	nc,l35abh	;35ae
+	add 	a,$3A		;35b0
+	inc 	hl		;35b2
+	ld 	(hl),a		;35b3
+	inc 	hl		;35b4
+	dec 	b		;35b5
+	ret 	z		;35b6
+	ld 	(hl),c		;35b7
+	inc 	hl		;35b8
+	jr 	l35a7h		;35b9
 ;
 ; ----------------------------------------------------------------------
 ; DATE$
 ; ----------------------------------------------------------------------
 DATES:
-	ld de,CLKMNT		;35bb - clock MONTHS
-	ld c,02fh		;35be
-	jr l35a5h		;35c0
+	ld 	de,CLKMNT	;35bb - clock MONTHS
+	ld 	c,02fh		;35be
+	jr 	l35a5h		;35c0
 ;
 ; ======================================================================
 ; 35C2H - Maskable Interrupt Handler.
 ; ======================================================================
 INTHAND:
-	push af			;35c2
-	in a,(maskprt)		;35c3
+	push 	af		;35c2
+	in 	a,(maskprt)	;35c3
 	rra			;35c5
-	jp nc,l3365h		;35c6
+	jp 	nc,l3365h	;35c6
 	rra			;35c9
-	jp nc,l3369h		;35ca
+	jp 	nc,l3369h	;35ca
 	push 	bc		;35cd
 	push 	de		;35ce
 	push 	hl		;35cf
@@ -11081,57 +11081,57 @@ INTRETURN:
 ;
 RS232INIT:
 	di			;35fb
-	in a,(seruart)		;35fc
-	cp $FF			;35fe
-	jr z,l363ah		;3600
-	xor a			;3602
-	out (serstat),a		;3603
-	ld a,(ix+3)		;3605
-	out (serbaud),a		;3608
-	ld a,(ix+4)		;360a
-	or a			;360d
-	jr z,l363ah		;360e
-	out (seruart),a		;3610
-	ld iy,SERINP		;3612 - serial input DCB 41E5
-	call sub_3644h		;3616
-	ld a,(ix+5)		;3619
-	or a			;361c
-	jr z,l3623h		;361d
-	set 1,(iy+4)		;361f
+	in 	a,(seruart)	;35fc
+	cp 	$FF		;35fe
+	jr 	z,l363ah	;3600
+	xor 	a		;3602
+	out 	(serstat),a	;3603
+	ld 	a,(ix+3)	;3605
+	out 	(serbaud),a	;3608
+	ld 	a,(ix+4)	;360a
+	or 	a		;360d
+	jr 	z,l363ah	;360e
+	out 	(seruart),a	;3610
+	ld 	iy,SERINP	;3612 - serial input DCB 41E5
+	call 	sub_3644h	;3616
+	ld 	a,(ix+5)	;3619
+	or 	a		;361c
+	jr 	z,l3623h	;361d
+	set 	1,(iy+4)	;361f
 l3623h:
-	set 2,(iy+4)		;3623
-	ld iy,SEROUT		;3627 - serial out dcb 41ED
-	or a			;362b
-	jr z,l3632h		;362c
-	set 1,(iy+4)		;362e
+	set 	2,(iy+4)	;3623
+	ld 	iy,SEROUT	;3627 - serial out dcb 41ED
+	or 	a		;362b
+	jr 	z,l3632h	;362c
+	set 	1,(iy+4)	;362e
 l3632h:
-	set 2,(iy+4)		;3632
+	set 	2,(iy+4)	;3632
 l3636h:
-	in a,(serstat)		;3636 - serial status port
+	in 	a,(serstat)	;3636 - serial status port
 	ei			;3638
 	ret			;3639
 l363ah:
-	xor a			;363a
-	ld b,004h		;363b
-	ld c,serstat		;363d
+	xor 	a		;363a
+	ld 	b,4		;363b
+	ld 	c,serstat	;363d
 l363fh:
-	out (c),a		;363f
-	inc c			;3641
-	djnz l363fh		;3642
+	out 	(c),a		;363f
+	inc 	c		;3641
+	djnz 	l363fh		;3642
 sub_3644h:
 	ld 	hl,SERINP+3	;3644 - rs232 serial input DCB
-	ld b,003h		;3647
+	ld 	b,3		;3647
 l3649h:
-	ld (hl),000h		;3649
-	inc hl			;364b
-	djnz l3649h		;364c
+	ld 	(hl),0		;3649
+	inc 	hl		;364b
+	djnz 	l3649h		;364c
 	ld 	hl,SEROUT+3	;364e - rs232 output DCB 41F0
-	ld b,003h		;3651
+	ld 	b,3		;3651
 l3653h:
-	ld (hl),000h		;3653
-	inc hl			;3655
-	djnz l3653h		;3656
-	jr l3636h		;3658
+	ld 	(hl),0		;3653
+	inc 	hl		;3655
+	djnz 	l3653h		;3656
+	jr 	l3636h		;3658
 ;
 ; ----------------------------------------------------------------------
 ; RS232 INPUT ROUTINE
@@ -11140,21 +11140,21 @@ l3653h:
 RS232INP:
 	ld 	ix,SERINP	;365a - serial input DCB 41E5
 	xor 	a		;365e
-	ld (ix+3),a		;365f
-	bit 2,(ix+4)		;3662
-	ret z			;3666
+	ld 	(ix+3),a	;365f
+	bit 	2,(ix+4)	;3662
+	ret 	z		;3666
 l3667h:
-	in a,(seruart)		;3667
-	bit 7,a			;3669
-	jr nz,l367ah		;366b
-	bit 1,(ix+4)		;366d
-	ret z			;3671
-	call KBBRK		;3672 - Check for a BREAK key only
-	jr z,l3667h		;3675
+	in 	a,(seruart)	;3667
+	bit 	7,a		;3669
+	jr 	nz,l367ah	;366b
+	bit 	1,(ix+4)	;366d
+	ret 	z		;3671
+	call 	KBBRK		;3672 - Check for a BREAK key only
+	jr 	z,l3667h	;3675
 	jp 	BRKVEC		;3677 - Break Vector -> JP 022Eh
 l367ah:
-	in a,(serdata)		;367a
-	ld (ix+3),a		;367c
+	in 	a,(serdata)	;367a
+	ld 	(ix+3),a	;367c
 	ret			;367f
 ;
 ; ----------------------------------------------------------------------
@@ -11162,28 +11162,27 @@ l367ah:
 ; ----------------------------------------------------------------------
 ;
 RS232OUT:
-	ld ix,SEROUT		;3680 - 41ED Serial Out DCB
-	bit 2,(ix+4)		;3684
-	ret z			;3688
+	ld 	ix,SEROUT	;3680 - 41ED Serial Out DCB
+	bit 	2,(ix+4)	;3684
+	ret 	z		;3688
 l3689h:
-	in a,(seruart)		;3689
-	bit 6,a			;368b
-	jr nz,l369ch		;368d
-	bit 1,(ix+4)		;368f
-	ret z			;3693
-	call KBBRK		;3694 - Check for a BREAK key only
-	jr z,l3689h		;3697
+	in 	a,(seruart)	;3689
+	bit 	6,a		;368b
+	jr 	nz,l369ch	;368d
+	bit 	1,(ix+4)	;368f
+	ret 	z		;3693
+	call 	KBBRK		;3694 - Check for a BREAK key only
+	jr 	z,l3689h	;3697
 	jp 	BRKVEC		;3699 - Break Vector -> JP 022Eh
 l369ch:
-	ld a,(ix+3)		;369c
-	or a			;369f
-	jr nz,l36a3h		;36a0
-	ld a,c			;36a2
+	ld 	a,(ix+3)	;369c
+	or 	a		;369f
+	jr 	nz,l36a3h	;36a0
+	ld 	a,c		;36a2
 l36a3h:
-	out (serdata),a		;36a3
-	ld (ix+3),000h	;36a5
+	out 	(serdata),a	;36a3
+	ld 	(ix+3),000h	;36a5
 	ret			;36a9
-
 ;
 ; ----------------------------------------------------------------------
 ; 36AAH - Initial Vectors and DCBs for RAM 4000H-404BH
@@ -11304,7 +11303,7 @@ SERDCB:
 ;
 IOROUTER:
 	ld 	a,(ix+3)	;3739
-	cp 	052h		;373c
+	cp 	$52		;373c
 	jr 	nz,l3743h	;373e
 	ld 	a,(ix+4)	;3740
 l3743h:
@@ -11312,7 +11311,7 @@ l3743h:
 	ret 	nz		;3746
 	push 	hl		;3747
 	ld 	a,(ix+5)	;3748
-	cp 	052h		;374b
+	cp 	$52		;374b
 	jr 	nz,l3752h	;374d
 	ld 	a,(ix+6)	;374f
 l3752h:
@@ -11320,12 +11319,12 @@ l3752h:
 	ex 	de,hl		;3755
 	pop 	hl		;3756
 	ret 	nz		;3757
-	ld 	bc,00003h	;3758
+	ld 	bc,3		;3758
 	ldir			;375b
 	ret			;375d
 sub_375eh:
 	ld 	hl,l376ch	;375e
-	ld 	bc,0000fh	;3761
+	ld 	bc,$0F		;3761
 	cpir			;3764
 	ret 	nz		;3766
 	ld 	a,(hl)		;3767
@@ -11353,14 +11352,14 @@ l376ch:
 ; 377BH - This is jumped to by 2B91 in the middle of the tokenize routine
 ; ----------------------------------------------------------------------
 UNTOKEN:
-	cp 	022h		;377b
+	cp 	$22		;377b
 	jr 	nz,l3789h	;377d
 	ld 	a,(PARQTD)	;377f
 	xor 	001h		;3782
 	ld 	(PARQTD),a	;3784
 	ld 	a,022h		;3787
 l3789h:
-	cp 	03ah		;3789
+	cp 	$3A		;3789
 	jp 	nz,l06aah	;378b
 	ld 	a,(PARQTD)	;378e
 	rra			;3791
@@ -11374,7 +11373,7 @@ l3789h:
 DATETIME:
 	GETCHR			;3799
 	push 	hl		;379a
-	ld 	a,011h		;379b
+	ld 	a,$11		;379b
 	call 	STRINI		;379d
 	ld 	hl,(DSCPTR)	;37a0 - 2byte address to buffer where ASCII decimal written.
 	call 	DATES		;37a3
@@ -11395,20 +11394,20 @@ l37b5h:
 	ld 	hl,CASMSG	;37b9
 	call 	VDLINE		;37bc
 	call 	_KEY		;37bf
-	cp 	00dh		;37c2
+	cp 	$0D		;37c2
 	jr 	z,l37d4h	;37c4
 	push 	af		;37c6
 	call 	_DSP		;37c7
 	pop 	af		;37ca
-	cp 	048h		;37cb
+	cp 	$48		;37cb
 	jr 	z,l37d4h	;37cd
-	cp 	04ch		;37cf
+	cp 	$4C		;37cf
 	jr 	nz,l37b5h	;37d1
 	xor 	a		;37d3
 l37d4h:
 	ld 	(TAPEBD),a	;37d4 - Tape Baud rate select
 sub_37d7h:
-	ld 	a,00dh		;37d7
+	ld 	a,$0D		;37d7
 	jp 	_DSP		;37d9
 l37dch:
 	ld 	hl,JT_DATTIM	;37dc - JP Vector for TIME$ routine
@@ -11424,13 +11423,13 @@ l37dch:
 ; 37EA - Computer Version Number
 ;
 l37eah:
-	.DB	01		;37ea computer version number 1 = Model3
+	.DB	1		;37ea computer version number 1 = Model3
 ;
 ; ----------------------------------------------------------------------
 ; 37EBH - Display the Copyright Message
 ;
 COPYWR:
-	CALL 	021BH		;37eb
+	CALL 	VDLINE		;37eb
 	ld 	hl,COPYMSG	;37ee - NOTE: 0202H points to the message '(C) "80 Tandy"'.
 	call 	VDLINE		;37f1
 	jr 	l37dch		;37f4
@@ -11462,6 +11461,7 @@ seruart: 	.EQU	$EA	; Rs232 Serial Uart Port
 serdata: 	.EQU	$EB	; Rs232 Serial Data Port
 contprt:	.EQU	$EC	; MISC Control Port
 fdccmdp: 	.EQU	$F0	; Floppy Command Status PORT
+fdcsect: 	.EQU	$F2	; Floppy Sector Register
 fdcdrvp: 	.EQU	$F4	; Floppy Drive Select PORT
 lineprt:	.EQU	$F8	; LINE Printer
 vidcmt:	 	.EQU	$FF	; VIDEO I/O Mode select and Cassette Port
