@@ -8,7 +8,7 @@
 ;
 ; ROM  Checksum - Part Number
 ;  A     9639     8041364 - This is ROM A for every Model III Level II
-;  B     407C     8040332 - This is ROM A for every Model III Level II
+;  B     407C     8040332 - This is ROM B for every Model III Level II
 ;  C     2EF8     8040316B - v2 - Rev B - 1980.
 ;
 ; Rom Version Definition
