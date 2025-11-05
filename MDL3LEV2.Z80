@@ -10230,9 +10230,9 @@ PRSCN_ALT:
 	.DB	$0D, $1F, $01, $5B, $0A, $08, $09, $20
 
 ; ----------------------------------------------------------------------
-; 30FD - Checking for a BREAK key during a cassette operation
+; 30FD - Checking for a BREAK key
 ;
-l30fdh:
+KEYPRESS8:
 	jr	z,PRSCN_ALT	;30fd
 	and 	(hl)		;30ff
 	cp 	001h		;3100
@@ -10249,8 +10249,8 @@ l30fdh:
 ;
 ; ----------------------------------------------------------------------
 ; 3120 - Go to the next Keyboard row
-;
-sub_3120h:
+; ----------------------------------------------------------------------
+KEYENTRY3:
 	inc 	d		;3120
 	inc 	hl		;3121
 	rlc 	c		;3122
@@ -10269,6 +10269,7 @@ sub_3120h:
 ; 313D - Restore Scanning Variables.
 ; This routine is called from 33CC which is in the middle of the keyboard input routine.
 ;
+KEYENTRY4:
 	ld	a,(RPTLSB)	;313d - repeating buffer LSB
 	ld	l,a		;3140
 	ld 	a,(RPTROW)	;3141 - repeating row being pressed
@@ -10416,7 +10417,7 @@ FNDTMNG1:
 	jr 	c,PSSTMNG	;3224 - If CARRY - the timing mark was found
 	call 	KBBRK		;3226 - Check for a BREAK key only
 	jr 	z,FNDTMNG1	;3229 - Loop back until timing mark or a BREAK key
-	jp 	l335ch		;322b - we got a BREAK key,
+	jp 	BREAKEY		;322b - we got a BREAK key,
 ;
 ; 322E - Cassette - Wait for the timing mark to pass
 ; and the next data to show up. Put that data into Bit 0 of D.
@@ -10519,9 +10520,9 @@ RETBCDE:
 	pop 	de		;3299
 	ret			;329a
 ;
-; todo keep adding section headers from here down
 ; ----------------------------------------------------------------------
 ; 329B - FAST tape header write.
+; todo keep adding section headers from here down
 ; ----------------------------------------------------------------------
 FASTWRITE:
 	push 	hl		;329b
@@ -10536,6 +10537,9 @@ FASTWRITE1:
 	call 	sub_32b4h	;32ad
 	ld 	a,$A5		;32b0
 	jr 	RETHLBCDE	;32b2 - Return Popping HL BC DE
+;
+; 32B4 - Restore all registers from the STACK, and Fill C with A, and JUMP to cassette write.
+;
 sub_32b4h:
 	push 	af		;32b4
 	push 	bc		;32b5
@@ -10543,12 +10547,18 @@ sub_32b4h:
 	ld 	c,a		;32b7
 	jr 	l32c1h		;32b8
 ;
+; 32BA - Save all registers to the STACK,
+; and Fill C with A, CALL to write out the START BIT ...
+;
 l32bah:
 	push 	af		;32ba
 	push 	bc		;32bb
 	push 	de		;32bc
 	ld 	c,a		;32bd
 	call 	sub_333eh	;32be
+;
+; 32C1 - Call 3335H to Output a Bit 8 Times
+;
 l32c1h:
 	ld 	b,$08		;32c1
 l32c3h:
@@ -10556,17 +10566,19 @@ l32c3h:
 	djnz 	l32c3h		;32c6
 	jr 	RETDEBCAF	;32c8 - Return Popping DE BC AF
 ;
+; 32CA - Read the start bit, read 8 bits, check for error, and flash the star
+;
 l32cah:
-	call 	sub_3350h	;32ca
+	call 	READBIT		;32ca
 	ld 	b,$08		;32cd
 l32cfh:
-	call 	sub_3350h	;32cf
+	call 	READBIT		;32cf
 	call 	sub_337ch	;32d2
 	djnz 	l32cfh		;32d5
 	jp 	CASBLINK		;32d7
 ;
 ; ----------------------------------------------------------------------
-;
+; 32DA - FAST tape header read.
 ; ----------------------------------------------------------------------
 FASTREAD:
 	push 	hl		;32da
@@ -10577,7 +10589,7 @@ FASTREAD:
 l32e5h:
 	ld 	b,$80		;32e5
 l32e7h:
-	call 	sub_3350h	;32e7
+	call 	READBIT		;32e7
 	ld 	a,c		;32ea
 	cp 	00fh		;32eb
 	jr 	c,l32e5h	;32ed
@@ -10588,10 +10600,10 @@ l32f5h:
 	ld 	hl,0000h	;32f5
 	ld 	b,$40		;32f8
 l32fah:
-	call 	sub_3350h	;32fa
-	call 	sub_3350h	;32fd
+	call 	READBIT		;32fa
+	call 	READBIT		;32fd
 	ld 	d,c		;3300
-	call 	sub_3350h	;3301
+	call 	READBIT		;3301
 	ld 	a,d		;3304
 	sub 	c		;3305
 	jr 	nc,l330ah	;3306
@@ -10613,11 +10625,11 @@ l3316h:
 	jr 	nz,l32f5h	;331c
 	ld 	a,2		;331e
 	out 	(maskprt),a	;3320
-	call 	sub_3350h	;3322
+	call 	READBIT		;3322
 l3325h:
 	ld 	d,0		;3325
 l3327h:
-	call 	sub_3350h	;3327
+	call 	READBIT		;3327
 	call 	sub_337ch	;332a
 	ld 	a,d		;332d
 	cp 	$7F		;332e
@@ -10641,19 +10653,30 @@ l3348h:
 	ld 	a,1		;334b - The Voltage Value 0.46V to write
 	out 	(vidcmt),a	;334d - write to cassette
 	ret			;334f
-sub_3350h:
-	ei			;3350
+;
+; ----------------------------------------------------------------------
+; 3350H - READ a BIT
+; ----------------------------------------------------------------------
+;
+READBIT:
+	ei			;3350 - Will allow Interrupt with BIT
 	ld 	c,0		;3351
-l3353h:
+READBIT1:
 	inc 	c		;3353
-	ld    a,(kbdmatrix+$40)	;3354
-	and 	4		;3357
-	jr 	z,l3353h	;3359
+	ld    a,(kbdmatrix+$40)	;3354 - Scan KB for a BREAK KEY
+	and 	4		;3357 - Mask the scan row
+	jr 	z,READBIT1	;3359 - Loop if No Break
 	di			;335b
-l335ch:
-	ld 	hl,04b42h	;335c - The string "BK"
+;
+BREAKEY:
+	ld 	hl,$4B42	;335c - The two character "BK"
 	ld 	(vidmem+$3E),hl	;335f - write to top right of screen
 	jp 	BRKVEC		;3362 - Break Vector -> JP 022Eh
+
+;
+; 3365H - This is a Port E0H Masked Jump. If the MASKABLE INTERRUPT is xxxxxxx1,
+; it jumps here. This is a Cassette Routine with E set to HIGH
+;
 CASINTE1:
 	ld 	e,1		;3365
 	jr 	CASSINT		;3367
@@ -10674,6 +10697,9 @@ l3379h:
 	pop 	af		;3379
 	ei			;337a
 	ret			;337b
+;
+; 337CH - Check for a Data Error.
+;
 sub_337ch:
 	ld 	a,c		;337c
 	cp 	$22		;337d
@@ -10687,28 +10713,27 @@ l3388h:
 	ld 	(vidmem+$3E),a	;338a - write to top right of screen
 	ret			;338d
 ;
+; TODO Examine and Document Code working Up from this point
+; ----------------------------------------------------------------------
+; 338EH - Jump Point for Keyboard Input
 ; ----------------------------------------------------------------------
 ;
-; ----------------------------------------------------------------------
 KEYINPUT:
 #IFDEF FREHDBT
-	jr	l33a3h		;338E - Skip the code, so can insert the following
+	jr	KEYENTRY	; Skip the M4 code, insert the following
 hd_boot2:
 	ld	a,ROM_MODEL_3
-	out	(WRITEROM),a
-	in	a,(READROM)
-	cp	0FEh
-	ret	nz
-	ld	hl,ROM_LOAD
-	ld	bc,READROM
-	jp	hd_boot3
-	nop
+	out	(WRITEROM),a	; Send Instruction
+	in	a,(READROM)	; Read a Byte
+	cp	0FEh		; IS Valid
+	ret	nz		; Not Valid then Exit
+	ld	hl,ROM_LOAD	; Address $5000 to load bootstrap
+	ld	bc,READROM	; B=0 C=Read IO Address
+	jp	hd_boot3	; Continue Latter
+	nop			; NOT USED
 #ELSE
-;
-; 338EH - Jump Point for Keyboard Input.
-;
 	call 	GETVERSION	;338e - Hard Coded to 1 In this Code Base. Model 4=0
-	jr 	nz,l33a3h	;3391 - Jump Forward for Model 3, Model 3
+	jr 	nz,KEYENTRY	;3391 - Jump Forward for Model 3, Model 3
 	ld   bc,kbdmatrix+$80	;3393
 	ld 	hl,mKDCB+3	;3396 - keyboard DCB
 	ld 	a,(bc)		;3399
@@ -10719,108 +10744,107 @@ hd_boot2:
 	and 	e		;339f
 	jp 	nz,CAPSLOCK	;33a0 - toggle caps lock
 #ENDIF
-l33a3h:
-	ld 	a,$FF		;33a3
+KEYENTRY:
+	ld 	a,$FF		;33a3 - set up for a FLAG = 0FFH = NO CONTROL
 	ld   hl,kbdmatrix+$40	;33a5 - start a check for a DOWN ARROW.
 	bit 	4,(hl)		;33a8 - check for a DOWN ARROW.
-	jr 	z,l33b4h	;33aa
-	sla 	l		;33ac
-	bit 	0,(hl)		;33ae
-	jr 	z,l33b4h	;33b0
-	ld 	a,$1F		;33b2
-l33b4h:
-	ld 	(KYBCTL),a	;33b4 - Control key flag
-	ld   bc,kbdmatrix+1	;33b7
-	ld 	hl,KYBTSS	;33ba
-	ld 	d,000h		;33bd
-l33bfh:
-	ld 	a,(bc)		;33bf
-	ld 	e,a		;33c0
-	xor 	(hl)		;33c1
-	ld 	(hl),e		;33c2
-	and 	e		;33c3
-	jr 	nz,l33f8h	;33c4
-	call 	sub_3120h	;33c6
-	jp 	p,l33bfh	;33c9
-	call 	0313dh		;33cc
-	and 	(hl)		;33cf
-	jr 	nz,l33dah	;33d0
-	sbc 	hl,hl		;33d2
-	ld 	(RPTCNT),hl	;33d4  - repeat count
+	jr 	z,KEYENTRY1	;33aa - if the a DOWN ARROW was NOT pressed
+	sla 	l		;33ac - change address row for a a LEFT SHIFT
+	bit 	0,(hl)		;33ae - check for a LEFT SHIFT.
+	jr 	z,KEYENTRY1	;33b0 - JUMP if the a LEFT SHIFT was NOT pressed
+	ld 	a,$1F		;33b2 - set up for FLAG = 001FH = CONTROL KEY
+KEYENTRY1:
+	ld 	(KYBCTL),a	;33b4 - Store Control key flag
+	ld   bc,kbdmatrix+1	;33b7 - KEYBOARD ROW 0
+	ld 	hl,KYBTSS	;33ba - KEY BUFFER ROW 0
+	ld 	d,0		;33bd - ROW 0
+KEYENTRY2:
+	ld 	a,(bc)		;33bf - read the keyboard row
+	ld 	e,a		;33c0 - store value
+	xor 	(hl)		;33c1 - XOR (HL) to set changed bits
+	ld 	(hl),e		;33c2 - Save the scan back
+	and 	e		;33c3 - mask the released keys
+	jr 	nz,KEYPRESS	;33c4 - if any keys are pressed
+	call 	KEYENTRY3	;33c6 - BUMP Variables for Next Row
+	jp 	p,KEYENTRY2	;33c9 - Loop if there are any rows left
+	call 	KEYENTRY4	;33cc - restore scanning variables
+	and 	(hl)		;33cf - see if the previous keys are still pressed
+	jr 	nz,KEYREPEAT	;33d0 - if the previous keys are still pressed
+	sbc 	hl,hl		;33d2 - ZERO HL
+	ld 	(RPTCNT),hl	;33d4 - repeat count
 	jp 	RPTDLY15	;33d7 - set keyboard repeat delay to 1500
 ;
 ; 33DA - Keyboard Repeat - Jumps Here if the same keys are still pressed
 ;
-l33dah:
+KEYREPEAT:
 	push 	hl		;33da
-	ld 	hl,(RPTCNT)	;33db - repeat count
+	ld 	hl,(RPTCNT)	;33db - repeat delay counter.
 	inc 	hl		;33de
-	ld 	(RPTCNT),hl	;33df - repeat count
+	ld 	(RPTCNT),hl	;33df - save it back
 	ld 	de,(RPTDLY)	;33e2 - repeating key max delay
 	sbc 	hl,de		;33e6
 	pop 	de		;33e8
-	jp 	c,l30a1h	;33e9
-	xor 	a		;33ec
-	ld 	(de),a		;33ed
+	jp 	c,l30a1h	;33e9 - If we haven't scanned enough, JUMP to clear flags and RETURN.
+	xor 	a		;33ec - clear flags
+	ld 	(de),a		;33ed -
 	ld 	(RPTCNT),hl	;33ee - repeat count
-	ld 	l,$96		;33f1
+	ld 	l,$96		;33f1 - 96H to set a fast repeat count
 	ld 	(RPTDLY),hl	;33f3 - repeating key max delay
-	jr 	l33a3h		;33f6
-l33f8h:
+	jr 	KEYENTRY	;33f6 - re-scan the keybaord.
+;
+KEYPRESS:
 	ld 	e,a		;33f8
 	push 	bc		;33f9
-	ld 	bc,$05C4	;33fa - set up a delay
-	call 	DELAY		;33fd
+	ld 	bc,$05C4	;33fa - set up a 1/50 second delay for de-bounce
+	call 	DELAY		;33fd - DELAY
 	pop 	bc		;3400
-	ld 	a,(bc)		;3401
-	and 	e		;3402
-	ret 	z		;3403
+	ld 	a,(bc)		;3401 - re-check / scan the keyboard
+	and 	e		;3402 - check the pattern
+	ret 	z		;3403 - not the same pattern
 	ld 	(RPTROW),a	;3404 - repeating Row being depressed
-	ld 	a,l		;3407
+	ld 	a,l		;3407 - the scan position
 	ld 	(RPTLSB),a	;3408 - repeating buffer LSB
-	ld 	a,d		;340b
+	ld 	a,d		;340b - (8 * ROW #).
 	rla			;340c
 	rla			;340d
 	rla			;340e
 	ld 	d,a		;340f
 	ld 	a,e		;3410
-l3411h:
-	rrca			;3411
+KEYPRESS1:
+	rrca			;3411 - D = 8* ROW # + KEY #
 ;
 #IFDEF FREHDBT
-	jr	c,frehd6
-	inc	d
-	jr	l3411h
+	jr	c,frehd6	; (3412)
+	inc	d		; (3414)
+	jr	KEYPRESS1	; (3415)
 hd_boot3:
-	inir
-	jp	ROM_LOAD
-	nop
-	nop
-frehd6:	ld	a,(kbdmatrix+$80)
+	inir			; Read 256 Bytes from FreHD into RAM
+	jp	ROM_LOAD	; Jump to the FreHD BootLoader
+	.DB	0, 0		; NOT USED
+frehd6:	ld   a,(kbdmatrix+$80)
 #ELSE
-	jr 	c,l3417h	;3412
+	jr 	c,KEYPRESS2	;3412
 	inc 	d		;3414
-	jr 	l3411h		;3415
-l3417h:
+	jr 	KEYPRESS1	;3415
+KEYPRESS2:
 	call 	GETVERSION	;3417
 	ld   a,(kbdmatrix+$80)	;341a
-	jr 	nz,l3421h	;341d
+	jr 	nz,KEYPRESS3	;341d
 	and 	$01		;341f
 #ENDIF
 ;
-l3421h:
+KEYPRESS3:
 	and 	$03		;3421
-	jr 	z,l3427h	;3423
+	jr 	z,KEYPRESS4	;3423
 	set 	6,d		;3425
-l3427h:
+KEYPRESS4:
 	ld 	a,(mKDCB+4)	;3427 - keyboard DCB
 	or 	a		;342a
-	jr 	z,l342fh	;342b
+	jr 	z,KEYPRESS5	;342b
 	set 	7,d		;342d
-l342fh:
+KEYPRESS5:
 	ld 	hl,KEYLKUP	;342f - keyboard lookup TABLE
 	ld 	e,d		;3432
-l3433h:
 	ld 	d,0		;3433
 	add 	hl,de		;3435
 	ld 	a,(hl)		;3436
@@ -10830,43 +10854,43 @@ l3433h:
 
 #IFDEF FREHDBT
 	or	a
-	jp	z,CAPSLOCK	; toggle caps lock
-	ld	hl,KYBCTL	; Control key flag
-	cp	'*'
-	jr	nz,frehd7
-	ld	a, 1Fh
-	cp	(hl)
-	ld	a,b
-frehd7:	jp	30FDh
+	jp	z,CAPSLOCK	; (3444) - toggle caps lock
+	ld	hl,KYBCTL	; (3447) - Control key flag
+	cp	'*'		; (344a)
+	jr	nz,frehd7	; (344c)
+	ld	a,$1F		; (344e)
+	cp	(hl)		; (3450)
+	ld	a,b		; (3451)
+frehd7:	jp	KEYPRESS8	; (3452)
 
 hd_boot1:
-	jp	nz,37AFh	; non-disk
-	jp	hd_boot2
+	jp	nz,NONDISK	; (348f) - non-disk Jump
+	jp	hd_boot2	; continue with FreHD
 #ELSE
 	call 	GETVERSION	;343d
 	ld 	a,b		;3440
-	jr 	z,l3447h	;3441
+	jr 	z,KEYPRESS6	;3441 - Jump If (computer version) a Model III
 	or 	a		;3443
 	jp 	z,CAPSLOCK	;3444 - toggle caps lock
 ;
 ; 3447 - If this is a Model III then we do not have a CAPS LOCK
 ; so check A is a "*" then check to see if the CONTROL KEY FLAG is 1F.
 ;
-l3447h:
+KEYPRESS6:
 	ld 	hl,KYBCTL	;3447 - Control key flag
-	cp 	$2A		;344a
-	jr 	nz,l3452h	;344c
+	cp 	'*'		;344a
+	jr 	nz,KEYPRESS7	;344c
 	ld 	a,$1F		;344e
 	cp 	(hl)		;3450
 	ld 	a,b		;3451
-l3452h:
-	jp 	l30fdh		;3452 - Jump back to 30FDH to continue with a BREAK key check.
+KEYPRESS7:
+	jp 	KEYPRESS8	;3452 - Jump back to 30FDH to continue with a BREAK key check.
 
-; TODO Examine and Document Code working Up from this point
 #ENDIF
 ;
 ; ======================================================================
-; BOOTSTRAP
+; 3445 - BOOTSTRAP - Clears ports, checks for a BREAK key
+; and a Floppy Controller.
 ; ======================================================================
 ;
 BOOTSTP:
