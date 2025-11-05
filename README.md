@@ -6,8 +6,6 @@ This repository contains Disassembled, well commented source code for the:
 * Tandy TRS-80 Model 1 Level 2 BASIC ROMS. 
 * Tandy TRS-80 Model III Level 2 BASIC ROMS. 
 
-> NOTE: For best results view the code with 8 spaces per tab.
-
 ### Motivation
 
 I read a post asking why Model 1 BASIC hadn’t been ported to a modern hobbyist CP/M environment. Of course there are 
@@ -34,17 +32,17 @@ On the last point I was unaware of these optimisations until I worked on this co
 If you are interested search the code for `Trick` you will find cope optimisations
 that save a few bytes by allowing Jumps to the second byte of 2 byte instruction
 
-## Compiling
+## Source Code
+
+See The following for details of source code including Build Options:
+* [Model 1 Build Options](./MODEL1.md)
+* [Model III Build Options](./MODEL3.md)
+
+### Compiling
 
 This source code has been compiled with Telemark Assembler, and tested using a DIFF tool to ensure binary
 compatibility of the generated output. If you have issues compiling it with a different assembler
 please let me know how the code can be fixed
-
-### Build Options
-
-See The following for Build Options
-* [Model 1 Build Options](./MODEL1.md)
-* [Model III Build Options](./MODEL3.md)
 
 ## Extensions
 

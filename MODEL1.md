@@ -3,13 +3,11 @@
 
 ## Model 1 Level 2 Source Code
 
-This source code has support for both V1.3 (the default), and V1.2 of the ROMS. For more information on the
-differences see references below. Several additional (optional) patches can be applied (e.g. FreHD autoboot)
-be setting a #DEFINE in the code
-
-Source Code Fie : [MDL1LEV2.Z80](./MDL1LEV2.Z80)
+Source Code File : [MDL1LEV2.Z80](./MDL1LEV2.Z80)
 
 > NOTE: For best results view the code with 8 spaces per tab.
+
+## Main Features
 
 Main Features
 * Fully Compilable Source Code for Model 1 Level 2 12KB ROMS.

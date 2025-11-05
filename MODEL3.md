@@ -1,9 +1,13 @@
 
 # TRS-80
 
-## Model 1 Level 2 Source Code
+## Model III Level 2 Source Code
 
-Source Code Fie : [MDL3LEV2.Z80](./MDL3LEV2.Z80)
+Source Code File : [MDL3LEV2.Z80](./MDL3LEV2.Z80)
+
+> NOTE: For best results view the code with 8 spaces per tab.
+
+## Main Features
 
 Main Features
 * Fully Compilable Source Code for Model III Level 2 14KB ROMS.
@@ -16,8 +20,6 @@ This source code is based on the following ROM revisions
 | A   | 9639     | 8041364   | Standard ROM A    |
 | B   | 407C     | 8040332   | Standard ROM B    |
 | C   | 2EF8     | 8040316B  | v2 - Rev B - 1980 |
-
-> NOTE: For best results view the code with 8 spaces per tab.
 
 ## Build Options
 
