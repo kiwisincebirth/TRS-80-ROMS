@@ -3,8 +3,8 @@
 ## Model I / III ROM Source Code
 
 This repository contains Disassembled, well commented source code for the:
-* Tandy TRS-80 Model 1 Level 2 BASIC ROMS. 
-* Tandy TRS-80 Model III Level 2 BASIC ROMS. 
+* [Tandy TRS-80 Model 1 Level 2 BASIC ROMS](./MODEL1.md)
+* [Tandy TRS-80 Model III Level 2 BASIC ROMS](./MODEL3.md)
 
 ### Motivation
 
