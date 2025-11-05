@@ -12,11 +12,7 @@
 ;  C     2EF8     8040316B - v2 - Rev B - 1980.
 ;
 ; Rom Version Definition
-;
-; The clock Frequency in Line Frequency/2 - derived from Video
-; For USA tis should be 30 for 60 Hz Mains Frequency
-; For Europe it should be 25 for 50 hz Mains Frequency
-CLKFREQ		.EQU	30
+; #DEFINE VIDEO50 ; Uncomment to Enable 50Hz Video Support (RTC)
 ;
 ; === Rom Bug Fixes ===
 ; #DEFINE BUGFIX30 ; Uncomment to Fix Bug 30 - 034BH - 32 char Mode
@@ -223,6 +219,7 @@ CURCHR  .EQU	$B0	; (block graphic) _ cursor character
 ;
 #IFDEF FREHDBT
 ;
+; Equates for FREHD Code
 ROM_MODEL_1	.equ 1h
 ROM_MODEL_3	.equ 3h
 READROM		.equ 0C4h	; read only
@@ -231,6 +228,14 @@ ROM_LOAD	.equ 5000h	; where the extra "rom is loaded
 ;
 #ENDIF
 ;
+; The clock Frequency in Line Frequency/2 - derived from Video
+; For USA tis should be 30 for 60 Hz Mains Frequency
+; For Europe it should be 25 for 50 hz Mains Frequency
+#IFDEF VIDEO50
+CLKFREQ		.EQU	25
+#ELSE
+CLKFREQ		.EQU	30
+#ENDIF
 ;
 ; ======================================================================
 ;   START OF PROGRAM CODE
@@ -10699,8 +10704,11 @@ hd_boot2:
 	jp	hd_boot3
 	nop
 #ELSE
-	call 	GETVERSION	;338e
-	jr 	nz,l33a3h	;3391
+;
+; 338EH - Jump Point for Keyboard Input.
+;
+	call 	GETVERSION	;338e - Hard Coded to 1 In this Code Base. Model 4=0
+	jr 	nz,l33a3h	;3391 - Jump Forward for Model 3, Model 3
 	ld   bc,kbdmatrix+$80	;3393
 	ld 	hl,mKDCB+3	;3396 - keyboard DCB
 	ld 	a,(bc)		;3399
@@ -10713,8 +10721,8 @@ hd_boot2:
 #ENDIF
 l33a3h:
 	ld 	a,$FF		;33a3
-	ld   hl,kbdmatrix+$40	;33a5
-	bit 	4,(hl)		;33a8
+	ld   hl,kbdmatrix+$40	;33a5 - start a check for a DOWN ARROW.
+	bit 	4,(hl)		;33a8 - check for a DOWN ARROW.
 	jr 	z,l33b4h	;33aa
 	sla 	l		;33ac
 	bit 	0,(hl)		;33ae
@@ -10740,6 +10748,9 @@ l33bfh:
 	sbc 	hl,hl		;33d2
 	ld 	(RPTCNT),hl	;33d4  - repeat count
 	jp 	RPTDLY15	;33d7 - set keyboard repeat delay to 1500
+;
+; 33DA - Keyboard Repeat - Jumps Here if the same keys are still pressed
+;
 l33dah:
 	push 	hl		;33da
 	ld 	hl,(RPTCNT)	;33db - repeat count
@@ -10837,6 +10848,10 @@ hd_boot1:
 	jr 	z,l3447h	;3441
 	or 	a		;3443
 	jp 	z,CAPSLOCK	;3444 - toggle caps lock
+;
+; 3447 - If this is a Model III then we do not have a CAPS LOCK
+; so check A is a "*" then check to see if the CONTROL KEY FLAG is 1F.
+;
 l3447h:
 	ld 	hl,KYBCTL	;3447 - Control key flag
 	cp 	$2A		;344a
@@ -10847,6 +10862,7 @@ l3447h:
 l3452h:
 	jp 	l30fdh		;3452 - Jump back to 30FDH to continue with a BREAK key check.
 
+; TODO Examine and Document Code working Up from this point
 #ENDIF
 ;
 ; ======================================================================
@@ -10854,115 +10870,121 @@ l3452h:
 ; ======================================================================
 ;
 BOOTSTP:
-	im 1			;3455
+	im 	1		;3455
 	ld 	sp,TMPSTK	;3457 - tempory stack
-	out 	(nonmask),a	;345a
-	or 	$20		;345c
-	out 	(contprt),a	;345e
-	ld 	a,$81		;3460
-	out	(fdcdrvp),a	;3462
-	ld 	a,$D0		;3464
-	out 	(fdccmdp),a	;3466
+	out 	(nonmask),a	;345a - This is to clear the non-maskable interrupt status
+	or 	$20		;345c - Bit 5
+	out 	(contprt),a	;345e - Misc control port. turn on bit 5, Video Waits
+	ld 	a,$81		;3460 - drive 0 and double-density
+	out	(fdcdrvp),a	;3462 - write Disk Drive and Disk Density Select
+	ld 	a,$D0		;3464 - D0H - reset; puts FDC in mode 1
+	out 	(fdccmdp),a	;3466 - write command
 	call 	SHRTDLY		;3468 - short delay
-	ld 	a,$04		;346b
-	out 	(maskprt),a	;346d
-	ld 	a,$0B		;346f
-	out 	(fdccmdp),a	;3471
-	ld 	hl,INITR	;3473 - Copy From Defaults at 36AA
-	ld 	de,RAM		;3476 - To The start of RAM
-	ld 	bc,$4C		;3479 -
-	ldir			;347c
+	ld 	a,$04		;346b - enable jump to jumps to 4046H
+	out 	(maskprt),a	;346d - maskable interrupt latch
+	ld 	a,$0B		;346f - command Restore (0000), Load Head at Beginning (1)
+	out 	(fdccmdp),a	;3471 - write the command
+	ld 	hl,INITR	;3473 - Copy Defaults from 36AA
+	ld 	de,RAM		;3476 - To The start of RAM 4000
+	ld 	bc,$4C		;3479 - move 76 ($4C) bytes
+	ldir			;347c - DO MOVE
 	ld 	hl,SERDCB	;347e - Copy From Default Values at 36F9
 	ld 	de,SERINP	;3481 - 41E5 Serial Input DCB
-	ld 	bc,$40		;3484 - move 64 bytes
-	ldir			;3487
-	call 	CLS		;3489
+	ld 	bc,$40		;3484 - move 64 ($40) bytes
+	ldir			;3487 - DO MOVE
+	call 	CLS		;3489 - CLS
 	call 	KBBRK		;348c - Check for a BREAK key only
 #IFDEF FREHDBT
 	call	hd_boot1	;frehd boot extension
 #ELSE
 	jp 	nz,NONDISK	;348f
 #ENDIF
-	in 	a,(fdccmdp)	;3492
-	inc 	a		;3494
-	jp 	z,NONDISK	;3495
+	in 	a,(fdccmdp)	;3492 - verify the disk controller
+	inc 	a		;3494 - turn a FFH into 00H
+	jp 	z,NONDISK	;3495 - Z flag mean "Disk Controller Not Ready".
 	ld 	bc,0		;3498 - set up for a loop of 65,535 times.
-l349bh:
-	dec 	bc		;349b
-	ld 	a,$81		;349c
-	out 	(fdcdrvp),a	;349e
+BOOTSTP1:
+	dec 	bc		;349b - dec the loop
+	ld 	a,$81		;349c - Disk 1 Double Density
+	out 	(fdcdrvp),a	;349e - Disk Drive and Disk Density Select
 	ld 	a,b		;34a0
-	or 	c		;34a1
-	jp 	z,NONDISK	;34a2
-	in 	a,(fdccmdp)	;34a5
-	bit 	2,a		;34a7
-	jr 	z,l349bh	;34a9
+	or 	c		;34a1 - TEST BC register pair
+	jp 	z,NONDISK	;34a2 - waited long enough, so exit
+	in 	a,(fdccmdp)	;34a5 - FLOPPPY STATUS REGISTER
+	bit 	2,a		;34a7 - Bit 2 of Stus. 0 - haven't got track 0
+	jr 	z,BOOTSTP1	;34a9 - Lopp back if this is the case
 ;
 ; ======================================================================
 ; WARM BOOT
 ; ======================================================================
 ;
 WARMBOOT:
-	ld 	e,5		;34ab
-l34adh:
-	ld 	bc,0000h		;34ad - Set up for a loop of 65,536
-l34b0h:
-	in 	a,(fdccmdp)	;34b0
-	bit 	1,a		;34b2
-	jr 	nz,l34c7h	;34b4
-	dec 	bc		;34b6
-	ld 	a,$81		;34b7
-	out 	(fdcdrvp),a	;34b9
+	ld 	e,5		;34ab - loop counter
+WARMBOOT1:
+	ld 	bc,0000h	;34ad - Set up for a loop of 65,536
+WARMBOOT2:
+	in 	a,(fdccmdp)	;34b0 - Read FDC Status - Port F0
+	bit 	1,a		;34b2 - if bit 1 (meaning "Drive Busy") is set.
+	jr 	nz,WARMBOOT3	;34b4 - then Jump
+	dec 	bc		;34b6 - loop counter
+	ld 	a,$81		;34b7 - Drive 1 Double Density
+	out 	(fdcdrvp),a	;34b9 - Select the Drive
 	ld 	a,b		;34bb
-	or 	c		;34bc
-	jr 	nz,l34b0h	;34bd
-	ld 	hl,MSGDISK	;34bf
-	call 	VDLINE		;34c2
-	jr 	WARMBOOT	;34c5
-l34c7h:
-	dec 	e		;34c7
-	jr 	nz,l34adh	;34c8
-l34cah:
-	ld 	a,$81		;34ca
-	out 	(fdcdrvp),a	;34cc
+	or 	c		;34bc - TEST the BC register pair
+	jr 	nz,WARMBOOT2	;34bd - Not Zero so loop
+	ld 	hl,MSGDISK	;34bf - "Diskette ?" Message
+	call 	VDLINE		;34c2 - Display It
+	jr 	WARMBOOT	;34c5 - and loop back
+WARMBOOT3:
+	dec 	e		;34c7 - need to find the index mark. First decrement E by 1.
+	jr 	nz,WARMBOOT1	;34c8 - loop back and retry
+WARMBOOT4:
+	ld 	a,$81		;34ca - select drive 0, double density
+	out 	(fdcdrvp),a	;34cc - write this
 	ld 	hl,NMIJUMP	;34ce - jump address for NMI Vector
 	ld 	(NMIVEC+1),hl	;34d1 - write the jump address to NMI vector
 	ld 	a,OPJPNN	;34d4 - JP hhhh - Jump Op Code
 	ld 	(NMIVEC),a	;34d6 - write first byte of NMI Vector
-	ld 	a,$80		;34d9
-	out 	(nonmask),a	;34db
-	ld 	bc,000f3h	;34dd
-	ld 	hl,04300h	;34e0
+	ld 	a,$80		;34d9 - INTRQ Status = 1
+	out 	(nonmask),a	;34db - set non-maskable interrupt latch
+	ld 	bc,fdcdata	;34dd - LD B=0; C=Floppy Data register Port
+	ld 	hl,MEMEND	;34e0 - $4300 where the data is going to go.
 	ld 	a,1		;34e3
-	out 	(fdcsect),a	;34e5
-	ld 	a,$80		;34e7
-	out 	(fdccmdp),a	;34e9
+	out 	(fdcsect),a	;34e5 - Set Track Register = 1
+	ld 	a,$80		;34e7 - command READ SECTOR
+	out 	(fdccmdp),a	;34e9 - execute it
 	call	SHRTDLY		;34eb - short delay
-l34eeh:
-	in 	a,(fdccmdp)	;34ee
-	and 	2		;34f0
-	jp 	z,l34eeh	;34f2
-	ini			;34f5
-l34f7h:
-	ld 	a,$81		;34f7
-	or 	$40		;34f9
-	out 	(fdcdrvp),a	;34fb
-	ini			;34fd
-	jp 	l34f7h		;34ff
+WARMBOOT5:
+	in 	a,(fdccmdp)	;34ee - read the status
+	and 	2		;34f0 - test for the index mark,
+	jp 	z,WARMBOOT5	;34f2 - Loop back, keep polling until index found
+	ini			;34f5 - Input the data byte
+WARMBOOT6:
+	ld 	a,$81		;34f7 - select disk 0.
+	or 	$40		;34f9 - double density
+	out 	(fdcdrvp),a	;34fb - OUT Disk Drive and Disk Density Select
+	ini			;34fd - Input the data byte.
+	jp 	WARMBOOT6	;34ff - Loop back to 34F7 to set drive and density
 ;
+; NOTE: This appears to be an infinite loop in the code, but it isn't in actuality.
+; Once the disk controller has loaded an entire sector, it will trigger a
+; non-maskable interrupt and will exit to 3502H. That was set up at 34CE.
+;
+; ----------------------------------------------------------------------
 ; 3502H - Non-Maskable Interrupt Jump Point to verify the disk sector read wasn't in error.
+; ----------------------------------------------------------------------
 ;
 NMIJUMP:
 	xor 	a		;3502
 	out 	(nonmask),a	;3503
-	ld 	hl,$45ED	;3505 - todo What is This ???
+	ld 	hl,$45ED	;3505 - What is This ADDRESS Exactly ???
 	ld 	(NMIVEC),hl	;3508 - Set the NMI Vector ???
 	call 	SHRTDLY		;350b - short delay, for the FDC to respond
-	in 	a,(fdccmdp)	;350e
+	in 	a,(fdccmdp)	;350e - read the status from FDC
 	pop 	hl		;3510
-	and 	01ch		;3511
-	jp 	z,MEMEND	;3513
-	jr 	l34cah		;3516
+	and 	$1C		;3511 - Mask only there errors we want to test
+	jp 	z,MEMEND	;3513 - JUMP $4300 If no errors are generated
+	jr 	WARMBOOT4		;3516 - JUMP if Error present, try to re-read sector
 SHRTDLY:
 	push 	bc		;3518 - A short Delay
 	pop 	bc		;3519 - routine used
@@ -10975,12 +10997,12 @@ SHRTDLY:
 ;
 NMIHANDLE:
 	jp 	nz,NMIVEC	;351c - NMI Vector in RAM $4049
-l351fh:
-	in 	a,(nonmask)	;351f
-	bit 	5,a		;3521
-	jr 	z,l351fh	;3523
+NMIHAND2:
+	in 	a,(nonmask)	;351f - Read Port E4H - Non-Maskable Interrupt Latch
+	bit 	5,a		;3521 - Test Bit 5 - Reset Status
+	jr 	z,NMIHAND2	;3523 - Loop back until it is set
 	jp 	_START		;3525 - Jump to 0000H to restart the computer.
-	rst 	38h		;3528
+	.DB 	$FF		;3528 - UNUSED
 ;
 ; ======================================================================
 ; 3529H - Invoked from an Interrupt Vector (Vector 2)
@@ -11033,22 +11055,21 @@ HRTBEAT1:
 	ld 	a,(de)		;3565 - get the maximum
 	sub 	(hl)		;3566 - subtract the current value
 	ret 	nz		;3567 - not reached maximum - nothing to do. EXIT
-	ld 	(hl),a		;3568 -
-	; todo continue documentation
-	inc 	hl		;3569
-	inc 	de		;356a
-	djnz 	HRTBEAT1	;356b
+	ld 	(hl),a		;3568 - Save it back
+	inc 	hl		;3569 - INC the pointer to the Values
+	inc 	de		;356a - INC the lookup data pointer
+	djnz 	HRTBEAT1	;356b - and LOOP
 ;
-	inc 	hl		;356d
-	inc 	(hl)		;356e
-	inc 	hl		;356f
-	ld 	a,(hl)		;3570
-	dec 	hl		;3571
-	dec 	a		;3572
-	add 	a,e		;3573
+	inc 	hl		;356d - Bump HL one more time, to 421BH.
+	inc 	(hl)		;356e - Bump the DAY portion of the date.
+	inc 	hl		;356f - Bump HL one more time, to 421CH.
+	ld 	a,(hl)		;3570 - Get the month and put it into A.
+	dec 	hl		;3571 - Decrease HL back to to 421BH.
+	dec 	a		;3572 - Decrease A by one (to the previous month).
+	add 	a,e		;3573 -
 	ld 	e,a		;3574
-	ld 	a,(de)		;3575
-	cp 	(hl)		;3576
+	ld 	a,(de)		;3575 - Poll the number of days in a month
+	cp 	(hl)		;3576 -
 	ret 	nc		;3577
 	ld 	a,(hl)		;3578
 	cp 	30		;3579
@@ -11063,14 +11084,13 @@ HRTBEAT2:
 	inc 	hl		;3585
 	inc 	(hl)		;3586
 	ld 	a,(hl)		;3587
-	sub 	$0D		;3588
+	sub 	13		;3588 - test against month 13. If A < 13, then the CARRY FLAG will be set
 	ret 	c		;358a
-	ld 	(hl),001h	;358b
+	ld 	(hl),1		;358b - If we are here, then MONTH = 13, so set MONTH to 1
 	dec 	hl		;358d
 	dec 	hl		;358e
 	inc 	(hl)		;358f
 	ret			;3590
-; TODO Examine and Document Code working Up from this point
 ;
 ; ----------------------------------------------------------------------
 ; 3591 - Check to see if the clock is on and exit back out if it is off
@@ -11541,9 +11561,11 @@ TIMEREADY:
 ;
 ; ----------------------------------------------------------------------
 ; 37EA - Computer Version Number
+; 1 = Model 3
+; 0 = Model 4
 ; ----------------------------------------------------------------------
 VERNUM:
-	.DB	1		;37ea computer version number 1 = Model3
+	.DB	1		;37ea computer version number
 ;
 ; ----------------------------------------------------------------------
 ; 37EBH - Display the Copyright Message
@@ -11583,6 +11605,7 @@ serdata: 	.EQU	$EB	; Rs232 Serial Data Port
 contprt:	.EQU	$EC	; MISC Control Port
 fdccmdp: 	.EQU	$F0	; Floppy Command Status PORT
 fdcsect: 	.EQU	$F2	; Floppy Sector Register
+fdcdata: 	.EQU	$F3	; Floppy Data Register
 fdcdrvp: 	.EQU	$F4	; Floppy Drive Select PORT
 lineprt:	.EQU	$F8	; LINE Printer
 vidcmt:	 	.EQU	$FF	; VIDEO I/O Mode select and Cassette Port

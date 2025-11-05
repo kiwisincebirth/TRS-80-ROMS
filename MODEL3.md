@@ -25,6 +25,9 @@ This source code is based on the following ROM revisions
 
 There are several `DEFINE`'s that can be set in the code (very start) to enable certain features.
 
+There are some options to define the base ROM
+* `#DEFINE VIDEO50` - Enable 50Hz Video Support (Affects RTC)
+
 There are several optional features.
 * `#DEFINE FREHDBT` - Enables the FreHD auto boot feature, i.e. the Auto boot ROM. This requires version 1.3
   ROM as a base, please do NOT define `VER12` as it is not compatible (it will be ignored anyway)
