@@ -15,12 +15,12 @@
 ; #DEFINE VIDEO50 ; Uncomment to Enable 50Hz Video Support (RTC)
 ;
 ; === Rom Bug Fixes ===
-; #DEFINE BUGFIX30 ; Uncomment to Fix Bug 30 - 034BH - 32 char Mode
+; #DEFINE BUGFIX28 ; Uncomment to Fix Bug 28 - 02B5H - Stack Init
+; #DEFINE BUGFIX30 ; Uncomment to Fix Bug 30 - 034BH - 32 Char Mode
 ; #DEFINE BUGFIX40 ; Uncomment to Fix Bug 40 - 05D1H - Printer Status
 ;
 ; = Rom Bugs TO FIX =
 ; #DEFINE BUGFIX27 ; Uncomment to Fix Bug 27 - 0072H - Basic Entry
-; #DEFINE BUGFIX28 ; Uncomment to Fix Bug 28 - 02B5H - Stack
 ; #DEFINE BUGFIX29 ; Uncomment to Fix Bug 29 - 02C3H - Basic Entry
 ; #DEFINE BUGFIX31 ; Uncomment to Fix Bug 31 - Issues with Stack
 ; (currently these are not fixed - defining them has no affect)
@@ -46,24 +46,37 @@
 ; ----------------------------------------------------------------------
 ;
 ;   • Ira Goldlang, TRS-80 ROM Information - [https://www.trs-80.com/main-internal-rom-related.htm]
+;   • Ira Goldlang, TRS-80 ROM BUGS - [https://www.trs-80.com/sub-rom-bugs.htm]
 ;   • Telemark Assembler - [https://www.cpcalive.com/docs/TASMMAN.HTM]
 ;
 ; ======================================================================
 ;      BUGS
 ; ----------------------------------------------------------------------
 ;
-; Bug 27, 29 (Basic Entry)
-; Note that a jump to 06CCH will no longer get you back into BASIC in the Model III.
-; This might be considered a major blunder in the design of the Model III ROM,
-; both because so many available programs use this re-entry point to BASIC,
-; and because the ROM itself has two jumps to 06CCH (one at 0072H that appears
-; to be unused, and one at 02C3H, which is used if the BREAK key is pressed under
-; the SYSTEM command - a bona fide BUG in the Model III ROM). A substitute re-entry to BASIC
-; that will work with either model is to LD BC,1A18H and then JP 19AEH
-; (this is the code presently found at 06CCH in the Model I).
+; Bug 28 - Stack Pointer Initialisation
 ;
-; Bug 40 (Printer Status)
-; The Printer Status Routine (05D1) - carried from Model 1 is broken
+; Instruction at 02B5H is LD SP,4288H. The instruction here should
+; be LD SP,4388H because the Model III moved up the start of BASIC by 100H.
+;
+; Bug 30 - 32 Character Mode
+;
+; 0348H: Instruction here is LD A,(403DH). 403DH is the code that
+; is jumped to when port 0E0H has bit 3 reset (IOBUS interrupt).
+; 403DH was used in the Model I to hold an image of what was outputted
+; to port 0FFH. If bit 3 of port 0FFH is set then the Model I is in the
+; 32 characters per line video mode. Another screw up.
+; The Model III uses bit 2 of port 0ECH with image in 4210H.
+;
+; 034BH: Instruction here is AND 08H. Wrong bit is tested. The correct
+; instruction should be AND 04H. OP-ED: Once Radio Shack explained the
+; cursor movement when in the 32 characters per line video mode, Radio
+; Shack did not fix the code. And, Radio Shack made Logical Systems modify
+; TRSDOS 6 to behave the same way! However, with LSDOS 6.3, someone should
+; have had the guts to correct the code.
+;
+; Bug 40 - Printer Status Routine
+;
+; 05D1H: The Printer Status Routine - carried from Model 1 is broken
 ; Rumor has it that this is a malicious destruction of the
 ; "printer ready" function was used to hide the name "RON"
 ; See 044BH which has the correct implementation
@@ -191,7 +204,6 @@ ENTER:	.EQU 	$0D	; (ENTER Key) - Return
 ; Following are special meaning CHR codes, not ASCII standard
 CURON:	.EQU	$0E	; turn on cursor.
 CUROFF:	.EQU	$0F 	; turn off cursor.
-
 MODE32:	.EQU	$17	; select line size of 32 char/line.
 ARLEFT:	.EQU	$18	; (Shift-LEFT Arrow) backspace one character
 ARIGHT:	.EQU	$19	; (Shift-RIGHT Arrow) skip forward one character
@@ -217,14 +229,16 @@ CURCHR  .EQU	$B0	; (block graphic) _ cursor character
 #DEFINE	CPDEHL		rst 18h
 #DEFINE	TSTDAT		rst 20h
 ;
+; ----------------------------------------------------------------------
+; Constants used by FreHD
+; ----------------------------------------------------------------------
 #IFDEF FREHDBT
 ;
-; Equates for FREHD Code
-ROM_MODEL_1	.equ 1h
-ROM_MODEL_3	.equ 3h
-READROM		.equ 0C4h	; read only
-WRITEROM	.equ 0C5h	; write only
-ROM_LOAD	.equ 5000h	; where the extra "rom is loaded
+ROM_MODEL_1	.EQU	1	; TRS model : passed by the patched rom
+ROM_MODEL_3	.EQU 	3	; TRS model : passed by the patched rom
+READROM:	.EQU 	$C4	; read only
+WRITEROM	.EQU 	$C5	; write only
+ROM_LOAD	.EQU 	$5000	; where the extra "rom is loaded
 ;
 #ENDIF
 ;
@@ -472,8 +486,8 @@ RSINIT:
 ; ----------------------------------------------------------------------
 DELAY:
 	jp 	DELAY2		;0060 - jump to the actual delay routine
-	jr 	nz,DELAY	;0063 - unused?
-	ret			;0065 - unused?
+	jr 	nz,DELAY	;0063 - UNUSED - A hangover from Model 1
+	ret			;0065 - UNUSED - A hangover from Model 1
 ;
 ; ----------------------------------------------------------------------
 ; 0066 - NMI RESET
@@ -553,7 +567,7 @@ LOPRTS:	ld	(hl),OPRET	;00a1 - Store RET OpCode
 	ld	(hl),b		;00ab
 	ld	sp,SMPSTK	;00ac - STACK pointer to 41F8H, temporary until call STKINI
 	call	STKINI		;00af - Go initialize the Level II BASIC variables and pointers
-	nop			;00b2 - previous was CLS
+	nop			;00b2 - On Model 1 was call to CLS
 	nop
 	nop
 ;
@@ -603,7 +617,8 @@ USEDEF:	dec	hl		;00e7 - minus 1
 	call	SCRTCH		;00f9 - init the Level II variables and pointers
 	ld	hl,HDGMSG	;00fc - Radio Shack L2 Basic - Message
 	jp	COPYWR		;00ff - print the message copywr msg
-	jp	READY		;0102 - UNUSED ???
+;
+	jp	READY		;0102 - UNUSED - A hangover from Model 1
 ;
 ; ----------------------------------------------------------------------
 ; 0105H-011BH – MESSAGE STORAGE
@@ -612,6 +627,12 @@ USEDEF:	dec	hl		;00e7 - minus 1
 ;
 MEMMSG:	.DB	"Memory Size",0		   		; Memory Size Message
 HDGMSG:	.DB	"Radio Shack Model III Basic",$0D	; RS L2 Basic Message V1.3
+HDGMSG:	.DB	"Radio Shack Model III Basic",$0D	; RS L2 Basic Message V1.3
+;
+; Could Easly get 11 - 13 Bytes Back by shortening the above messages
+; LD BC,$1A18 - 3 bytes
+; JP 19AEH - 3 bytes
+; Jumped to from the required locations, including 06CC
 ;
 ; ----------------------------------------------------------------------
 ; 012DH – ?L3 ERROR ENTRY POINT – "L3ERR"
@@ -789,9 +810,9 @@ PRSCN2:
 	jr 	nz,PRSCN1	;01ee - not eol, loop back for more characters
 	call 	DISPCR		;01f0 - display a CR, and
 	jr 	PRSCN1		;01f3 - loop back for more characters
-PRSCN3:
-	djnz 	PRSCN3		;01f5 - UNUSED
-	ret			;01f7 - UNUSED
+CT3:
+	djnz	CT3		;01f5 - UNUSED - A hangover from Model 1
+	ret			;01f7 - UNUSED - A hangover from Model 1
 ;
 ; -------------------------------------------------------
 ; 01F8 - Turn Off The Cassette Motor - "$CSOFF"
@@ -921,21 +942,23 @@ CASOUT1:
 	ex 	(sp),hl		;0251 - put he actual vector on the stack
 	ret			;0252 - and return to the routine
 ;
-l0253h:
+; -------------------------------------------------------
+; 0253 - Called with Stack holding A Tape Routine Vector
+;   This detects and calls the SLow or Fast Tape Vector
+; -------------------------------------------------------
+TAPECALL:
 	ex 	(sp),hl		;0253 - RETURN ADDRESS of whoever called this routine
 	ld 	a,(TAPEBD)	;0254 - Tape Baud rate select
 	or 	a		;0257 - set flags
-	jr 	z,CASOUT5	;0258 - zero if 500 baud
+	jr 	z,TAPECALL2	;0258 - zero if 500 baud
 	inc 	hl		;025a - not zero, HL+3 to get the fast vector.
 	inc 	hl		;025b
 	inc 	hl		;025c
-CASOUT5:
+TAPECALL2:
 	ex 	(sp),hl		;025d - Put HL as the RETURN ADDRESS and restore HL.
 	ret			;025e - return to the Vector
-;
-l025fh:
-	pop 	bc		;025f - clean the stack
-	ret			;0260
+	pop 	bc		;025f - UNUSED - A hangover from Model 1
+	ret			;0260 - UNUSED - A hangover from Model 1
 ;
 ; -------------------------------------------------------
 ; 0264 - "$CSOUT" - Output a byte to cassette.
@@ -958,11 +981,13 @@ TIMEDATA:
 	.DB	31, 28, 31, 30, 31, 30	;0269 - twelve bytes which contain the length of each of the twelve months
 	.DB	31, 31, 30, 31, 30, 31
 	.DB	0, 0			;0275 UNUSED
+;
 MSGDISK:
 	.DB	CLINE			;0277 Start of Line
 	.DB	ELINE			;0278 Erase to EOL
 	.DB	"Diskette?", ETX 	;0279 Message Space, with $03 Terminator
-	.DB	$F2			;0283 UNUSED
+;
+	.DB	$F2			;0283 UNUSED - A hangover from Model 1
 ;
 ; -------------------------------------------------------
 ; 0284 - This subroutine is called by 2076H to turn the tape on,
@@ -1373,7 +1398,7 @@ INITIO2:
 	ldir			;0466
 	ret			;0468 - ret
 ;
-	.DB	$20, $DA	;0469 - UNUSED
+	.DB	$20, $DA	;0469 - UNUSED - A hangover from Model 1
 ;
 ; ----------------------------------------
 ; 046B-0472 - Zeroes out the PROTECTED SCREEN LINES
@@ -1555,8 +1580,8 @@ DSPUP:
 ; 04F6H – Set up 32-Character mode – “DSPETB”
 ; ----------------------------------------------------------------------
 DSPETB:
-	ld 	a,(SHADEC)	;0513 - shadow port EC
-	or 	SHADM32		;0516 - test for 32 character mode
+	ld 	a,(SHADEC)	;0513 - get shadow copy of port $EC
+	or 	SHADM32		;0516 - Set the 32 Char mode bit
 	call 	WRITEEC		;0518 - Save A to Port EC, and shadow memory 4210H
 	inc	hl		;0500 - Increment the current cursor position
 	ld	a,l		;0501 - get lower order byte
@@ -1567,7 +1592,7 @@ DSPETB:
 ; 0506H – Process control characters – “DSPCTL”
 ; ----------------------------------------------------------------------
 DSPCTL:
-	ld 	de,DSPSKP		;0521
+	ld 	de,DSPSKP	;0521 - Completion of video display routines
 	push	de		;0509 - Save the return address on the STACK
 	cp	BACKS		;050a - is a backspace 08h
 	jr	z,DSPBSP	;050c - then process a backspace
@@ -1635,7 +1660,7 @@ DSPOUT:
 	ld 	(hl),a		;0576 - write the character to video ram
 	inc 	hl		;0577 - next screen position
 	ld 	a,(SHADEC)	;0578 - shadow port EC
-	and 	SHADM32		;057b - mask out the double wide bit
+	and 	SHADM32		;057b - mask out 32 char mode bit
 	jr 	z,DSPOT2	;057d - if not 32 character mode, skip over
 	inc 	hl		;057f - Skip another screen location (32 char)
 DSPOT2:
@@ -1978,6 +2003,8 @@ UNTOKEN4:
 	ret 	nz		;06d0 - no then Skip
 	dec 	bc		;06d1
 	ld 	a,(bc)		;06d2 - get 1 character back
+;
+;
 	cp 	':'		;06d3 - Test for a : colon
 	ret 	nz		;06d5 - no then Skip
 ;
@@ -5717,7 +5744,7 @@ ERRFIN:	call	STROUT		;1a06
 	pop	hl		;1a09
 	ld	de,$FFFE	;1a0a
 	CPDEHL			;1a0d
-	jp	z,CIO	;1a0e
+	jp	z,CIO		;1a0e
 	ld	a,h		;1a11
 	and	l		;1a12
 	inc	a		;1a13
@@ -5735,7 +5762,7 @@ STPRDY:	pop	bc		;1a18
 ;  Often 06CCH or 0072H are used as alternatives, but these dont work on M3
 ;  See 19AE which also provides a good entry point and works on M1 and M3
 ; ======================================================================
-READY:	call	FINLPT		;1a19 - Re-entry into BASIC command mode entry point. (see 6CCH also)
+READY:	call	FINLPT		;1a19 - set the current output device to the video display
 	call	PRGFIN		;1a1c - dos exit for BASIC startup
 	call	CTOFF		;1a1f - turn off the cassette recorder
 	call	CRDONZ		;1a22 - display a carriage return if necessary
@@ -7216,7 +7243,7 @@ ENDREC:	dec	hl		;21bd
 	jr	INPCN3		;21c7
 INTCAS:	ld	bc,NOTQTI	;21c9
 	push	bc		;21cc
-	cp	$22		;21cd
+	cp	DQUOTE		;21cd
 	ret	nz		;21cf
 	call	STRLTI		;21d0
 	SYNTAX	(SEMICO)	;21d3 - rst 08h compare with semicolin ';'
@@ -7296,7 +7323,7 @@ DATBK:	call	FILIND		;222d
 	GETCHR			;2234 - rst 10h
 	ld	d,a		;2235
 	ld	b,a		;2236
-	cp	$22		;2237
+	cp	DQUOTE		;2237
 	jr	z,NOWGETR	;2239
 	ld	d,':'		;223b
 	ld	b,','		;223d
@@ -8547,7 +8574,7 @@ STRAD2:	ld	hl,DSCTMP	;285a
 ;   the CALL to this routine.
 ; ----------------------------------------------------------------------
 STRLIT:	dec	hl		;2865
-STRLTI:	ld	b,$22		;2866
+STRLTI:	ld	b,DQUOTE	;2866
 	ld	d,b		;2868
 STRLT2:	push	hl		;2869
 	ld	c,$FF		;286a
@@ -8560,7 +8587,7 @@ STRGET:	inc	hl		;286c
 	jr	z,STRFIN	;2873
 	cp	b		;2875
 	jr	nz,STRGET	;2876
-STRFIN:	cp	$22		;2878
+STRFIN:	cp	DQUOTE		;2878
 	call	z,CHRGTR	;287a
 	ex	(sp),hl		;287d
 	inc	hl		;287e
@@ -9254,10 +9281,10 @@ PLOOP:	inc	bc		;2b89
 	dec	d		;2b8a
 	ret	z		;2b8b
 PLOOP2:
-	inc hl			;2b8c
+	inc 	hl		;2b8c
 PLOOP3:
-	ld a,(hl)		;2b8d
-	or a			;2b8e
+	ld 	a,(hl)		;2b8d
+	or 	a		;2b8e
 	ld	(bc),a		;2b8f
 	ret	z		;2b90
 	jp	JT_UNTOKEN	;2b91
@@ -10125,7 +10152,6 @@ JT_DATTIM:
 ; ----------------------------------------------------------------------
 ; 3039 - NMI HANDLER ENTRY POINT
 ; ----------------------------------------------------------------------
-;
 NMIENTRY:
 	in 	a,(nonmask)	;3039 - Read the Non-Maskable Interrupt Latch.
 	bit 	5,a		;303b - Check the 5th Bit of the NMI Latch.
@@ -10136,7 +10162,7 @@ NMIENTRY:
 ;
 ; ----------------------------------------------------------------------
 ; 3045 - Keyboard Rows 0-3, Unshifted, No Caps Lock
-;
+; ----------------------------------------------------------------------
 KEYLKUP:
 	.DB	$40
 	.DB	"abcdefghijklmnopqrstuvwxyz"
@@ -10144,7 +10170,7 @@ KEYLKUP:
 ; ----------------------------------------------------------------------
 ; 3060 - Load A with the Computer version number,
 ; which is always 1 for a Model III and 0 for a Model 4.
-;
+; ----------------------------------------------------------------------
 GETVERSION:
 	ld 	a,(VERNUM)	;3060 - NOTE: Value at 37EAH is a hard coded "1"
 	or 	a		;3063
@@ -10155,7 +10181,7 @@ GETVERSION:
 ;
 ; NOTE: The use of this (and following) is dependant on positon
 ; Calculated from the First Table located at $3045 adding $20 byte offsets
-;
+; ----------------------------------------------------------------------
 	.DB	"0123456789"
 	.DB	":;"
 	.DB	$2C, $2D, $2E, $2F
@@ -10163,7 +10189,7 @@ GETVERSION:
 ;
 ; ----------------------------------------------------------------------
 ; 307D - Set the Keyboard Repeat Delay Count to 1500'
-;
+; ----------------------------------------------------------------------
 RPTDLY15:
 	ld	hl,1500		;307d
 	ld	(RPTDLY),hl	;3080 - 41FFH holds the keyboard scan repeat delay count.
@@ -10172,16 +10198,17 @@ RPTDLY15:
 ;
 ; ----------------------------------------------------------------------
 ; 3085 - Keyboard Rows 0-3, shifted, No Caps Lock
-;
+; ----------------------------------------------------------------------
 	.DB	$60
 	.DB	"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 ;
 ; ----------------------------------------------------------------------
-; 30A0 - A MESS. v2 has it putting A into (HL), clearing A and FLAGS and RETURN.
-;
-l30a0h:
+; 30A0 - Toggle Caps Lock.
+; ----------------------------------------------------------------------
+CAPSLOCK2:
+	; A MESS. v2 has it putting A into (HL), clearing A and FLAGS and RETURN.
 	ld 	(hl),a		;30a0 - Load the memory address pointed to by HL with A.
-l30a1h:
+CAPSLOCK3:
 	xor 	a		;30a1 - Clear A and all flags.
 	ret			;30a2
 	.DB	$AA, $AA	;30a3 30a4 - UNUSED PADDING
@@ -10189,7 +10216,6 @@ l30a1h:
 ; ----------------------------------------------------------------------
 ; 30A5 - Keyboard Rows 4-6, shifted, No Caps Lock.
 ; ----------------------------------------------------------------------
-;
 	.DB	$00
 	.DB	$21, $22, $23, $24, $25, $26, $27, $28, $29, $2A, $2B
 	.DB	$3C, $3D, $3E, $3F
@@ -10197,24 +10223,22 @@ l30a1h:
 ;
 ; ----------------------------------------------------------------------
 ; 30BD - Toggle Caps Lock.
-;
+; ----------------------------------------------------------------------
 CAPSLOCK:
 	ld	a,$01		;30bd
 	ld	hl,$4019	;30bf - NOTE: 4019H holds the caps lock toggle in the keyboard DCB.
 	xor	(hl)		;30c2
-	jr	$30a0		;30c3
+	jr	CAPSLOCK2	;30c3
 ;
 ; ----------------------------------------------------------------------
 ; 30C5 - Keyboard Rows 0-3, UNshifted, Caps Lock.
 ; ----------------------------------------------------------------------
-;
 	.DB	"@"
 	.DB	"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
 ;
 ; ----------------------------------------------------------------------
 ; 30E0 - GOSUB to the PRINT SCREEN Routine, Clear A, and RETURN
-;
+; ----------------------------------------------------------------------
 PRSCN_ALT:
 	call 	PRSCN		;30e0 - Print Screen Routine.
 	xor 	a		;30e3
@@ -10223,7 +10247,6 @@ PRSCN_ALT:
 ; ----------------------------------------------------------------------
 ; 30E5 - Keyboard Rows 4-6, UNshifted, Caps Lock
 ; ----------------------------------------------------------------------
-;
 	.DB	"0123456789"
 	.DB	$3A, $3B
 	.DB	$2C, $2D, $2E, $2F
@@ -10231,7 +10254,7 @@ PRSCN_ALT:
 
 ; ----------------------------------------------------------------------
 ; 30FD - Checking for a BREAK key
-;
+; ----------------------------------------------------------------------
 KEYPRESS8:
 	jr	z,PRSCN_ALT	;30fd
 	and 	(hl)		;30ff
@@ -10243,7 +10266,6 @@ KEYPRESS8:
 ; ----------------------------------------------------------------------
 ; 3105 - Keyboard Rows 0-3, shifted, Caps Lock
 ; ----------------------------------------------------------------------
-;
 	.DB	$60
 	.DB	"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 ;
@@ -10259,7 +10281,6 @@ KEYENTRY3:
 ; ----------------------------------------------------------------------
 ; 3125 - Keyboard Rows 4-6, Shifted, Caps Lock
 ; ----------------------------------------------------------------------
-;
 	.DB	0
 	.DB	$21, $22, $23, $24, $25, $26, $27, $28, $29, $2A, $2B
 	.DB	$3C, $3D, $3E, $3F
@@ -10268,7 +10289,7 @@ KEYENTRY3:
 ; ----------------------------------------------------------------------
 ; 313D - Restore Scanning Variables.
 ; This routine is called from 33CC which is in the middle of the keyboard input routine.
-;
+; ----------------------------------------------------------------------
 KEYENTRY4:
 	ld	a,(RPTLSB)	;313d - repeating buffer LSB
 	ld	l,a		;3140
@@ -10278,7 +10299,6 @@ KEYENTRY4:
 ; ----------------------------------------------------------------------
 ; 3145 - Printer Character Table Codes 32-127.
 ; ----------------------------------------------------------------------
-;
 PRTABLE:
 	.DB	$20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $2A, $2B, $2C, $2D, $2E, $2F
 	.DB	$30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $3A, $3B, $3C, $3D, $3E, $3F
@@ -10291,24 +10311,28 @@ PRTABLE:
 	; NOTE: Could be reimplemented without this table, saving ROM space
 	; NOTE: See 03E9 for the use of this table
 ;
+; ======================================================================
+; CASSETTE ROUTINES
+; ======================================================================
+;
 ; ----------------------------------------------------------------------
-; 31A5 - Output the TIMING MARK to the cassette
+; 31A5 - SLOW Output the TIMING MARK to the cassette
 ; ----------------------------------------------------------------------
-WRTTMNG:
+SLOWTIM:
 	ld 	a,1		;31a5 - The Voltage Value 0.46V to write
 	out 	(vidcmt),a	;31a7 - write to cassette
-	ld 	b,00dh		;31a9
-WRTTMNG1:
-	djnz 	WRTTMNG1	;31ab
+	ld 	b,$0D		;31a9 - setup delay
+SLOWTIM1:
+	djnz 	SLOWTIM1	;31ab - delay before writing
 	ld 	a,2		;31ad - The Voltage Value 0V to write
 	out 	(vidcmt),a	;31af - write to cassette
-	ld 	b,00dh		;31b1
-WRTTMNG2:
-	djnz 	WRTTMNG2	;31b3
+	ld 	b,$0D		;31b1 - setup delay
+SLOWTIM2:
+	djnz 	SLOWTIM2	;31b3 - delay before writing
 	call 	RSTCASS		;31b5 - RESET the cassette port.
-	ld 	b,078h		;31b8
-WRTTMNG3:
-	djnz 	WRTTMNG3	;31ba
+	ld 	b,$78		;31b8 - setup delay
+SLOWTIM3:
+	djnz 	SLOWTIM3	;31ba - delay
 	ret			;31bc
 ;
 ; PART anouther routine
@@ -10338,7 +10362,7 @@ CASSON:
 	push 	hl		;31d4
 	ex 	de,hl		;31d5
 	in 	a,(contprt)	;31d6
-	ld 	de,$2020	;31d8 - 2 consecutive spaces
+	ld 	de,$2020	;31d8 - SPACE SPACE - 2 spaces
 	ld 	(vidmem+$3E),de	;31db - write to top right of screen
 	call 	CASSON2		;31df - set the cass on Flag
 	ld 	bc,$7D00	;31e2 - load a Delay
@@ -10348,11 +10372,9 @@ CASSON:
 ;
 CASSON2:
 	ld 	a,(SHADEC)	;31e8 - shadow port EC
-	or 	$02		;31eb
+	or 	$02		;31eb - turn on the cassette BIT
 WRITEEC2:
-	;
 	; NOTE: this routine Duplicate a Routine found at 0570
-	;
 	ld 	(SHADEC),a	;31ed - shadow port EC
 	out 	(contprt),a	;31f0 - and write to the EC IO Port
 	ret			;31f2
@@ -10375,9 +10397,9 @@ RSTCASS:
 ;  - and Top of Stack contains Pointer to SLOW Read or Write Jump Table Entries
 ; ----------------------------------------------------------------------
 CASSHEAD:
-	ld 	a,(hl)		;31f7 - Note HL
+	ld 	a,(hl)		;31f7 - HL is a Pointer to ??????????
 	sub 	$23		;31f8 - sub 23H, can test if caller was a PRINT #
-	jp 	nz,l0253h	;31fa - NOT : Write a Byte to Cassette" Routine
+	jp 	nz,TAPECALL	;31fa - NOT : Write a Byte to Cassette" Routine
 	call 	GETINT		;31fd
 	SYNTAX	(',')		;3200
 	ret			;3202
@@ -10385,21 +10407,21 @@ CASSHEAD:
 ; ----------------------------------------------------------------------
 ; 3203 - Cassette - Vector for a SLOW cassette read
 ; ----------------------------------------------------------------------
-;
 SLOWREAD_V:
 	ld 	b,8		;3203 - need to LOOP for 8 bits.
 SLRDV1:
 	call 	FNDTMNG		;3205 - reads tape until a timing mark or BREAK key
 	djnz 	SLRDV1		;3208
 ;
+; ----------------------------------------------------------------------
 ; 320A - Generic Cassette Cursor Blink
-;
+; ----------------------------------------------------------------------
 CASBLINK:
 	ld 	a,(TPBLIN)	;320a - cassette blink counter
-	inc 	a		;320d - inc
+	inc 	a		;320d - inc the counter
 	and 	$5F		;320e - turn Bit 7 and Bit 5 off.
 	ld 	(TPBLIN),a	;3210 - save cassette bink counter
-	jr 	nz,CASBLINK2	;3213
+	jr 	nz,CASBLINK2	;3213 - not reached 0- skip screen flash
 	ld 	a,(vidmem+$3F)	;3215 - read char from screen
 	xor 	$0A		;3218 - turns a "*" into a " " and vice versa
 	ld 	(vidmem+$3F),a	;321a - set inverted char back.
@@ -10407,8 +10429,9 @@ CASBLINK2:
 	ld 	a,d		;321d
 	jr 	RETBCDE		;321e - Return Popping BC DE
 ;
+; ----------------------------------------------------------------------
 ; 3220 - Cassette - Keep reading tape looking for a timing mark or BREAK
-;
+; ----------------------------------------------------------------------
 FNDTMNG:
 	push 	bc		;3220
 FNDTMNG1:
@@ -10439,7 +10462,6 @@ PSSTMNG2:
 ; ----------------------------------------------------------------------
 ; 3241 - Vector for a SLOW cassette write. On entry A is the byte to output
 ; ----------------------------------------------------------------------
-;
 SLOWRITE_V:
 	push 	af		;3241
 	push 	bc		;3242
@@ -10447,16 +10469,15 @@ SLOWRITE_V:
 	ld 	c,8		;3244 - 8 bits to be written
 	ld 	d,a		;3246 - the byte to write
 SLWRV1:
-	call 	WRTTMNG		;3247 - outputs the timing mark.
+	call 	SLOWTIM		;3247 - outputs the timing mark.
 	rlc 	d		;324a - left one bit, next BIT 7 into CARRY
 	jr 	nc,SLWRV3	;324c - No Bit so skip write, ie write ZERO
-	call 	WRTTMNG		;324e - outputs the timing mark.
+	call 	SLOWTIM		;324e - outputs the timing mark.
 SLWRV2:
 	dec 	c		;3251 - dec the bit counter
-	jr 	nz,SLWRV1	;3252 - and loop
+	jr 	nz,SLWRV1	;3252 - loop if more bits, otherwise RET (below)
 ;
-; Generic Returns
-;
+; Generic Return
 RETDEBCAF:
 	pop 	de		;3254
 	pop 	bc		;3255
@@ -10467,7 +10488,7 @@ SLWRV3:
 	ld 	b,$9A		;3258 - Set up delay
 SLWRV4:
 	djnz 	SLWRV4		;325a - Delay
-	jr 	SLWRV2		;325c
+	jr 	SLWRV2		;325c - Continue Above
 ;
 ; ----------------------------------------------------------------------
 ; 325E - SLOW tape header write
@@ -10481,7 +10502,7 @@ SLOWRITE:
 SLOWRITE2:
 	call 	SLOWRITE_V	;3268 - Call Vector for a SLOW cassette write.
 	djnz 	SLOWRITE2	;326b - loop
-	ld 	a,$A5		;326d - A5H is the OUTPUT SYNC BYTE
+	ld 	a,$A5		;326d - A5H is the Tape SYNC byte
 	call 	SLOWRITE_V	;326f - CALL Vector for a SLOW cassette write.
 	jr 	RETHLBCDE	;3272 - Return Popping HL BC DE
 ;
@@ -10504,7 +10525,7 @@ SLOWREAD3:
 SLOWREAD4:
 	call 	FNDTMNG		;3288 - reads tape for a timing mark or BREAK key
 	ld 	a,d		;328b - the data byte
-	cp 	$A5		;328c - Was it a Tape Sync Byte
+	cp 	$A5		;328c - Was it a Tape SYNC Byte
 	jr 	nz,SLOWREAD4	;328e - loop if Not correct
 SLOWREAD5:
 	ld 	hl, $2A2A	;3290 - In preparation to display a "**"
@@ -10522,134 +10543,135 @@ RETBCDE:
 ;
 ; ----------------------------------------------------------------------
 ; 329B - FAST tape header write.
-; todo keep adding section headers from here down
 ; ----------------------------------------------------------------------
 FASTWRITE:
 	push 	hl		;329b
-	ld 	hl,l32bah	;329c - address of he cassette write routine
+	ld 	hl,FASTWRITE_V	;329c - address of he cassette write routine
 	ld 	(TAPEWR),hl	;329f - Store the Address in tape write vector
-	ld 	b,000h		;32a2
+	ld 	b,0		;32a2 - Used for Loop (256 iterations)
 FASTWRITE1:
 	ld 	a,$55		;32a4
-	call 	sub_32b4h	;32a6
-	djnz 	FASTWRITE1	;32a9
-	ld 	a,$7F		;32ab
-	call 	sub_32b4h	;32ad
-	ld 	a,$A5		;32b0
+	call 	FASTWRITE2	;32a6
+	djnz 	FASTWRITE1	;32a9 - Loop Back
+	ld 	a,$7F		;32ab - 7FH is a FAST Tape MARKER byte
+	call 	FASTWRITE2	;32ad
+	ld 	a,$A5		;32b0 - A5H is the Tape SYNC byte
 	jr 	RETHLBCDE	;32b2 - Return Popping HL BC DE
-;
-; 32B4 - Restore all registers from the STACK, and Fill C with A, and JUMP to cassette write.
-;
-sub_32b4h:
-	push 	af		;32b4
+FASTWRITE2:
+	push 	af		;32b4 - Restore all registers from the STACK
 	push 	bc		;32b5
 	push 	de		;32b6
-	ld 	c,a		;32b7
-	jr 	l32c1h		;32b8
+	ld 	c,a		;32b7 - Fill C with A, the byte to write
+	jr 	FSTWRV1		;32b8 - write to cassette without a start bit
 ;
-; 32BA - Save all registers to the STACK,
-; and Fill C with A, CALL to write out the START BIT ...
-;
-l32bah:
-	push 	af		;32ba
+; ----------------------------------------------------------------------
+; 32BA - Vector for a FAST cassette write. On entry A is the byte to output
+; ----------------------------------------------------------------------
+FASTWRITE_V:
+	push 	af		;32ba - Save all registers to the STACK,
 	push 	bc		;32bb
 	push 	de		;32bc
-	ld 	c,a		;32bd
-	call 	sub_333eh	;32be
+	ld 	c,a		;32bd - save byte to output into C
+	call 	FASTTIM		;32be
 ;
-; 32C1 - Call 3335H to Output a Bit 8 Times
-;
-l32c1h:
-	ld 	b,$08		;32c1
-l32c3h:
-	call 	sub_3335h	;32c3
-	djnz 	l32c3h		;32c6
+FSTWRV1:
+	ld 	b,8		;32c1 - output 8 bits
+FSTWRV2:
+	call 	FSTWRV3		;32c3 - process the Write in subroutine
+	djnz 	FSTWRV2		;32c6 - loop for next bit
 	jr 	RETDEBCAF	;32c8 - Return Popping DE BC AF
 ;
-; 32CA - Read the start bit, read 8 bits, check for error, and flash the star
-;
-l32cah:
-	call 	READBIT		;32ca
-	ld 	b,$08		;32cd
-l32cfh:
-	call 	READBIT		;32cf
-	call 	sub_337ch	;32d2
-	djnz 	l32cfh		;32d5
-	jp 	CASBLINK		;32d7
+; ----------------------------------------------------------------------
+; 32CA -  , check for error, and flash the star
+; ----------------------------------------------------------------------
+FASTREAD_V:
+	call 	READBIT		;32ca - Read the start bit
+	ld 	b,8		;32cd - read 8 bits
+FSTRDV1:
+	call 	READBIT		;32cf - Read a Bit
+	call 	DATAERR		;32d2 - Check for Data Error
+	djnz 	FSTRDV1		;32d5 - Loop for more bits
+	jp 	CASBLINK	;32d7 - Blink The * on the screen
 ;
 ; ----------------------------------------------------------------------
 ; 32DA - FAST tape header read.
 ; ----------------------------------------------------------------------
 FASTREAD:
 	push 	hl		;32da
-	ld 	hl,l32cah	;32db - address of he cassette read routine
+	ld 	hl,FASTREAD_V	;32db - address of he cassette read routine
 	ld 	(TAPERD),hl	;32de - Store the Address in tape read vector
-	ld 	a,1		;32e1
-	out 	(maskprt),a	;32e3
-l32e5h:
-	ld 	b,$80		;32e5
-l32e7h:
-	call 	READBIT		;32e7
-	ld 	a,c		;32ea
-	cp 	00fh		;32eb
-	jr 	c,l32e5h	;32ed
-	cp 	$3E		;32ef
-	jr 	nc,l32e5h	;32f1
-	djnz 	l32e7h		;32f3
-l32f5h:
-	ld 	hl,0000h	;32f5
-	ld 	b,$40		;32f8
-l32fah:
-	call 	READBIT		;32fa
-	call 	READBIT		;32fd
-	ld 	d,c		;3300
-	call 	READBIT		;3301
-	ld 	a,d		;3304
-	sub 	c		;3305
-	jr 	nc,l330ah	;3306
+	ld 	a,$01		;32e1 - 1 to set the interrupt Vector to $3365
+	out 	(maskprt),a	;32e3 - Port E0H is the maskable interrupt latch
+FASTREAD1:
+	ld 	b,128		;32e5 - Set up a loop of 128 (read 128 bits)
+FASTREAD2:
+	call 	READBIT		;32e7 - READ A BIT
+	ld 	a,c		;32ea - the pulse width
+	cp 	$0F		;32eb - to see if the pulse width was too short
+	jr 	c,FASTREAD1	;32ed - if the pulse width was too short
+	cp 	$3E		;32ef - to see if the pulse width was too long
+	jr 	nc,FASTREAD1	;32f1 - Loop back if the pulse width was too long
+	djnz 	FASTREAD2	;32f3 - Loop back to 32E7H 128 times.
+FASTREAD3:
+	ld 	hl,$0000	;32f5 - A BIT COUNTER
+	ld 	b,64		;32f8 - setup a loop of 64 (read 64 bits)
+FASTREAD4:
+	call 	READBIT		;32fa - READ A BIT
+	call 	READBIT		;32fd - READ A BIT
+	ld 	d,c		;3300 - the delay count
+	call 	READBIT		;3301 - READ A BIT
+	ld 	a,d		;3304 - to set up to find the difference in the delays
+	sub 	c		;3305 - SUB the delay count
+	jr 	nc,FASTREAD5	;3306
 	neg			;3308
-l330ah:
+FASTREAD5:
 	cp 	$0D		;330a
-	jr 	c,l3313h	;330c
-	inc 	h		;330e
-	djnz 	l32fah		;330f
-	jr 	l3316h		;3311
-l3313h:
-	inc 	l		;3313
-	djnz 	l32fah		;3314
-l3316h:
-	ld 	a,$40		;3316
-	cp 	h		;3318
-	jr 	z,l3325h	;3319
-	cp 	l		;331b
-	jr 	nz,l32f5h	;331c
-	ld 	a,2		;331e
-	out 	(maskprt),a	;3320
-	call 	READBIT		;3322
-l3325h:
+	jr 	c,FASTREAD6	;330c
+	inc 	h		;330e - INC the ZERO bit Counter - one more zero bit
+	djnz 	FASTREAD4	;330f - Loop back until 64 bits read.
+	jr 	FASTREAD7	;3311 - JUMP out of the loop
+FASTREAD6:
+	inc 	l		;3313 - INC the non-ZERO bit counter
+	djnz 	FASTREAD4	;3314 - and continue the loop
+FASTREAD7:
+	ld 	a,64		;3316 - The expected number of ZERO bits
+	cp 	h		;3318 - compare with actual ZERO count
+	jr 	z,FASTREAD8	;3319 - matches to continue
+	cp 	l		;331b - compare with the non-ZERO count
+	jr 	nz,FASTREAD3	;331c - the dont match - jump back and retry
+	ld 	a,$02		;331e - 1 to set the interrupt Vector to $3369
+	out 	(maskprt),a	;3320 - Port E0H is the maskable interrupt latch
+	call 	READBIT		;3322 - READ A BIT
+FASTREAD8:
 	ld 	d,0		;3325
-l3327h:
-	call 	READBIT		;3327
-	call 	sub_337ch	;332a
+FASTREAD9:
+	call 	READBIT		;3327 - READ A BIT
+	call 	DATAERR		;332a - check for data error
 	ld 	a,d		;332d
-	cp 	$7F		;332e
-	jr 	nz,l3327h	;3330
-	jp 	SLOWREAD5	;3332
-sub_3335h:
+	cp 	$7F		;332e - was it 7FH - a FAST Tape MARKER byte
+	jr 	nz,FASTREAD9	;3330 - no marker byte found
+	jp 	SLOWREAD5	;3332 - Continue the loop
+;
+; Continuation of Fast Write (Vector) in called Subroutine
+FSTWRV3:
 	rlc 	c		;3335
-	jr 	nc,sub_333eh	;3337
+	jr 	nc,FASTTIM	;3337
 	ld 	de,$1217	;3339 - 1217H to set up a delay for 1 BIT
-	jr 	l3341h		;333c
-sub_333eh:
+	jr 	FASTTIM1	;333c
+;
+; ----------------------------------------------------------------------
+; 333E - FAST Output the TIMING MARK to the cassette
+; ----------------------------------------------------------------------
+FASTTIM:
 	ld 	de,$2b2f	;333e - 2B2F to set the delay for a 0 BIT
-l3341h:
+FASTTIM1:
 	dec 	d		;3341
-	jr 	nz,l3341h	;3342
+	jr 	nz,FASTTIM1	;3342
 	ld 	a,2		;3344 - The Voltage Value 0V to write
 	out	(vidcmt),a	;3346 - write to cassette
-l3348h:
+FASTTIM2:
 	dec 	e		;3348
-	jr 	nz,l3348h	;3349
+	jr 	nz,FASTTIM2	;3349
 	ld 	a,1		;334b - The Voltage Value 0.46V to write
 	out 	(vidcmt),a	;334d - write to cassette
 	ret			;334f
@@ -10657,7 +10679,6 @@ l3348h:
 ; ----------------------------------------------------------------------
 ; 3350H - READ a BIT
 ; ----------------------------------------------------------------------
-;
 READBIT:
 	ei			;3350 - Will allow Interrupt with BIT
 	ld 	c,0		;3351
@@ -10674,50 +10695,56 @@ BREAKEY:
 	jp 	BRKVEC		;3362 - Break Vector -> JP 022Eh
 
 ;
-; 3365H - This is a Port E0H Masked Jump. If the MASKABLE INTERRUPT is xxxxxxx1,
-; it jumps here. This is a Cassette Routine with E set to HIGH
-;
+; ----------------------------------------------------------------------
+; Cassette MASKABLE INTERRUPT Handler
+;   Based on Port E0H. Cassette MASKABLE INTERRUPT is
+;     PORT $EC = xxxxxxx1   $3365   E=1 (HIGH)
+;     PORT $EC = xxxxxx1x   $3369   E=0 (LOW)
+; ----------------------------------------------------------------------
 CASINTE1:
-	ld 	e,1		;3365
+	ld 	e,1		;3365 - E SET to HIGH
 	jr 	CASSINT		;3367
 CASINTE0:
-	ld 	e,0		;3369
+	ld 	e,0		;3369 - E SET to LOW
 CASSINT:
 	ld 	a,6		;336b
 	add 	a,c		;336d
 	ld 	c,a		;336e
-	in 	a,(vidcmt)	;336f
-	and 	1		;3371
-	cp 	e		;3373
-	jr 	nz,l3379h	;3374
+	in 	a,(vidcmt)	;336f - FFH is the Cassette Port
+	and 	1		;3371 - mask bit 1
+	cp 	e		;3373 - compare with the expected BIT
+	jr 	nz,CASSINT2	;3374 - not the same
 	pop 	af		;3376
-	pop 	af		;3377
+	pop 	af		;3377 - Remove the REMOTE CALLER'S ADDRESS) from the STACK
 	ret			;3378
-l3379h:
+CASSINT2:
 	pop 	af		;3379
 	ei			;337a
 	ret			;337b
 ;
+; ----------------------------------------------------------------------
 ; 337CH - Check for a Data Error.
-;
-sub_337ch:
+; ----------------------------------------------------------------------
+DATAERR:
 	ld 	a,c		;337c
 	cp 	$22		;337d
 	rl 	d		;337f
-	cp 	$0F		;3381
-	jr 	c,l3388h	;3383
-	cp 	$3E		;3385
-	ret 	c		;3387
-l3388h:
-	ld 	a,'D'		;3388 -
+	cp 	$0F		;3381 - not too quick
+	jr 	c,DATAERR1	;3383 - jump if too quick
+	cp 	$3E		;3385 - not too slow
+	ret 	c		;3387 - return if just right
+DATAERR1:
+	ld 	a,'D'		;3388 - D written to screen
 	ld 	(vidmem+$3E),a	;338a - write to top right of screen
 	ret			;338d
 ;
-; TODO Examine and Document Code working Up from this point
+; ======================================================================
+; KEYBOARD ROUTINES
+; ======================================================================
+;
 ; ----------------------------------------------------------------------
 ; 338EH - Jump Point for Keyboard Input
 ; ----------------------------------------------------------------------
-;
 KEYINPUT:
 #IFDEF FREHDBT
 	jr	KEYENTRY	; Skip the M4 code, insert the following
@@ -10784,7 +10811,7 @@ KEYREPEAT:
 	ld 	de,(RPTDLY)	;33e2 - repeating key max delay
 	sbc 	hl,de		;33e6
 	pop 	de		;33e8
-	jp 	c,l30a1h	;33e9 - If we haven't scanned enough, JUMP to clear flags and RETURN.
+	jp 	c,CAPSLOCK3	;33e9 - If we haven't scanned enough, JUMP to clear flags and RETURN.
 	xor 	a		;33ec - clear flags
 	ld 	(de),a		;33ed -
 	ld 	(RPTCNT),hl	;33ee - repeat count
@@ -10849,7 +10876,7 @@ KEYPRESS5:
 	add 	hl,de		;3435
 	ld 	a,(hl)		;3436
 	cp 	$1A		;3437
-	jp 	z,l30a1h	;3439
+	jp 	z,CAPSLOCK3	;3439
 	ld 	b,a		;343c
 
 #IFDEF FREHDBT
@@ -10889,10 +10916,13 @@ KEYPRESS7:
 #ENDIF
 ;
 ; ======================================================================
-; 3445 - BOOTSTRAP - Clears ports, checks for a BREAK key
-; and a Floppy Controller.
+; INITIALISATION
 ; ======================================================================
 ;
+; ----------------------------------------------------------------------
+; 3445 - BOOTSTRAP - Clears ports, checks for a BREAK key
+; and a Floppy Controller.
+; ----------------------------------------------------------------------
 BOOTSTP:
 	im 	1		;3455
 	ld 	sp,TMPSTK	;3457 - tempory stack
@@ -10938,10 +10968,9 @@ BOOTSTP1:
 	bit 	2,a		;34a7 - Bit 2 of Stus. 0 - haven't got track 0
 	jr 	z,BOOTSTP1	;34a9 - Lopp back if this is the case
 ;
-; ======================================================================
+; ----------------------------------------------------------------------
 ; WARM BOOT
-; ======================================================================
-;
+; ----------------------------------------------------------------------
 WARMBOOT:
 	ld 	e,5		;34ab - loop counter
 WARMBOOT1:
@@ -10994,10 +11023,14 @@ WARMBOOT6:
 ; Once the disk controller has loaded an entire sector, it will trigger a
 ; non-maskable interrupt and will exit to 3502H. That was set up at 34CE.
 ;
-; ----------------------------------------------------------------------
-; 3502H - Non-Maskable Interrupt Jump Point to verify the disk sector read wasn't in error.
-; ----------------------------------------------------------------------
+; ======================================================================
+; INTERRUPTS
+; ======================================================================
 ;
+; ----------------------------------------------------------------------
+; 3502H - Non-Maskable Interrupt Jump Point to
+;   verify the disk sector read wasn't in error.
+; ----------------------------------------------------------------------
 NMIJUMP:
 	xor 	a		;3502
 	out 	(nonmask),a	;3503
@@ -11015,10 +11048,9 @@ SHRTDLY:
 	nop			;351a - to delay for IO
 	ret			;351b - disk requests
 ;
-; ======================================================================
+; ----------------------------------------------------------------------
 ; 351C - NMI HANDLER
-; ======================================================================
-;
+; ----------------------------------------------------------------------
 NMIHANDLE:
 	jp 	nz,NMIVEC	;351c - NMI Vector in RAM $4049
 NMIHAND2:
@@ -11028,13 +11060,12 @@ NMIHAND2:
 	jp 	_START		;3525 - Jump to 0000H to restart the computer.
 	.DB 	$FF		;3528 - UNUSED
 ;
-; ======================================================================
+; ----------------------------------------------------------------------
 ; 3529H - Invoked from an Interrupt Vector (Vector 2)
 ;  Handles Realtime Clock and Cursor Update
-; ======================================================================
-;
+; ----------------------------------------------------------------------
 INT2INVOKE:
-	ld 	de,l3591h	;3529 - Return address of Routine
+	ld 	de,INT2RETURN	;3529 - Return address of Routine
 	push 	de		;352c - Pushed to the Stack
 	in 	a,(contprt)	;352d - Read Port ECH (Misc Controls)
 	ld 	a,(mDDCB+5)	;352f - video DCB
@@ -11065,7 +11096,6 @@ CURWRITE:
 ; 3557 - Update the clock heartbeat and deal with the time,
 ;   including rollover to the next day, month, and year
 ; ----------------------------------------------------------------------
-;
 HEARTBEAT:
 	ld 	hl,CLKHRT	;3557 - clock heartbeat counter from 4216
 	dec 	(hl)		;355a - reduce it
@@ -11121,7 +11151,7 @@ HRTBEAT2:
 ; OR the heartbeat shows that the clock was just updated.
 ; Pass through otherwise
 ; ----------------------------------------------------------------------
-l3591h:
+INT2RETURN:
 	ld 	a,(SHADEC)	;3591 - shadow port EC
 	bit 	0,a		;3594
 	ret 	z		;3596
@@ -11171,10 +11201,9 @@ DATES:
 	ld 	c,'/'		;35be
 	jr 	TIMDATES		;35c0
 ;
-; ======================================================================
+; ----------------------------------------------------------------------
 ; 35C2H - Maskable Interrupt Handler.
-; ======================================================================
-;
+; ----------------------------------------------------------------------
 INTHAND:
 	push 	af		;35c2 - save register
 	in 	a,(maskprt)	;35c3 - MASKABLE INTERRUPT LATCH (from Cassette)
@@ -11217,9 +11246,12 @@ INTRETURN:
 	ret			;35fa - Return from Interrupt
 ;
 ; ======================================================================
-; RS232 INITIALIZATION
+; SERIAL RS232
 ; ======================================================================
 ;
+; ----------------------------------------------------------------------
+; RS232 INITIALIZATION
+; ----------------------------------------------------------------------
 RS232INIT:
 	di			;35fb
 	in 	a,(seruart)	;35fc - poll RS-232 UART Status Register
@@ -11282,7 +11314,6 @@ RSINIT8:
 ; ----------------------------------------------------------------------
 ; RS232 INPUT ROUTINE
 ; ----------------------------------------------------------------------
-;
 RS232INP:
 	ld 	ix,SERINP	;365a - serial input DCB 41E5
 	xor 	a		;365e
@@ -11306,7 +11337,6 @@ RS232INP4:
 ; ----------------------------------------------------------------------
 ; RS232 OUTPUT ROUTINE
 ; ----------------------------------------------------------------------
-;
 RS232OUT:
 	ld 	ix,SEROUT	;3680 - 41ED Serial Out DCB
 	bit 	2,(ix+4)	;3684
@@ -11348,10 +11378,13 @@ INITR:
 	nop
 	jp 	JT_INTHAND	;4012 - RST 38H (Interrupt)
 ;
+; ======================================================================
+; INITIALISATION DEFAULT BLOCKS
+; ======================================================================
+;
 ; ----------------------------------------------------------------------
 ; Default Device Control Blocks
 ; ----------------------------------------------------------------------
-;
 KEYDCB:
 ;
 ; Keyoard DCB
@@ -11443,10 +11476,10 @@ SERDCB:
 ;
 	.DB	$FF		;4224 - Control key flag used by keyboard driver routine.
 ;
+;
 ; ======================================================================
 ; 3739H - I/O Re-Router.
 ; ======================================================================
-;
 IOROUTER:
 	ld 	a,(ix+3)	;3739
 	cp 	'R'		;373c
@@ -11497,6 +11530,10 @@ DCBTABLE:
 	.DW	SERINP	; Serial Input
 	.DB	'O'
 	.DW	SEROUT	; Serial Output
+;
+; ======================================================================
+; MISC STUFF FROM HERE
+; ======================================================================
 ;
 ; ----------------------------------------------------------------------
 ; 377BH - This is jumped to by 2B91 in the middle of the tokenize routine
@@ -11816,9 +11853,13 @@ FILIND:	.EQU	DEXT+54		; (222D) During READ processing when a variable has been r
 EXCHDS:	.EQU	DEXT+57		; (2***) From List, At end of READ processing (41DF)
 SYSOUT:	.EQU	DEXT+60		; (02B2) During SYSTEM command operation (41E2)
 ;
+BUFINI:	.EQU	RAM+$1E5	; String Buffer initialised with -> colon null comma (M1)
+;
 SERINP:	.EQU	RAM+$1E5	; Serial RS-232 Driver Input DCB
 SEROUT:	.EQU	RAM+$1ED	; Serial RS-232 Driver Output DCB
 SERINI: .EQU	RAM+$1F5	; Serial RS-232 Initialization DCB
+;
+SMPSTK:	.EQU	RAM+$1F8	; Initial Stack address (M1)
 ;
 RPTLSB	.EQU	RAM+$1FD	; Repeat key. LSB of keyboard buffer pointer (buffer at 4036H-403CH) when key is found depressed.
 RPTROW	.EQU	RAM+$1FE	; Repeat key. Contents of current keyboard "row" when key is found depressed.
@@ -11846,10 +11887,15 @@ CLKMNT:	.EQU	RAM+$21C	; Clock Data: Month (Value: 01-12)
 IOROUT: .EQU	RAM+$21D	; IO ROUTER DCB
 KYBCTL: .EQU	RAM+$224	; Control key flag used by keyboard driver routine
 ;
-SYSSTK:	.EQU	RAM+$288	; Stack address usd by SYSTEM command
 SMPSTK:	.EQU	RAM+$2F8	; Stack address Initially Used
 ;
 MEMEND:	.EQU	RAM+$300	; End of Reserved RAM Communications area
+;
+#IFDEF BUGFIX28
+SYSSTK:	.EQU	MEMEND+$88	; Stack address usd by SYSTEM command
+#ELSE
+SYSSTK:	.EQU	RAM+$288	; Stack address usd by SYSTEM command
+#ENDIF
 ;
 BUFINI:	.EQU	RAM+$2E5	; String Buffer initialised with -> colon null comma
 ;

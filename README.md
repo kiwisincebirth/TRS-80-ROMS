@@ -2,7 +2,9 @@
 
 ## Model I / III ROM Source Code
 
-This repository contains Disassembled, well commented source code for the:
+This repository contains well documented, well-structured Source Code for the Tandy TRS-80 line of computers.
+The source code has also been extended with optional `#DEFINE`'s to provide common customisation options.
+Two ROMS are available:
 * [Tandy TRS-80 Model 1 Level 2 BASIC ROMS](./MODEL1.md)
 * [Tandy TRS-80 Model III Level 2 BASIC ROMS](./MODEL3.md)
 
@@ -22,9 +24,9 @@ While originally based off a (low quality) disassembly, the following improvemen
 * Replaced all disassembler generated labels with meaningful labels.
 * Ensured all jumps (JR and JP) reference valid code labels.
 * Replaced all $3xxx hardware references with `.EQU` definitions.
-* Replaced all $4xxx buffer references with `.EQU` definitions, with a single `.EQU $4000` reference.
+* Replaced all $4xxx buffer references with `.EQU` definitions.
 * Replaced all $xx byte references with appropriate decimal or ascii values, and/or `.EQU` definitions.
-* Replaced all generated op-code with Byte `.DB` definitions for DataTables/Text/Constants/Etc
+* Replaced all generated op-code with Byte `.DB` `.DW` definitions for DataTables/Text/Constants/Etc
 * Added code documentation from various sources at the code block / function level.
 * Replaced incorrect op-codes, where Better Else "Trick" was used. See Reference below.
 

@@ -34,6 +34,7 @@ There are several optional features.
   Consider also enabling NMIHARD to ensure reset (on non-floppy machine) will force a reset.
 
 Bug Fixes can be applied
+* `#DEFINE BUGFIX28` - Fix Bug 28 - 034BH - Stack Initialisation Problem
 * `#DEFINE BUGFIX30` - Fix Bug 30 - 034BH - 32 char Mode, Incompatible Model 1 code
 * `#DEFINE BUGFIX40` - Fix Bug 40 - 05D1H - Broken "RON" Printer Status Routine
 

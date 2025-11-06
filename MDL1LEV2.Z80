@@ -22,6 +22,8 @@
 ; #DEFINE NMIHARD ; Uncomment to set NMI Reset as always hard reset. (0066h)
 ; #DEFINE LOWCASE ; Uncomment to Disable Alpha Character Translation (0471h)
 ; #DEFINE FREHDBT ; Uncomment to enable FreHD Auto boot at startup (incl VER13, NMIHARD)
+;
+; Experimental Features
 ; #DEFINE NO37EXH ; Uncomment to disable use of memory mapped devices at 37Ex (incl NMIHARD)
 ;
 ; Build Features
@@ -189,6 +191,7 @@ CPNN:	.EQU 	$FE	; CP nn - skip next bytye
 ; Comments (In Brackets) are the Keyboard mappings,
 ; ----------------------------------------------------------------------
 BREAK:	.EQU	$01	; (BREAK Key)
+ETX:	.EQU	$03	; End Of Text (Ascii)
 ;
 BACKS:	.EQU 	$08	; (LEFT  Arrow) - Backspace
 TAB:	.EQU 	$09	; (RIGHT Arrow) - Tab
@@ -210,22 +213,12 @@ CLINE:	.EQU	$1D	; position cursor to Start of current line
 ELINE:	.EQU	$1E	; erase from cursor to end of line
 CLRKEY:	.EQU	$1F	; (CLEAR Key) erase from Cursor to end of frame
 ;
-SPACE:	.EQU 	$20
+SPACE:	.EQU 	$20	; A space character
+DQUOTE	.EQU	$22	; A Double Quote ( " )
 SEMICO	.EQU	$3B	; Note ';' in code; was breaking some assemblers
 UPARRW	.EQU	$5B	; (UP Arrow) Special Up Arrow ↑ Character in TRS Charset
 CURCHR  .EQU	$5F	; _ cursor character
 ;
-; ----------------------------------------------------------------------
-; Constants used by FreHD
-; ----------------------------------------------------------------------
-#IFDEF FREHDBT
-;
-ROM_MODEL_1:	.EQU 1			; TRS model : passed by the patched rom
-READROM:	.EQU $C4		; read only
-WRITEROM	.EQU $C5		; write only
-ROM_LOAD	.EQU $5000		; where the extra "rom is loaded
-;
-#ENDIF
 ; ======================================================================
 ; MACROS
 ; ======================================================================
@@ -235,6 +228,18 @@ ROM_LOAD	.EQU $5000		; where the extra "rom is loaded
 #DEFINE	CPDEHL		rst 18h
 #DEFINE	TSTDAT		rst 20h
 ;
+; ----------------------------------------------------------------------
+; Constants used by FreHD
+; ----------------------------------------------------------------------
+#IFDEF FREHDBT
+;
+ROM_MODEL_1	.EQU	1	; TRS model : passed by the patched rom
+ROM_MODEL_3	.EQU 	3	; TRS model : passed by the patched rom
+READROM:	.EQU 	$C4	; read only
+WRITEROM	.EQU 	$C5	; write only
+ROM_LOAD	.EQU 	$5000	; where the extra "rom is loaded
+;
+#ENDIF
 ;
 ; ======================================================================
 ;   START OF PROGRAM CODE
@@ -462,16 +467,15 @@ KEYTAB:	.DB	ENTER,	ENTER	; ENTER
 	.DB	SPACE,	SPACE	; Space
 ;
 ; ----------------------------------------------------------------------
-; 0060H-0065H – DELAY ROUTINE – "$PAUSE"
+; 0060H-0065H – DELAY ROUTINE – "$DELAY"
 ;  This is a delay loop. The BC Register Pair is used as the loop counter.
 ;  The duration of the delay, in microseconds, is the value of BC times 14.66.
 ;  Register A is used.
 ; ----------------------------------------------------------------------
-DELAY:
-PAUSE:	dec	bc		;0060
+DELAY:	dec	bc		;0060
 	ld	a,b		;0061
 	or	c		;0062
-	jr	nz,PAUSE	;0063
+	jr	nz,DELAY	;0063
 	ret			;0065
 ;
 ; ----------------------------------------------------------------------
@@ -486,8 +490,8 @@ NMI:	jp	_START		;0066 - wrong Stack Pointer.
 ;
 #IFDEF FREHDBT
 ;				;If Fre HD we use this space for improved  hdboot routine
-HDBOOT	call	CLS		;0069 - Clear Screen
-	call	PAUSE		;006c - pause for a few seconds
+HDBOOT:	call	CLS		;0069 - Clear Screen
+	call	DELAY		;006c - pause for a few seconds
 	jp	HDBOOT2		;006f - continue hdboot
 #ENDIF
 ;
@@ -669,7 +673,7 @@ HDGMSG:	.DB	"R/S L2 BASIC",ENTER,0 ; RS L2 Basic Message V1.3
 ; ----------------------------------------------------------------------
 KEYBOU	push	bc		;011C Save Row Address in BC into the STACK
 	ld 	bc,$0500	;011D the debounce delay
-	call	PAUSE		;0120 delay on delay count in BC (18.8 ms)
+	call	DELAY		;0120 delay on delay count in BC (18.8 ms)
 	pop	bc		;0123 Restore the Row Address back to BC
 	ld	a,(bc)		;0124 Reload the original flags from active row
 	and	e		;0125 Combine the current flag lists with the original flag bits
@@ -1067,7 +1071,7 @@ ENBLK:	call	CADRIN		;02a9
 ; 02B2 – LEVEL II BASIC SYSTEM ROUTINE – “SYSTEM”
 ; ----------------------------------------------------------------------
 SYSTEM:	call	SYSOUT		;02b2
-	ld	sp,MEMEND+$88	;02b5
+	ld	sp,SYSSTK	;02b5
 	call	CRDO		;02b8
 	ld	a,'*'		;02bb
 	call	OUTDO		;02bd
@@ -1396,7 +1400,7 @@ KEYNSF:	ld	hl,KEYTAB	;0443
 ; ----------------------------------------------------------------------
 KEYRTN:	ld	d,a		;044b - save value for the key pressed from A
 KEYRT2:	ld	bc,3500		;044c - delay count (3500)
-	call	PAUSE		;044f - delay about 51.3 ms
+	call	DELAY		;044f - delay about 51.3 ms
 	ld	a,d		;0452 - restore value for the key pressed
 	cp	$01		;0453 - Check to see if the BREAK key was pressed
 	ret	nz		;0455 - Return if the BREAK key wasn’t pressed
@@ -1944,14 +1948,12 @@ CLRAM:	ld	(de),a		;0687 - zero byte in memory starting at 4036h
 ; (start no Floppy boot Support)
 ;
 	jp	INIT2		;0696 - Dont detect disk controller, JP to L2 Basic init
-;
 	.FILL	(069Fh - $,0)	;fill the space to next routine with ZERO's
 ;
 ; ----------------------------------------------------------------------
 ; 069FH-06CBH – IGNORE Bootstrap from Diskette – "BOOT"
 ; ----------------------------------------------------------------------
 BOOT:	jp	_START		;069f - NO DISK - Just do Power Up cycle
-;
 	.FILL	(06CCh - $,0)	;fill the space to next routine with ZERO's
 ;
 ; (end no Floppy boot Support)
@@ -1981,7 +1983,7 @@ BOOT:	ld	a,$01		;069f
 	; noting it is expected tha BC = 0000 at this point of the execution
 	ld	bc,$0000	;06ac
 #ENDIF
-	call	PAUSE		;06af - delay (BC times 14.65) about 3 seconds
+	call	DELAY		;06af - delay (BC times 14.65) about 3 seconds
 BOOTDL:	bit	0,(hl)		;06b2 - is the diskette controller is busy
 	jr	nz,BOOTDL	;06b4 - Wait until it is ready
 	xor	a		;06b6
@@ -5508,10 +5510,10 @@ ERRTAB:
 	.DB	"UE"		; Unprintable Error 	(26H)
 	.DB	"MO"		; Missing Operand 	(28H)
 	.DB	"FD"		; Bad file Data 	(2AH)
-#IFNDEF	EACA80
-	.DB	"L3"		; Disk BASIC Command 	(2CH)
-#ELSE
+#IFDEF	EACA80
 	.DB	"SN"		; Disk BASIC Command 	(2CH) - On Dick Smith System-80
+#ELSE
+	.DB	"L3"		; Disk BASIC Command 	(2CH)
 #ENDIF
 ;
 ; ----------------------------------------------------------------------
@@ -5778,7 +5780,7 @@ STPRDY:	pop	bc		;1a18
 ;  Often 06CCH or 0072H are used as alternatives, but these dont work on M3
 ;  See 19AE which also provides a good entry point and works on M1 and M3
 ; ======================================================================
-READY:	call	FINLPT		;1a19 - Re-entry into BASIC command mode entry point. (see 6CCH also)
+READY:	call	FINLPT		;1a19 - set the current output device to the video display
 	call	PRGFIN		;1a1c - dos exit for BASIC startup
 	call	CTOFF		;1a1f - turn off the cassette recorder
 	call	CRDONZ		;1a22 - display a carriage return if necessary
@@ -6116,7 +6118,7 @@ KLOOP:	ld	a,(hl)		;1bcc
 	cp	SPACE		;1bcd
 	jp	z,STUFFH	;1bcf
 	ld	b,a		;1bd2
-	cp	'"'		;1bd3 - Check to see if the current character is a "
+	cp	DQUOTE		;1bd3 - Check to see if the current character is a "
 	jp	z,STRNG		;1bd5
 	or	a		;1bd8
 	jp	z,CRDONE	;1bd9
@@ -6810,7 +6812,7 @@ REMER:	ld	a,(hl)		;1f0e
 	cp	b		;1f11
 	ret	z		;1f12
 	inc	hl		;1f13
-	cp	'"'		;1f14 - Check to see if is a quote "
+	cp	DQUOTE		;1f14 - Check to see if is a quote "
 	jr	z,EXCHQT	;1f16
 	sub	TKIF		;1f18 - Check to see if is a IF token
 	jr	nz,REMER	;1f1a
@@ -7307,7 +7309,7 @@ ENDREC:	dec	hl		;21bd
 	jr	INPCN3		;21c7
 INTCAS:	ld	bc,NOTQTI	;21c9
 	push	bc		;21cc
-	cp	$22		;21cd
+	cp	DQUOTE		;21cd
 	ret	nz		;21cf
 	call	STRLTI		;21d0
 	SYNTAX	(SEMICO)	;21d3 - rst 08h compare with semicolin ';'
@@ -7387,7 +7389,7 @@ DATBK:	call	FILIND		;222d
 	GETCHR			;2234 - rst 10h
 	ld	d,a		;2235
 	ld	b,a		;2236
-	cp	$22		;2237
+	cp	DQUOTE		;2237
 	jr	z,NOWGETR	;2239
 	ld	d,':'		;223b
 	ld	b,','		;223d
@@ -7862,7 +7864,7 @@ EVAL:	GETCHR			;249f - rst 10h
 	jp	z,FIN		;24b4
 	cp	TKMNUS		;24b7 - - token
 	jp	z,DOMIN		;24b9
-	cp	'"'		;24bc - " character
+	cp	DQUOTE		;24bc - " character
 	jp	z,STRLTI	;24be
 	cp	TKNOT		;24c1 - NOT token
 	jp	z,NOTER		;24c3
@@ -8638,7 +8640,7 @@ STRAD2:	ld	hl,DSCTMP	;285a
 ;   the CALL to this routine.
 ; ----------------------------------------------------------------------
 STRLIT:	dec	hl		;2865
-STRLTI:	ld	b,$22		;2866
+STRLTI:	ld	b,DQUOTE	;2866
 	ld	d,b		;2868
 STRLT2:	push	hl		;2869
 	ld	c,$FF		;286a
@@ -8651,7 +8653,7 @@ STRGET:	inc	hl		;286c
 	jr	z,STRFIN	;2873
 	cp	b		;2875
 	jr	nz,STRGET	;2876
-STRFIN:	cp	$22		;2878
+STRFIN:	cp	DQUOTE		;2878
 	call	z,CHRGTR	;287a
 	ex	(sp),hl		;287d
 	inc	hl		;287e
@@ -10402,10 +10404,12 @@ FILIND:	.EQU	DEXT+54		; (222D) During READ processing when a variable has been r
 EXCHDS:	.EQU	DEXT+57		; (2***) From List, At end of READ processing (41DF)
 SYSOUT:	.EQU	DEXT+60		; (02B2) During SYSTEM command operation (41E2)
 ;
-BUFINI:	.EQU	RAM+$1E5	; String Buffer initialised with -> colon null comma
-SMPSTK:	.EQU	RAM+$1F8	; Initial Stack address.
+BUFINI:	.EQU	RAM+$1E5	; String Buffer initialised with -> colon null comma (M1)
+SMPSTK:	.EQU	RAM+$1F8	; Initial Stack address (M1)
 ;
 MEMEND:	.EQU	RAM+$200	; End of Reserved RAM Communications area
+;
+SYSSTK:	.EQU	MEMEND+$88	; Stack address usd by SYSTEM command
 ;
 ; ======================================================================
 ;
