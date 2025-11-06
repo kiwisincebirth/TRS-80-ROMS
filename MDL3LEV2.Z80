@@ -2001,6 +2001,7 @@ UNTOKEN4:
 	cp 	'R'		;06ce - Test for an R
 	ret 	nz		;06d0 - no then Skip
 	dec 	bc		;06d1
+; !!! down to here
 	ld 	a,(bc)		;06d2 - get 1 character back
 ;
 ;
