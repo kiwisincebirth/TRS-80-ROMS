@@ -55,5 +55,5 @@ To Implement this the Startup messages were truncated to:
 
 ```
 Mem Size?
-R/S M3 Basic
+R/S Model 3 Basic
 ```
