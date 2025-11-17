@@ -1051,7 +1051,7 @@ CSHWR:
 ; -------------------------------------------------------
 KBBRK:
 	ld   a,(kbdmatrix+$40)	;028d - scan the break key line
-	and  004h		;0290 - check for the break key
+	and  $04		;0290 - check for the break key
 	ret			;0292
 ;
 ; -------------------------------------------------------
@@ -10303,11 +10303,11 @@ PRSCN_ALT:
 ; 30FD - Checking for a BREAK key
 ; ----------------------------------------------------------------------
 KEYPRESS8:
-	jr	z,PRSCN_ALT	;30fd
+	jr	z,PRSCN_ALT	;30fd - call the print screen routine.
 	and 	(hl)		;30ff
-	cp 	001h		;3100
-	ret 	nz		;3102
-	rst 	28h		;3103
+	cp 	BREAK		;3100 - break key
+	ret 	nz		;3102 - not break so return
+	rst 	28h		;3103 - handle break key
 	ret			;3104
 ;
 ; ----------------------------------------------------------------------
@@ -10800,7 +10800,7 @@ hd_boot2:
 	ld	a,ROM_MODEL_3
 	out	(WRITEROM),a	; Send Instruction
 	in	a,(READROM)	; Read a Byte
-	cp	0FEh		; IS Valid
+	cp	$FE		; IS Valid
 	ret	nz		; Not Valid then Exit
 	ld	hl,ROM_LOAD	; Address $5000 to load bootstrap
 	ld	bc,READROM	; B=0 C=Read IO Address
@@ -10812,7 +10812,7 @@ hd_boot2:
 	ld   bc,kbdmatrix+$80	;3393
 	ld 	hl,mKDCB+3	;3396 - keyboard DCB
 	ld 	a,(bc)		;3399
-	and 	002h		;339a
+	and 	$02		;339a
 	ld 	e,a		;339c
 	xor 	(hl)		;339d
 	ld 	(hl),e		;339e
@@ -10909,29 +10909,29 @@ KEYPRESS2:
 #ENDIF
 ;
 KEYPRESS3:
-	and 	$03		;3421
-	jr 	z,KEYPRESS4	;3423
+	and 	$03		;3421 - keep only Bits 0 and 1 to check for shifts
+	jr 	z,KEYPRESS4	;3423 - we have no shifts, skip
 	set 	6,d		;3425
 KEYPRESS4:
-	ld 	a,(mKDCB+4)	;3427 - keyboard DCB
-	or 	a		;342a
-	jr 	z,KEYPRESS5	;342b
-	set 	7,d		;342d
+	ld 	a,(mKDCB+4)	;3427 - keyboard DCB - check for CAPS LOCK
+	or 	a		;342a - Set the flags.
+	jr 	z,KEYPRESS5	;342b - there is NO CAPS LOCK so skip
+	set 	7,d		;342d - Set BIT 7 of D to offset D for CAPS LOCK.
 KEYPRESS5:
 	ld 	hl,KEYLKUP	;342f - keyboard lookup TABLE
 	ld 	e,d		;3432
-	ld 	d,0		;3433
-	add 	hl,de		;3435
-	ld 	a,(hl)		;3436
-	cp 	$1A		;3437
-	jp 	z,CAPSLOCK3	;3439
-	ld 	b,a		;343c
+	ld 	d,0		;3433 - DE to be the OFFSET
+	add 	hl,de		;3435 - add offset
+	ld 	a,(hl)		;3436 - Get the character
+	cp 	ARDOWN		;3437 - SHIFT DOWN ARROW
+	jp 	z,CAPSLOCK3	;3439 - then set caps lock
+	ld 	b,a		;343c - save character into B
 
 #IFDEF FREHDBT
 	or	a
 	jp	z,CAPSLOCK	; (3444) - toggle caps lock
-	ld	hl,KYBCTL	; (3447) - Control key flag
-	cp	'*'		; (344a)
+	ld	hl,KYBCTL	; (3447) - Get Control key flag
+	cp	'*'		; (344a) - check against a *
 	jr	nz,frehd7	; (344c)
 	ld	a,$1F		; (344e)
 	cp	(hl)		; (3450)
@@ -10942,8 +10942,8 @@ hd_boot1:
 	jp	nz,NONDISK	; (348f) - non-disk Jump
 	jp	hd_boot2	; continue with FreHD
 #ELSE
-	call 	GETVERSION	;343d
-	ld 	a,b		;3440
+	call 	GETVERSION	;343d - get version number into A and sets flags
+	ld 	a,b		;3440 - get character back
 	jr 	z,KEYPRESS6	;3441 - Jump If (computer version) a Model III
 	or 	a		;3443
 	jp 	z,CAPSLOCK	;3444 - toggle caps lock
@@ -10952,12 +10952,12 @@ hd_boot1:
 ; so check A is a "*" then check to see if the CONTROL KEY FLAG is 1F.
 ;
 KEYPRESS6:
-	ld 	hl,KYBCTL	;3447 - Control key flag
-	cp 	'*'		;344a
-	jr 	nz,KEYPRESS7	;344c
-	ld 	a,$1F		;344e
-	cp 	(hl)		;3450
-	ld 	a,b		;3451
+	ld 	hl,KYBCTL	;3447 - get Control key flag
+	cp 	'*'		;344a - check against a *
+	jr 	nz,KEYPRESS7	;344c - not a * - exit the routine - continue with a BREAK key check
+	ld 	a,$1F		;344e - If A is a * then Put a 1FH into A
+	cp 	(hl)		;3450 - Check the CONTROL KEY FLAG against 1FH and set flags
+	ld 	a,b		;3451 - Put the character back into A
 KEYPRESS7:
 	jp 	KEYPRESS8	;3452 - Jump back to 30FDH to continue with a BREAK key check.
 
@@ -11022,7 +11022,7 @@ BOOTSTP1:
 WARMBOOT:
 	ld 	e,5		;34ab - loop counter
 WARMBOOT1:
-	ld 	bc,0000h	;34ad - Set up for a loop of 65,536
+	ld 	bc,0		;34ad - Set up for a loop of 65,536
 WARMBOOT2:
 	in 	a,(fdccmdp)	;34b0 - Read FDC Status - Port F0
 	bit 	1,a		;34b2 - if bit 1 (meaning "Drive Busy") is set.
@@ -11364,22 +11364,22 @@ RSINIT8:
 ; ----------------------------------------------------------------------
 RS232INP:
 	ld 	ix,SERINP	;365a - serial input DCB 41E5
-	xor 	a		;365e
-	ld 	(ix+3),a	;365f
-	bit 	2,(ix+4)	;3662
-	ret 	z		;3666
+	xor 	a		;365e - Clear A and all Flags
+	ld 	(ix+3),a	;365f - 1 Character RS-232 Input
+	bit 	2,(ix+4)	;3662 - Bit 2 of 41E9 contains the DRIVER ON/OFF
+	ret 	z		;3666 - driver off return
 RS232INP2:
-	in 	a,(seruart)	;3667
-	bit 	7,a		;3669
-	jr 	nz,RS232INP4	;366b
-	bit 	1,(ix+4)	;366d
-	ret 	z		;3671
+	in 	a,(seruart)	;3667 - poll Port EAH - UART Control Register/Status
+	bit 	7,a		;3669 - Bit 7 will be 1 if DATA READY (1=True)
+	jr 	nz,RS232INP4	;366b - DATA is READY, so JUMP out of this loop
+	bit 	1,(ix+4)	;366d - Bit 1 of 41E9 contains the WAIT/NO WAIT
+	ret 	z		;3671 - If its NO WAIT then RETURN
 	call 	KBBRK		;3672 - Check for a BREAK key only
-	jr 	z,RS232INP2	;3675
+	jr 	z,RS232INP2	;3675 - poll again if there was NO BREAK
 	jp 	BRKVEC		;3677 - Break Vector -> JP 022Eh
 RS232INP4:
-	in 	a,(serdata)	;367a
-	ld 	(ix+3),a	;367c
+	in 	a,(serdata)	;367a - read the RS-232C Data Register
+	ld 	(ix+3),a	;367c - Store the 1 Character RS-232 Input
 	ret			;367f
 ;
 ; ----------------------------------------------------------------------
@@ -11387,25 +11387,25 @@ RS232INP4:
 ; ----------------------------------------------------------------------
 RS232OUT:
 	ld 	ix,SEROUT	;3680 - 41ED Serial Out DCB
-	bit 	2,(ix+4)	;3684
-	ret 	z		;3688
+	bit 	2,(ix+4)	;3684 - to see if the RS-232 is active
+	ret 	z		;3688 - not active so RET
 RS232OUT2:
-	in 	a,(seruart)	;3689
-	bit 	6,a		;368b
-	jr 	nz,RS232OUT3	;368d
-	bit 	1,(ix+4)	;368f
-	ret 	z		;3693
+	in 	a,(seruart)	;3689 - poll Port EAH - UART Control Register/Status
+	bit 	6,a		;368b - Test Bit 6 of Port EAH to see READY TO SEND.
+	jr 	nz,RS232OUT3	;368d - If READY TO SEND then skip forward
+	bit 	1,(ix+4)	;368f - Test Bit 1 - WAIT/NO WAIT
+	ret 	z		;3693 - is NOT active, RETURN
 	call 	KBBRK		;3694 - Check for a BREAK key only
-	jr 	z,RS232OUT2	;3697
+	jr 	z,RS232OUT2	;3697 - poll again if there was NO BREAK
 	jp 	BRKVEC		;3699 - Break Vector -> JP 022Eh
 RS232OUT3:
-	ld 	a,(ix+3)	;369c
-	or 	a		;369f
-	jr 	nz,RS232OUT4	;36a0
-	ld 	a,c		;36a2
+	ld 	a,(ix+3)	;369c - the RS-232 output buffer byte
+	or 	a		;369f - Test A and Set Flags
+	jr 	nz,RS232OUT4	;36a0 - use character in the DBC buffer
+	ld 	a,c		;36a2 - Load A with C [GET CHAR FROM DISPATCHER]
 RS232OUT4:
-	out 	(serdata),a	;36a3
-	ld 	(ix+3),0	;36a5
+	out 	(serdata),a	;36a3 - Send data to Port EBH - RS-232C Data Reg
+	ld 	(ix+3),0	;36a5  clear any byte from DCB
 	ret			;36a9
 ;
 ; ======================================================================
@@ -11530,25 +11530,25 @@ SERDCB:
 ; 3739H - I/O Re-Router.
 ; ======================================================================
 IOROUTER:
-	ld 	a,(ix+3)	;3739
+	ld 	a,(ix+3)	;3739 - the first character of the destination.
 	cp 	'R'		;373c
-	jr 	nz,IOROUTER2	;373e
-	ld 	a,(ix+4)	;3740
+	jr 	nz,IOROUTER2	;373e - not an "R" then skip the next instruction
+	ld 	a,(ix+4)	;3740 - second character of the destination.
 IOROUTER2:
-	call 	LOOKUPDCB	;3743
-	ret 	nz		;3746
-	push 	hl		;3747
-	ld 	a,(ix+5)	;3748
+	call 	LOOKUPDCB	;3743 - get the applicable DCB Address into HL
+	ret 	nz		;3746 - DCB Address was not found, then RETURN.
+	push 	hl		;3747 - save desintation
+	ld 	a,(ix+5)	;3748 - the first character of the source.
 	cp 	'R'		;374b
-	jr 	nz,IOROUTER3	;374d
-	ld 	a,(ix+6)	;374f
+	jr 	nz,IOROUTER3	;374d - not an "R" then skip the next instruction
+	ld 	a,(ix+6)	;374f - the second character of the source.
 IOROUTER3:
-	call 	LOOKUPDCB	;3752
-	ex 	de,hl		;3755
-	pop 	hl		;3756
-	ret 	nz		;3757
+	call 	LOOKUPDCB	;3752 - get the applicable DCB Address into HL
+	ex 	de,hl		;3755 - the SOURCE DCB into DE
+	pop 	hl		;3756 - destination into HL
+	ret 	nz		;3757 - source dcb not found
 	ld 	bc,3		;3758 - dcb has 3 bytes to move
-	ldir			;375b
+	ldir			;375b - move 3 bytes, causes dcb ovewrite
 	ret			;375d
 ;
 ; ----------------------------------------------------------------------
@@ -11589,7 +11589,7 @@ DCBTABLE:
 ; a patch to the LIST command routine
 ; ----------------------------------------------------------------------
 UNTOKEN:
-	cp 	DQUOTE		;377b - check for a " quote
+	cp 	DQUOTE		;377b - check for a double " quote
 	jr 	nz,UNTOKEN1	;377d
 	ld 	a,(PARQTD)	;377f
 	xor 	$01		;3782
