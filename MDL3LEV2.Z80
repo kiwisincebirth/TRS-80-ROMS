@@ -6,7 +6,7 @@
 ;     [https://github.com/kiwisincebirth/TRS-80]
 ;
 ; ======================================================================
-;     NOTE: this code has been formatted with 8 character tabs
+;     NOTE: this code has been formatted with 8 spaces per tab
 ; ----------------------------------------------------------------------
 ; Disassembly Based off The following ROMS's
 ;
@@ -11419,17 +11419,17 @@ RS232OUT4:
 ;
 INITR:
 ; RST Code vectors, each is a 3 byte instruction
-	jp	SYNCHR		;4000 - RST 00H
-	jp	CHRGTR		;4003 - RST 10H
-	jp	DCOMPR		;4006 - RST 18H
-	jp	GETYPR		;4009 - RST 20H
-	ret			;400C - RST 28H
+	jp	SYNCHR		;4000 (mRST1) - RST 00H
+	jp	CHRGTR		;4003 (mRST2) - RST 10H
+	jp	DCOMPR		;4006 (mRST3) - RST 18H
+	jp	GETYPR		;4009 (mRST4) - RST 20H
+	ret			;400C (mRST5) - RST 28H
 	nop
 	nop
-	ret			;400F - RST 30H
+	ret			;400F (mRST6) - RST 30H
 	nop
 	nop
-	jp 	JT_INTHAND	;4012 - RST 38H (Interrupt)
+	jp 	JT_INTHAND	;4012 (mRST7) - RST 38H (Interrupt)
 ;
 ; ----------------------------------------------------------------------
 ; Default Device Control Blocks
@@ -11437,7 +11437,7 @@ INITR:
 KEYDCB:
 ;
 ; Keyoard DCB
-	.DB	1		; 4015 - Recognition Code. Keyboard is 01.
+	.DB	1		; 4015 - (mKDCB) Recognition Code. Keyboard is 01.
 	.DW	JT_KEYINPUT	; 4016 - Driver (via Jump Table)
 	.DB	$00 		; 4018 - Status of RIGHT SHIFT key.
 	.DB	$01 		; 4019 - Status of CAPS LOCK.
@@ -11445,14 +11445,14 @@ KEYDCB:
 	.DB	$00 		; 401B - Flag byte for cursor change.
 	.DB	$00 		; 401C - Cursor Blink Flag. 0=BLINK
 ; Video DCB
-	.DB	7		; 401D - Recognition Code. Video is 07.
+	.DB	7		; 401D - (mDDCB) Recognition Code. Video is 07.
 	.DW	DSPDRV		; 401E - DISPLAY driver address
-	.DW	vidmem		; 4020 - Cursor Position (3C00H to 3FFFH)
+	.DW	vidmem		; 4020 - (CURSOR) Cursor Position (3C00H to 3FFFH)
 	.DB	$00 		; 4022 - Character "covered" on video by Cursor
 	.DB	$B0		; 4023 - Cursor Character 32-255. Default is 176.
 	.DB	$00		; 4024 - char set active 0=regular 1=alternate
 ; Printer DCB
-	.DB	6		; 4025 - Recognition Code. Printer is 06.
+	.DB	6		; 4025 - (mPDCB) Recognition Code. Printer is 06.
 	.DW	PRTDRV 		; 4026 - printer driver address
 	.DB	67		; 4028 - lines per page
 	.DB	$01 		; 4029 - Current Line Number
@@ -11468,17 +11468,17 @@ KEYDCB:
 	nop			; typically LD A,A3 followed by RST 28
 	nop
 ; DOS Device Vectoring Routine
-	xor a			; 4033 - CALL DOS DEVICE DRIVER (CIOSS)
+	xor a			; 4033 - (CIOSS) CALL DOS DEVICE DRIVER
 	ret			; typically will JP 44BBh
 	nop
 ; Keyboard Bit Image (7 Byte Buffer). Work area for KB input routine
-	.DB	$AA, $AA, $AA, $AA, $AA, $AA, $AA ; 4036 - 403C
+	.DB	$AA, $AA, $AA, $AA, $AA, $AA, $AA ; 4036 (KYBTSS) - 403C
 ; Interrupt Vectors
-	jp 	INTRETURN	; 403D - Interrupt Vector 3 - JP 35FAH
-	jp 	INTRETURN	; 4040 - Interrupt Vector 6 - JP 35FAH.
-	jp 	INTRETURN	; 4043 - Interrupt Vector 7 - JP 35FAH.
-	jp 	INT2INVOKE	; 4046 - Interrupt Vector 2 - JP 35A9H
-	rst 0			; 4049 - RST 0 NMI Vector (Reset If So)
+	jp 	INTRETURN	; 403D (IVECT3) - Interrupt Vector 3 - JP 35FAH
+	jp 	INTRETURN	; 4040 (IVECT6) - Interrupt Vector 6 - JP 35FAH.
+	jp 	INTRETURN	; 4043 (IVECT7) - Interrupt Vector 7 - JP 35FAH.
+	jp 	INT2INVOKE	; 4046 (IVECT8) - Interrupt Vector 2 - JP 35A9H
+	rst 0			; 4049 (NMIVEC) - RST 0 NMI Vector (Reset If So)
 	nop
 ;
 ; ----------------------------------------------------------------------
@@ -11492,38 +11492,40 @@ KEYDCB:
 ; ----------------------------------------------------------------------
 ;
 SERDCB:
-	.DB	$01, $1E, $30, $00, $00, $00, $52, $49	; 41E5 - Serial Input DCB
-	.DB	$02, $21, $30, $00, $00, $00, $52, $4F	; 41ED - Serial Output DCB
-	.DB	$02, $1B, $30, $55, $6C, $FF, $52, $4E	; 41F5 - Serial Init DCB
+	.DB	$01, $1E, $30, $00, $00, $00, $52, $49	;41E5 (SERINP) - Serial Input DCB
+	.DB	$02, $21, $30, $00, $00, $00, $52, $4F	;41ED (SEROUT) - Serial Output DCB
+	.DB	$02, $1B, $30, $55, $6C, $FF, $52, $4E	;41F5 (SERINI) - Serial Init DCB
 ;
-	.DB	0, 0		; 41FD - 41FE - Repeating Key LSB and Row
-	.DW 	$FFFF, $0000	; 41FF - 4202 - Repeating Key Max and Count
+	.DB	0		;41FD (RPTLSB) - Repeating Key LSB of keyboard buffer pointer
+	.DB	0		;41FE (RPTROW) - Repeating Key Contents of current keyboard "row"
+	.DW 	$FFFF		;41FF (RPTDLY) - Max repeat delay count
+	.DW 	$0000		;4201 (RPTCNT) - current repeat delay count
 ;
-	jp 	READYE		;4203 - Vector Break Key   - 3 byte Instruction
-	jp 	INTRETURN	;4206 - Vector Interrupt 4 - 3 byte instruction
-	jp 	INTRETURN	;4209 - Vector Interrupt 5 - 3 byte instruction
+	jp 	READYE		;4203 (BRKVEC) - Vector Break Key   - 3 byte Instruction
+	jp 	INTRETURN	;4206 (IVECT4) - Vector Interrupt 4 - 3 byte instruction
+	jp 	INTRETURN	;4209 (IVECT5) - Vector Interrupt 5 - 3 byte instruction
 ;
-	.DW	SLOWRITE_V	;420C - Vector for Tape WRITE 1500/500
-	.DW	SLOWREAD_V	;420E - Vector for Tape READ  1500/500
+	.DW	SLOWRITE_V	;420C (TAPEWR) - 2 byte Vector for Tape WRITE 1500/500
+	.DW	SLOWREAD_V	;420E (TAPERD) - 2 byte Vector for Tape READ  1500/500
 ;
-	.DB	$28		;4210 - Shadow of General Values Port EC
+	.DB	$28		;4210 (SHADEC) - Shadow of General Values Port EC
 ;
-	.DB	$03		;4211 - Cass Baud Rate Select (0 = 500 baud, Not 0 = 1500 baud)
-	.DB	$3C		;4212 - Cass Blinker Counter.
-	.DB	$04		;4213 - Cass Default Interrupt Vector Setting.
+	.DB	$03		;4211 (TAPEBD) - Cass Baud Rate Select (0 = 500 baud, Not 0 = 1500 baud)
+	.DB	$3C		;4212 (TPBLIN) - Cass Blinker Counter.
+	.DB	$04		;4213 (TPINTV) - Cass Default Interrupt Vector Setting.
 ;
-	.DB	$00		;4214 - Video scroll protect: #Lines To Protect (0-7).
+	.DB	$00		;4214 (VDSCPR) - Video scroll protect: #Lines To Protect (0-7).
 	.DB	$00		;4215 - unused
 	;
-	.DB	CLKFREQ	 	;4216 - Clock Data: Heartbeat Counter (defined by Clock Freq)
-	.DB	0,0,0,0,0,0	;4217 - 421C - Clock Data: SS:MM:HH YY/DD/MM
+	.DB	CLKFREQ	 	;4216 (CLKHRT) - Clock Data: Heartbeat Counter (defined by Clock Freq)
+	.DB	0,0,0,0,0,0	;4217 (CLKHRS) - 421C (CLKMNT) - Clock Data: SS:MM:HH YY/DD/MM
 	;
-	.DB	2		;421D - I/O Router DCB: Type = 2 = Write Only
+	.DB	2		;421D (IOROUT) - I/O Router DCB: Type = 2 = Write Only
 	.DW	IOROUTER	;421E - I/O Router DCB: Driver Address (3739H)
 	.DB	0, 0		;4220 - I/O Router DCB: Destination Device Name. 2 Bytes
 	.DB	0, 0		;4222 - I/O Router DCB: Source Device Name. 2 Bytes.
 ;
-	.DB	$FF		;4224 - Control key flag used by keyboard driver routine.
+	.DB	$FF		;4224 (KYBCTL) - Control key flag used by keyboard driver routine.
 ;
 ;
 ; ======================================================================
