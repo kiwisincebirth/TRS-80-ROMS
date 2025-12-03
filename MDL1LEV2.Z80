@@ -6,7 +6,7 @@
 ;     [https://github.com/kiwisincebirth/TRS-80]
 ;
 ; ======================================================================
-;     NOTE: this code has been formatted with 8 character tabs
+;     NOTE: this code has been formatted with 8 spaces per tab
 ; ----------------------------------------------------------------------
 ; Rom Version Definition
 ; #DEFINE VER13   ; Set by Default if VER12 is not defined, dont uncomment
@@ -218,8 +218,10 @@ CLRKEY:	.EQU	$1F	; (CLEAR Key) erase from Cursor to end of frame
 ;
 SPACE:	.EQU 	$20	; A space character
 DQUOTE	.EQU	$22	; A Double Quote ( " )
+SQUOTE	.EQU	$27	; A Single Quote ( ' )
 SEMICO	.EQU	$3B	; Note ';' in code; was breaking some assemblers
 UPARRW	.EQU	$5B	; (UP Arrow) Special Up Arrow ↑ Character in TRS Charset
+BQUOTE	.EQU	$60	; A Back Quote ( ` )
 CURCHR  .EQU	$5F	; _ cursor character
 ;
 ; ======================================================================
@@ -1072,16 +1074,18 @@ CLOD1:	call	CTBIT		;0298
 ENBLK:	call	CADRIN		;02a9
 	ld	(TEMP),hl	;02ac
 	call	CTOFF		;02af
+;
 ; ----------------------------------------------------------------------
 ; 02B2 – LEVEL II BASIC SYSTEM ROUTINE – “SYSTEM”
 ; ----------------------------------------------------------------------
-SYSTEM:	call	SYSOUT		;02b2
-	ld	sp,SYSSTK	;02b5
-	call	CRDO		;02b8
+SYSTEM:	call	SYSOUT		;02b2 - Call the DOS exit for system command at 41E2H.
+	ld	sp,SYSSTK	;02b5 - Set the STACK pointer to the assumed load address.
+	; This location passes control to the routine used by the BASIC command SYSTEM.
+	call	CRDO		;02b8 - display a carriage return on the video display
 	ld	a,'*'		;02bb
-	call	OUTDO		;02bd
-	call	QINLIN		;02c0
-	jp	c,RESETR	;02c3
+	call	OUTDO		;02bd - Display a * character on the video display.
+	call	QINLIN		;02c0 - get the input from the keyboard
+	jp	c,RESETR	;02c3 - If BREAK key, JMP 06CC entry. BUG 29
 	GETCHR			;02c6 - rst 10h
 	jp	z,SNERR		;02c7
 	cp	'/'		;02ca
@@ -1451,6 +1455,8 @@ DSPGRP:	ld	a,c		;0467 - convert and display the charater
 	sub	$20		;047b - convert from lower to upper case
 #ENDIF
 ;
+; Output the character, it is not a control character, tab, or special characters
+;
 DSPCHR:	call	DSPOUT		;047d - Display the character in A (and scroll if necessary)
 ;
 ; Completion of the Display Routines, after characters have been printed.
@@ -1540,6 +1546,7 @@ DSPLF2:	ld	a,l		;04e2 - get the lower order address
 	and	$3F		;04e3 - mask 64 char line for RET below
 	dec	hl		;04e5 - move back 1
 	ret	nz		;04e6 - Return if still on the same line
+;
 ; ----------------------------------------------------------------------
 ; 04E7H – Cursor Down – “DSPDWN”
 ;  This is a space saver because if the cursor isn’t on the same line
@@ -1579,7 +1586,8 @@ DSPETB:	ld	a,(CAST)	;04f6 - get shadow copy of Cassette port
 ; ----------------------------------------------------------------------
 ; 0506H – Process control characters – “DSPCTL”
 ; ----------------------------------------------------------------------
-DSPCTL:	ld	de,DSPSKP	;0506 - Completion of video display routines
+DSPCTL:
+	ld	de,DSPSKP	;0506 - Completion of video display routines
 	push	de		;0509 - Save the return address on the STACK
 	cp	BACKS		;050a - is a backspace 08h
 	jr	z,DSPBSP	;050c - then process a backspace
@@ -1615,13 +1623,15 @@ DSPCTL:	ld	de,DSPSKP	;0506 - Completion of video display routines
 ;   scrolling the screen if necessary
 ;   HL contains the current screen address
 ; ----------------------------------------------------------------------
-DSPOUT:	ld	(hl),a		;0541 - write the character to video ram
+DSPOUT:
+	ld	(hl),a		;0541 - write the character to video ram
 	inc	hl		;0542 - next screen position
 	ld	a,(CAST)	;0543 - cassette port shadow byte
 	and	CAST32		;0546 - mask out 32 char mode bit
 	jr	z,DSPOT2	;0548 - if not 32 character mode, skip over
 	inc	hl		;054a - Skip another screen location (32 char)
-DSPOT2:	ld	a,h		;054b
+DSPOT2:
+	ld	a,h		;054b
 	cp	$40		;054c - past end of screen at (4000h)
 	ret	nz		;054e - nothing to do
 	ld	de,$FFC0	;054f - => -64, ie one line of characters
@@ -2075,8 +2085,6 @@ INITR:
 ; ----------------------------------------------------------------------
 ; 0708H-070FH – SINGLE PRECISION ADDITION,
 ;   ACCumulator = (HL) + ACCumulator – “FADDH”
-;   involving a buffer pointed to by the HL Register Pair and ACCumulator 
-;   (i.e., 4121H-4122H).
 ; ----------------------------------------------------------------------
 FADDH:	ld	hl,FHALF	;0708
 FADDS:	call	MOVRM		;070b
@@ -2225,7 +2233,7 @@ OVERR:	ld	e,ERROV		;07b2
 	jp	ERROR		;07b4
 ; ----------------------------------------------------------------------
 ; 07B7H-07C2H SINGLE PRECISION MATH ROUTINE – “FADDA”
-;   This routine adds (HL+2),)(HL+1),(HL+0) to C,D,E. 
+;   This routine adds (HL+2),)(HL+1),(HL+0) to C,D,E.
 ; ----------------------------------------------------------------------
 FADDA:	ld	a,(hl)		;07b7
 	add	a,e		;07b8
@@ -2264,9 +2272,9 @@ NGER:	ld	hl,FACSGN	;07c3
 ; ----------------------------------------------------------------------
 ; 07D7H-07F7H – SINGLE PRECISION MATH ROUTINE – “SHIFTR”
 ;   This routine will shift the number in C/D/E right the number of times
-;   held in Register A. The general idea is to shift right 8 places 
-;   as many times as is possible within the number of times in A, 
-;   and then jump out to shift single bits once you can't shift 8 
+;   held in Register A. The general idea is to shift right 8 places
+;   as many times as is possible within the number of times in A,
+;   and then jump out to shift single bits once you can't shift 8
 ;   at a time anymore. Alters everything except Register H.
 ; ----------------------------------------------------------------------
 SHIFTR:	ld	b,$00		;07d7
@@ -2279,7 +2287,7 @@ SHIFTR1: sub	$08		;07d9
 	jr	SHIFTR1		;07e2
 ; ----------------------------------------------------------------------
 ; 07E4 – SINGLE PRECISION MATH ROUTINE – “SHFTR2”
-;   This routine will shift the number in C/D/E right the number 
+;   This routine will shift the number in C/D/E right the number
 ;   of times held in Register A, but one byte at a time.
 ; ----------------------------------------------------------------------
 SHFTR2:	add	a,$09		;07e4
@@ -2570,8 +2578,8 @@ MUL10:	call	MOVRF		;093e
 	jp	OVERR		;0952
 ; ----------------------------------------------------------------------
 ; 0955H-0963H – SINGLE PRECISION MATH ROUTINE – “SIGN”
-;   Puts the SIGN of the ACCumulator into Register A. 
-;   Only Register A is modified by this routine; 
+;   Puts the SIGN of the ACCumulator into Register A.
+;   Only Register A is modified by this routine;
 ;   the ACCumulator is left untouched.
 ; ----------------------------------------------------------------------
 SIGN:	ld	a,(FAC)		;0955
@@ -2589,7 +2597,7 @@ SIGNS:	sbc	a,a		;0960
 	ret			;0963
 ; ----------------------------------------------------------------------
 ; 0964H-0976H – SINGLE PRECISION MATH ROUTINE – “FLOAT”
-;   This routine will take a signed integer held in Register A and 
+;   This routine will take a signed integer held in Register A and
 ;   turn it into a floating point number. All registers are modified.
 ; ----------------------------------------------------------------------
 FLOAT:	ld	b,$88		;0964
@@ -2731,8 +2739,8 @@ UNPACK:	ld	hl,FAC-1	;09df
 	ret			;09f3
 ; ----------------------------------------------------------------------
 ; 09F4H-09FBH – MATH ROUTINE – “VMOVFA”
-;   This routine moves a number of bytes (the number depending 
-;   on the value stored in the VALTYPE) from (HL) to the ACCumulator. 
+;   This routine moves a number of bytes (the number depending
+;   on the value stored in the VALTYPE) from (HL) to the ACCumulator.
 ;   All Registers except C are affected.
 ; ----------------------------------------------------------------------
 VMOVFA:	ld	hl,ARGLO	;09f4
@@ -2885,7 +2893,7 @@ FRCINT:	TSTDAT			;0a7f
 ;
 ; ----------------------------------------------------------------------
 ; 0A8EH – MATH CONVERSION ROUTINE – “CONIS”
-;   This routine will convert a single precision number to an integer. 
+;   This routine will convert a single precision number to an integer.
 ;   Every register is affected.
 ; ----------------------------------------------------------------------
 CONIS:	ld	a,(FAC)		;0a8e
@@ -2896,9 +2904,9 @@ CONIS:	ld	a,(FAC)		;0a8e
 CONIS1:	pop	de		;0a99
 ; ----------------------------------------------------------------------
 ; 0A9AH - LEVEL II BASIC CONVERSION ROUTINE- "MAKINT"
-;   This is the routine that returns the value in the HL Register Pair 
-;   to the BASIC program that called it. In effect it moves the content 
-;   of HL into the ACCumulator so it is ACCumulator = (HL) 
+;   This is the routine that returns the value in the HL Register Pair
+;   to the BASIC program that called it. In effect it moves the content
+;   of HL into the ACCumulator so it is ACCumulator = (HL)
 ;   with VALTYPE set accordingly
 ; ----------------------------------------------------------------------
 MAKINT:	ld	(FACLO),hl	;0a9a
@@ -3618,7 +3626,7 @@ DMULT5:	ld	hl,FAC-1	;0dcc
 ; 0DD4H-0DDBH – DOUBLE PRECISION CONSTANT STORAGE AREA – “DTEN” and “FTEN”
 ; ----------------------------------------------------------------------
 ;
-DTEN:	.DB	$00, $00, $00, $00; A double precision constant 10.0
+DTEN:	.DB	$00, $00, $00, $00; A double precision constant 10.0 (8 bytes)
 FTEN:	.DB	$00, $00, $20, $84; A single precision constant 10.0
 ;
 ; ----------------------------------------------------------------------
@@ -4804,19 +4812,19 @@ FFXDXM:	.DB	$00, $00, $04, $BF, $C9, $1B, $0E, $B6
 ; ----------------------------------------------------------------------
 ; 138C-13D1 – DOUBLE PRECISION INTEGER CONSTANT STORAGE LOCATION – “FODTBL”
 ; ----------------------------------------------------------------------
-FODTBL:	.DB	$00, $80, $C6, $A4, $7E, $8D, $03; 1D15
-	.DB	$00, $40, $7A, $10, $F3, $5A, $00; 1D14
-	.DB	$00, $A0, $72, $4E, $18, $09, $00; 1D13
-	.DB	$00, $10, $A5, $D4, $E8, $00, $00; 1D12
-	.DB	$00, $E8, $76, $48, $17, $00, $00; 1D10
-	.DB	$00, $E4, $0B, $54, $02, $00, $00; 1D9
-	.DB	$00, $CA, $9A, $3B, $00, $00, $00; 1D8
-	.DB	$00, $E1, $F5, $05, $00, $00, $00; 1D7
-	.DB	$80, $96, $98, $00, $00, $00, $00; 1D6
-	.DB	$40, $42, $0F, $00, $00, $00, $00; 1D5
+FODTBL:	.DB	$00, $80, $C6, $A4, $7E, $8D, $03	; 1D15
+	.DB	$00, $40, $7A, $10, $F3, $5A, $00	; 1D14
+	.DB	$00, $A0, $72, $4E, $18, $09, $00	; 1D13
+	.DB	$00, $10, $A5, $D4, $E8, $00, $00	; 1D12
+	.DB	$00, $E8, $76, $48, $17, $00, $00	; 1D10
+	.DB	$00, $E4, $0B, $54, $02, $00, $00	; 1D9
+	.DB	$00, $CA, $9A, $3B, $00, $00, $00	; 1D8
+	.DB	$00, $E1, $F5, $05, $00, $00, $00	; 1D7
+	.DB	$80, $96, $98, $00, $00, $00, $00	; 1D6
+	.DB	$40, $42, $0F, $00, $00, $00, $00	; 1D5
 ;
 ; NOTE: The above data does not (exactly) match what is held
-; in the TRS-80 web site rom disassemblg
+; in the TRS-80 web site rom disassembly
 ;
 ; ----------------------------------------------------------------------
 ; 13D2-13D7 – SINGLE PRECISION POWER OF TEN TABLE LOCATION – “FOSTBL
@@ -10312,6 +10320,7 @@ LPTPOS:	.EQU	RAM+$9B		; No. Of chars. In current print line
 PRTFLG:	.EQU	RAM+$9C		; Current output device flag. -VE=CAS, 0=vid, 1=print
 LINLEN:	.EQU	RAM+$9D		; Number of chars on video display line.
 CLMLST:	.EQU	RAM+$9E		; Number of chars on printed line.
+PARQTD:	.EQU	RAM+$9F		; String Parser: "Quoted" (Bit 0), REM (Bit 2), or DATA (Bit 1).
 ;
 STKTOP:	.EQU	RAM+$A0		; Start of String Storage Area (Stack). initial MEMSIZE-32
 CURLIN:	.EQU	RAM+$A2		; Current Line Number in a BASIC Program
@@ -10335,6 +10344,7 @@ TEMPPT:	.EQU	RAM+$B3		; next location for three-byte string variable
 TEMPST:	.EQU	RAM+$B5		; String variable VARPTR storage area
 ;
 DSCTMP:	.EQU	RAM+$D3		; VARPTR storage area for string being created
+DSCPTR:	.EQU	RAM+$D4		; 2byte address to buffer where ASCII decimal written.
 FRETOP:	.EQU	RAM+$D6		; Pointer to next free byte in string storage area
 TEMP3:	.EQU	RAM+$D8		; temporary storage location by multiple routines
 DATLIN:	.EQU	RAM+$DA		; Line number of last DATA item read
