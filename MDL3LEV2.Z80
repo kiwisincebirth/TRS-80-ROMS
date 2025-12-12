@@ -19,7 +19,7 @@
 ; #DEFINE VIDEO50 ; Uncomment to Enable 50Hz Video Support (RTC)
 ;
 ; === Rom Bug Fixes ===
-; #DEFINE BUGFIX27 ; Uncomment to Fix Bug 27 - 0072H - Basic Entry 06CCh. Also Fixes 29, 31
+; #DEFINE BUGFIX27 ; Uncomment to Fix Bug 27, 29, 31 - 0072H - Basic Entry 06CCh.
 ; #DEFINE BUGFIX28 ; Uncomment to Fix Bug 28 - 02B5H - Stack Init
 ; #DEFINE BUGFIX30 ; Uncomment to Fix Bug 30 - 034BH - 32 Char Mode
 ; #DEFINE BUGFIX40 ; Uncomment to Fix Bug 40 - 05D1H - Printer Status
