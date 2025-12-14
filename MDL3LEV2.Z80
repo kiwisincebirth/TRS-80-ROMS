@@ -19,7 +19,7 @@
 ; #DEFINE VIDEO50 ; Uncomment to Enable 50Hz Video Support (RTC)
 ;
 ; === Rom Bug Fixes ===
-; #DEFINE BUGFIX5A ; Uncomment to Fix Bug 5A - 08A7H - INT(DoubleValue) rounding
+; #DEFINE BUGFIX5  ; Uncomment to Fix Bug 5 - 08A7H - INT(DoubleValue) rounding
 ; #DEFINE BUGFIX27 ; Uncomment to Fix Bug 27, 29, 31 - 0072H - Basic Entry 06CCh.
 ; #DEFINE BUGFIX28 ; Uncomment to Fix Bug 28 - 02B5H - Stack Init
 ; #DEFINE BUGFIX30 ; Uncomment to Fix Bug 30 - 034BH - 32 Char Mode
@@ -2910,7 +2910,7 @@ FRCINT:	TSTDAT			;0a7f - check the value of the current number type
 	ld	hl,(FACLO)	;0a80 - in case an int, Load HL with the integer
 	ret	m		;0a83 - If an INTEGER, then return HL
 	jp	z,TMERR		;0a84 - If a STRING, Display a ?TM ERROR
-#IFDEF BUGFIX5A
+#IFDEF BUGFIX5
 	NOP3
 #ELSE
 ; If double-precision (NC flag set based on type), call the subroutine at 0AB9H

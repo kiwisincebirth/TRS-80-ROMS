@@ -32,7 +32,7 @@ There are several optional features.
 * `#DEFINE FREHDBT` - Enables the FreHD auto boot ROM feature, ie load fre HD at start
 
 Bug Fixes can be applied
-* `#DEFINE BUGFIX5A` - Fix Bug 5A - 08A7H - INT(DoubleValue) rounding issue
+* `#DEFINE BUGFIX5` - Fix Bug 5 - 08A7H - INT(DoubleValue) rounding issue
 * `#DEFINE BUGFIX27` - Fix Bug 27 - 06CCH - Basic Entry Point. Also Fixes 29, 31.
 * `#DEFINE BUGFIX28` - Fix Bug 28 - 034BH - Stack Initialisation Problem
 * `#DEFINE BUGFIX30` - Fix Bug 30 - 034BH - 32 char Mode, Incompatible Model 1 code
