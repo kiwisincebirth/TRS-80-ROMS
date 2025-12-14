@@ -21,6 +21,9 @@
 ; Date: 03/19/78 - 03/25/79
 ; CRC-32: 0D8A132E
 ;
+; === Rom Bug Fixes ===
+#DEFINE BUGFIX5A ; Uncomment to Fix Bug 5A - 08A7H - INT(DoubleValue) rounding
+;
 ; Rom Additional Features
 ; #DEFINE NMIHARD ; Uncomment to set NMI Reset as always hard reset. (0066h)
 ; #DEFINE LOWCASE ; Uncomment to Disable Alpha Character Translation (0471h)
@@ -54,11 +57,25 @@
 ; using a DIFF tool to ensure binary compatibility of the generated output.
 ;
 ; ======================================================================
+;      BUGS - "TRS-80 ROM Errors - Vernon Hester"
+;      https://www.trs-80.com/sub-rom-bugs.htm
+; ----------------------------------------------------------------------
+;
+; Bug 5A - 08A7 - INT(DoubleValue) rounding issue
+
+; EXPECTATION: INT(value) should produce a result equal to or less than value.
+; However, if the value is double-precision (by definition), the ROM rounds value
+; to single-precision first, then performs the INT function. e.g.
+;
+; PRINT INT(2.9999999) -> produces 3 instead of 2.
+;
+;
+; ======================================================================
 ;      REFERENCES
 ; ----------------------------------------------------------------------
 ;   • Git Hub Repository - [https://github.com/kiwisincebirth/TRS-80]
 ;   • Ira Goldlang, TRS-80 ROM Information - [https://www.trs-80.com/wordpress/roms/]
-;   • Model I Level II BASIC ROM Versions - [http://www.trs-80.org/model-1-level-2-basic-rom-versions/]
+;   • TRS-80 ROM Errors - Vernon Hester - [https://www.trs-80.com/sub-rom-bugs.htm]
 ;   • Telemark Assembler - [https://www.cpcalive.com/docs/TASMMAN.HTM]
 ;   • Microsoft BASIC Decoded & Other Mysteries - James Farvour
 ;
@@ -232,6 +249,8 @@ CURCHR  .EQU	$5F	; _ cursor character
 #DEFINE	GETCHR		rst 10h
 #DEFINE	CPDEHL		rst 18h
 #DEFINE	TSTDAT		rst 20h
+#DEFINE NOP2		nop\ nop
+#DEFINE NOP3		nop\ nop\ nop
 ;
 ; ----------------------------------------------------------------------
 ; Constants used by FreHD
@@ -921,9 +940,7 @@ CTON:	ld	a,(hl)		;01fe - char from BASIC program pointer
 DEFDRV:
 #IFNDEF EACA80
     #IFDEF NO37EXH
-    	nop			;0212 - No memory mapped IO so just ignore
-    	nop
-    	nop
+    	NOP3			;0212 - No memory mapped IO so just ignore
     #ELSE
 	ld	(casselect),a	;0212 - Set the requested cassette
     #ENDIF
@@ -1718,9 +1735,7 @@ PRTFF:	call	PRTSTA		;05a6 - Call the GET PRINTER STATUS routine
 	ld	a,LINEF		;05ab - We print line feed character(s)
 #IFNDEF EACA80
     #IFDEF NO37EXH
-    	nop			;05ad - Dont output since we dont have memory mapped IO
-    	nop
-    	nop
+    	NOP3			;05ad - Dont output since we dont have memory mapped IO
     #ELSE
 	ld	(prtstat),a	;05ad - Send the character to the printer port 37E8H
     #ENDIF
@@ -1739,9 +1754,7 @@ PRTIT2:	call	PRTSTA		;05b5 - Call the GET PRINTER STATUS routine
 	pop	af		;05ba
 #IFNDEF EACA80
     #IFDEF NO37EXH
-    	nop			;05ad - Dont output since we dont have memory mapped IO
-    	nop
-    	nop
+    	NOP3			;05ad - Dont output since we dont have memory mapped IO
     #ELSE
 	ld	(prtstat),a	;05ad - Send the character to the printer port 37E8H
     #ENDIF
@@ -2038,11 +2051,9 @@ INITR:
 	jp	DCOMPR		;4006 (mRST3) - RST 18H
 	jp	GETYPR		;4009 (mRST4) - RST 20H
 	ret			;400C (mRST5) - RST 28H
-	nop
-	nop
+	NOP2
 	ret			;400F (mRST6) - RST 30H
-	nop
-	nop
+	NOP2
 	ei			;4012 (mRST7) - RST 38H (Interrupt)
 	ret
 	nop
@@ -2072,8 +2083,7 @@ INITR:
 				; typically JP 4400H
 ; Abnormal DOS re-entry
 	rst	00h		; 4030 - DOS REQUEST CODE FOR SYS1
-	nop			; typically LD A,A3 followed by RST 28
-	nop
+	NOP2			; typically LD A,A3 followed by RST 28
 ; DOS Device Vectoring Routine
 	ld	a, 0		; 4033 (CIOSS) - CALL DOS DEVICE DRIVER (CIOSS)
 	ret			; typically will JP 44BBh
@@ -2883,13 +2893,25 @@ DCOMP:	call	XDCOMP		;0a78
 ;   (Integer=2). If NTF=3 (string) a TM ERROR will be generated and control
 ;   will be passed to BASIC. Every register is affected. No rounding is performed
 ; ----------------------------------------------------------------------
-FRCINT:	TSTDAT			;0a7f
-	ld	hl,(FACLO)	;0a80
-	ret	m		;0a83
-	jp	z,TMERR		;0a84
-	call	nc,CONSD	;0a87
-	ld	hl,OVERR	;0a8a
-	push	hl		;0a8d
+FRCINT:	TSTDAT			;0a7f - check the value of the current number type
+	ld	hl,(FACLO)	;0a80 - in case an int, Load HL with the integer
+	ret	m		;0a83 - If an INTEGER, then return HL
+	jp	z,TMERR		;0a84 - If a STRING, Display a ?TM ERROR
+#IFDEF BUGFIX5A
+	NOP3
+#ELSE
+; If double-precision (NC flag set based on type), call the subroutine at 0AB9H
+; (a sign/compare or CSNG entry point), which converts double to single-precision
+; with rounding to nearest (standard IEEE-like behavior in TRS-80 floating-point,
+; adding 0.5 in mantissa before truncating lower bits. This rounding happens before
+; truncation, causing values like 2.9999999# to become 3.0 in single-precision,
+; and then INT(3.0) = 3. For single-precision or integer inputs, no call is made,
+; and direct truncation occurs (correct behavior).
+;
+	call	nc,CONSD	;0a87 - If Double, Convert to single precision
+#ENDIF
+	ld	hl,OVERR	;0a8a - iJust in case the number is too big,
+	push	hl		;0a8d - RET to the ?OV ERROR, pushed onto stack.
 ;
 ; ----------------------------------------------------------------------
 ; 0A8EH – MATH CONVERSION ROUTINE – “CONIS”
@@ -2938,7 +2960,7 @@ FRCSNG:	TSTDAT			;0ab1
 ;
 ; ----------------------------------------------------------------------
 ; 0AB9 – MATH CONVERSION ROUTINE – “CONSD”
-;  Convert a double-prevision number to single-precision.
+;  Convert a double-precision number to single-precision.
 ;  Every register is affected.
 ; ----------------------------------------------------------------------
 CONSD:	call	MOVRF		;0ab9
@@ -3691,7 +3713,7 @@ DDIV2:	ld	(de),a		;0e12
 	jp	OVERR		;0e36
 ; ----------------------------------------------------------------------
 ; 0E39H-0E4CH – DOUBLE PRECISION MATH ROUTINE – “DMULDV”
-;   This routine will transfer the double prevision number held in the ACCumulator
+;   This routine will transfer the double precision number held in the ACCumulator
 ;   to FBUFFR for the DMULT and DDIV routines. All registers are affected.
 ; ----------------------------------------------------------------------
 DMULDV:	ld	a,c		;0e39
@@ -3948,7 +3970,7 @@ FINDG2:	call	CONSI		;0f59
 	scf			;0f5c
 ; ----------------------------------------------------------------------
 ; 0F5D – MATH ROUTINE – “FINDGV”
-;   Determine if we have a single precision or a double prevision number
+;   Determine if we have a single precision or a double precision number
 ; ----------------------------------------------------------------------
 FINDGV:	jr	nc,FINDGD	;0f5d
 	ld	bc,$9474	;0f5f - exponent and MSB of a single precision constant
@@ -7112,7 +7134,7 @@ NEWCHR:	dec	hl 		;207C Backspace over previous symbol in code string
 	call	z,CRDO 		;207E If end of string write a Carriage Return
 PRINTC:	jp	z,FINPRT	;2081 If end of string turn off cassette and return
 	or	$20		;2084 Not end of string. Convert possible 40 to 60
- 	cp	$60	 	;2086 Then test for @
+ 	cp	BQUOTE	 	;2086 Compare against a "'", which is actually a @ with OR $20
 	jr	nz,PRINTD	;2088 Jmp if not PRINT @
  	call	GETINT 		;208A Evaluate @ expression, result in DE * PRINT @ routine
 	cp	$04		;208D A = MSB, test for @ value > 1023

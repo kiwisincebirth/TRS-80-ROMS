@@ -19,6 +19,7 @@
 ; #DEFINE VIDEO50 ; Uncomment to Enable 50Hz Video Support (RTC)
 ;
 ; === Rom Bug Fixes ===
+; #DEFINE BUGFIX5A ; Uncomment to Fix Bug 5A - 08A7H - INT(DoubleValue) rounding
 ; #DEFINE BUGFIX27 ; Uncomment to Fix Bug 27, 29, 31 - 0072H - Basic Entry 06CCh.
 ; #DEFINE BUGFIX28 ; Uncomment to Fix Bug 28 - 02B5H - Stack Init
 ; #DEFINE BUGFIX30 ; Uncomment to Fix Bug 30 - 034BH - 32 Char Mode
@@ -41,17 +42,17 @@
 ; using a DIFF tool to ensure binary compatibility of the generated output.
 ;
 ; ======================================================================
-;      REFERENCES
-; ----------------------------------------------------------------------
-;
-;   • Ira Goldlang, TRS-80 ROM Information - [https://www.trs-80.com/main-internal-rom-related.htm]
-;   • Ira Goldlang, TRS-80 ROM BUGS - [https://www.trs-80.com/sub-rom-bugs.htm]
-;   • Telemark Assembler - [https://www.cpcalive.com/docs/TASMMAN.HTM]
-;
-; ======================================================================
 ;      BUGS - "TRS-80 ROM Errors - Vernon Hester"
 ;      https://www.trs-80.com/sub-rom-bugs.htm
 ; ----------------------------------------------------------------------
+;
+; Bug 5A - 08A7 - INT(DoubleValue) rounding issue
+
+; EXPECTATION: INT(value) should produce a result equal to or less than value.
+; However, if the value is double-precision (by definition), the ROM rounds value
+; to single-precision first, then performs the INT function. e.g.
+;
+; PRINT INT(2.9999999) -> produces 3 instead of 2.
 ;
 ; Bug 27 - 06CC Basic Entry Point - Also Fixes Error's 29, 31
 ;
@@ -94,8 +95,8 @@
 ;      REFERENCES
 ; ----------------------------------------------------------------------
 ;   • Git Hub Repository - [https://github.com/kiwisincebirth/TRS-80]
-;   • TRS-80 ROM Errors - Vernon Hester - [https://www.trs-80.com/sub-rom-bugs.htm]
 ;   • Ira Goldlang, TRS-80 ROM Information - [https://www.trs-80.com/wordpress/roms/]
+;   • TRS-80 ROM Errors - Vernon Hester - [https://www.trs-80.com/sub-rom-bugs.htm]
 ;   • Telemark Assembler - [https://www.cpcalive.com/docs/TASMMAN.HTM]
 ;
 ; ======================================================================
@@ -247,6 +248,8 @@ CURCHR  .EQU	$B0	; (block graphic) _ cursor character
 #DEFINE	GETCHR		rst 10h
 #DEFINE	CPDEHL		rst 18h
 #DEFINE	TSTDAT		rst 20h
+#DEFINE NOP2		nop\ nop
+#DEFINE NOP3		nop\ nop\ nop
 ;
 ; ----------------------------------------------------------------------
 ; Constants used by FreHD
@@ -587,9 +590,7 @@ LOPRTS:	ld	(hl),OPRET	;00a1 - Store RET OpCode
 	ld	(hl),b		;00ab
 	ld	sp,SMPSTK	;00ac - STACK pointer to 41F8H, temporary until call STKINI
 	call	STKINI		;00af - Go initialize the Level II BASIC variables and pointers
-	nop			;00b2 - UNUSED - On Model 1 was call to CLS
-	nop
-	nop
+	NOP3			;00b2 - UNUSED - On Model 1 was call to CLS
 ;
 MEMGET:	ld	hl,MEMMSG	;00b5 - MEMORY SIZE? message
 	call	STROUT		;00b8 - print it
@@ -2905,13 +2906,25 @@ DCOMP:	call	XDCOMP		;0a78
 ;   (Integer=2). If NTF=3 (string) a TM ERROR will be generated and control
 ;   will be passed to BASIC. Every register is affected. No rounding is performed
 ; ----------------------------------------------------------------------
-FRCINT:	TSTDAT			;0a7f
-	ld	hl,(FACLO)	;0a80
-	ret	m		;0a83
-	jp	z,TMERR		;0a84
-	call	nc,CONSD	;0a87
-	ld	hl,OVERR	;0a8a
-	push	hl		;0a8d
+FRCINT:	TSTDAT			;0a7f - check the value of the current number type
+	ld	hl,(FACLO)	;0a80 - in case an int, Load HL with the integer
+	ret	m		;0a83 - If an INTEGER, then return HL
+	jp	z,TMERR		;0a84 - If a STRING, Display a ?TM ERROR
+#IFDEF BUGFIX5A
+	NOP3
+#ELSE
+; If double-precision (NC flag set based on type), call the subroutine at 0AB9H
+; (a sign/compare or CSNG entry point), which converts double to single-precision
+; with rounding to nearest (standard IEEE-like behavior in TRS-80 floating-point,
+; adding 0.5 in mantissa before truncating lower bits. This rounding happens before
+; truncation, causing values like 2.9999999# to become 3.0 in single-precision,
+; and then INT(3.0) = 3. For single-precision or integer inputs, no call is made,
+; and direct truncation occurs (correct behavior).
+;
+	call	nc,CONSD	;0a87 - If Double, Convert to single precision
+#ENDIF
+	ld	hl,OVERR	;0a8a - iJust in case the number is too big,
+	push	hl		;0a8d - RET to the ?OV ERROR, pushed onto stack.
 ;
 ; ----------------------------------------------------------------------
 ; 0A8EH – MATH CONVERSION ROUTINE – “CONIS”
@@ -2960,7 +2973,7 @@ FRCSNG:	TSTDAT			;0ab1
 ;
 ; ----------------------------------------------------------------------
 ; 0AB9 – MATH CONVERSION ROUTINE – “CONSD”
-;  Convert a double-prevision number to single-precision.
+;  Convert a double-precision number to single-precision.
 ;  Every register is affected.
 ; ----------------------------------------------------------------------
 CONSD:	call	MOVRF		;0ab9
@@ -3713,7 +3726,7 @@ DDIV2:	ld	(de),a		;0e12
 	jp	OVERR		;0e36
 ; ----------------------------------------------------------------------
 ; 0E39H-0E4CH – DOUBLE PRECISION MATH ROUTINE – “DMULDV”
-;   This routine will transfer the double prevision number held in the ACCumulator
+;   This routine will transfer the double precision number held in the ACCumulator
 ;   to FBUFFR for the DMULT and DDIV routines. All registers are affected.
 ; ----------------------------------------------------------------------
 DMULDV:	ld	a,c		;0e39
@@ -3970,7 +3983,7 @@ FINDG2:	call	CONSI		;0f59
 	scf			;0f5c
 ; ----------------------------------------------------------------------
 ; 0F5D – MATH ROUTINE – “FINDGV”
-;   Determine if we have a single precision or a double prevision number
+;   Determine if we have a single precision or a double precision number
 ; ----------------------------------------------------------------------
 FINDGV:	jr	nc,FINDGD	;0f5d
 	ld	bc,$9474	;0f5f - exponent and MSB of a single precision constant
@@ -11452,11 +11465,9 @@ INITR:
 	jp	DCOMPR		;4006 (mRST3) - RST 18H
 	jp	GETYPR		;4009 (mRST4) - RST 20H
 	ret			;400C (mRST5) - RST 28H
-	nop
-	nop
+	NOP2
 	ret			;400F (mRST6) - RST 30H
-	nop
-	nop
+	NOP2
 	jp 	JT_INTHAND	;4012 (mRST7) - RST 38H (Interrupt)
 ;
 ; ----------------------------------------------------------------------
@@ -11493,8 +11504,7 @@ KEYDCB:
 				; typically JP 4400H
 ; Abnormal DOS re-entry
 	rst	00h		; 4030 - DOS REQUEST CODE FOR SYS1
-	nop			; typically LD A,A3 followed by RST 28
-	nop
+	NOP2			; typically LD A,A3 followed by RST 28
 ; DOS Device Vectoring Routine
 	xor a			; 4033 - (CIOSS) CALL DOS DEVICE DRIVER
 	ret			; typically will JP 44BBh

@@ -41,6 +41,9 @@ There are several optional features.
   This is useful when a lower case mod is installed, but an alternate video driver has not been installed,
   or where the font rom on the machine has the alternate characters in the 00h 1Fh range (0471h)
 
+Bug Fixes can be applied
+* `#DEFINE BUGFIX5A` - Fix Bug 5A - 08A7H - INT(DoubleValue) rounding
+
 Some additional defines, which are build options rather than features
 * `#DEFINE SIZE16K` - Will pad the end of the rom with $FF to 16KB size. useful if want to append multiple ROM
   images for used in large 16K paged rom
