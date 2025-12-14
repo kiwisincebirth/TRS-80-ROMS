@@ -22,7 +22,7 @@
 ; CRC-32: 0D8A132E
 ;
 ; === Rom Bug Fixes ===
-#DEFINE BUGFIX5A ; Uncomment to Fix Bug 5A - 08A7H - INT(DoubleValue) rounding
+; #DEFINE BUGFIX5A ; Uncomment to Fix Bug 5A - 08A7H - INT(DoubleValue) rounding
 ;
 ; Rom Additional Features
 ; #DEFINE NMIHARD ; Uncomment to set NMI Reset as always hard reset. (0066h)
