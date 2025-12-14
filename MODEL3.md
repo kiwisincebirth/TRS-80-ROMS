@@ -45,6 +45,8 @@ Some additional defines, which are build options rather than features
 
 ## Bug Fixes
 
+See - [TRS-80 ROM Errors - Vernon Hester](https://www.trs-80.com/sub-rom-bugs.htm)
+
 ### BugFix 27
 
 This actually Fixes a number of reported issues (27, 29, 31)

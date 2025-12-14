@@ -53,3 +53,7 @@ Experimental - use at your own risk
 * `#DEFINE _EMBED` - Strip all HW, and IO routines leaving just BASIC language as standalone code
   and used in L2 Basic for CP/M
 
+## Bug Fixes
+
+See - [TRS-80 ROM Errors - Vernon Hester](https://www.trs-80.com/sub-rom-bugs.htm)
+
