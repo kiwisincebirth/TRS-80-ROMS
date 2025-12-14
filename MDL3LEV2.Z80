@@ -2225,7 +2225,11 @@ NORM3:	jp	p,NORM2		;0785
 	ld	(hl),a		;0792
 	jr	nc,ZERO		;0793
 	ret	z		;0795
-;
+; ----------------------------------------------------------------------
+; 0796H-07A7H – SINGLE PRECISION MATH ROUTINE – “ROUND”
+; The "ROUND" routine rounds the result in CDEB and puts the result into the ACCumulator.
+; All registers are affected. CDE is rounded up or down based on the MSB of Register B.
+; ----------------------------------------------------------------------
 ROUND:	ld	a,b		;0796
 ROUNDB:	ld	hl,FAC		;0797
 	or	a		;079a
@@ -2620,7 +2624,7 @@ SIGNS:	sbc	a,a		;0960
 	inc	a		;0962
 	ret			;0963
 ; ----------------------------------------------------------------------
-; 0964H-0976H – SINGLE PRECISION MATH ROUTINE – “FLOAT”
+; 0964H-0976H – MATH CONVERSION ROUTINE – “FLOAT”
 ;   This routine will take a signed integer held in Register A and
 ;   turn it into a floating point number. All registers are modified.
 ; ----------------------------------------------------------------------
@@ -2899,7 +2903,7 @@ DCOMP:	call	XDCOMP		;0a78
 	ret			;0a7e
 ;
 ; ======================================================================
-; 0A7FH – LEVEL II BASIC CINT ROUTINE – “FRCINT”
+; 0A7FH – LEVEL II BASIC CINT ROUTINE – “FRCINT” - MATH CONVERSION ROUTINE
 ;
 ;   CINT routine. Takes a value from ACC, converts it to an integer value
 ;   and puts it back into the ACC. On completion, the HL Register Pair
@@ -2924,7 +2928,7 @@ FRCINT:	TSTDAT			;0a7f - check the value of the current number type
 ;
 	call	nc,CONSD	;0a87 - If Double, Convert to single precision
 #ENDIF
-	ld	hl,OVERR	;0a8a - iJust in case the number is too big,
+	ld	hl,OVERR	;0a8a - Just in case the number is too big,
 	push	hl		;0a8d - RET to the ?OV ERROR, pushed onto stack.
 ;
 ; ----------------------------------------------------------------------
@@ -2977,21 +2981,24 @@ FRCSNG:	TSTDAT			;0ab1
 ;  Convert a double-precision number to single-precision.
 ;  Every register is affected.
 ; ----------------------------------------------------------------------
-CONSD:	call	MOVRF		;0ab9
-	call	VALSNG		;0abc
-	ld	a,b		;0abf
-	or	a		;0ac0
-	ret	z		;0ac1
-	call	UNPACK		;0ac2
-	ld	hl,FACLO-1	;0ac5
-	ld	b,(hl)		;0ac8
-	jp	ROUND		;0ac9
+CONSD:	call	MOVRF		;0ab9 - Move the HIGH ORDER/MSB's into Register Pair BC/DE
+	call	VALSNG		;0abc - set number type to single precision
+	ld	a,b		;0abf - check for zero, first load the exponent
+	or	a		;0ac0 - set flags
+	ret	z		;0ac1 - exponent zero, number zero, return
+	call	UNPACK		;0ac2 - turn on the MSB of the single in the ACCumulator
+	ld	hl,FACLO-1	;0ac5 - chop off the MSB of double double precision
+	ld	b,(hl)		;0ac8 - chopped number, the ROUND routine expects
+	jp	ROUND		;0ac9 - round the chopped number up and RETurn
 ;
 ; ----------------------------------------------------------------------
 ; 0ACCH-0ADAH - MATH CONVERSION ROUTINE – “CONSI”
 ;   Convert Integer to Single Precision. Every register is affected.
 ; ----------------------------------------------------------------------
 CONSI:	ld	hl,(FACLO)	;0acc
+; ----------------------------------------------------------------------
+;   Convert Integer (Passed in HL) to Single Precision
+; ----------------------------------------------------------------------
 CONSIH:	call	VALSNG		;0acf
 	ld	a,h		;0ad2
 	ld	d,l		;0ad3
@@ -3012,7 +3019,7 @@ FRCDBL:	TSTDAT			;0adb
 	call	m,CONSI		;0ae0
 ;
 ; ----------------------------------------------------------------------
-; 0AE3H – LEVEL II BASIC CDBL ROUTINE – “CONDS”
+; 0AE3H – LEVEL II BASIC CDBL ROUTINE – “CONDS” -  MATH CONVERSION ROUTINE
 ;   Convert a single precision number to double. Modifies A, H, and L.
 ; ----------------------------------------------------------------------
 CONDS:	ld	hl,$0000	;0ae3
@@ -9236,8 +9243,8 @@ GETINT:	GETCHR			;2b01 - rst 10h
 GETIN2:	call	FRMEVL		;2b02
 ;
 ; ----------------------------------------------------------------------
-; 2B05 – This routine takes the value from the ACC, converts it to an integer
-; value and places the result in the DE Register Pair. The Z flag will be
+; 2B05 – MATH CONVERSION ROUTINE - This routine converts value from the ACC to an
+; integer value and places the result in the DE Register Pair. The Z flag will be
 ; set if the result in DE is smaller than or equal to 255 (FFH). (DE = INT (ACC)).
 ; ----------------------------------------------------------------------
 INTFR2:	push	hl		;2b05
