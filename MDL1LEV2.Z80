@@ -2982,7 +2982,10 @@ CONIS1:	pop	de		;0a99
 ;   with VALTYPE set accordingly
 ; ----------------------------------------------------------------------
 MAKINT:	ld	(FACLO),hl	;0a9a
-	ld	a,VTINT		;0a9d - Value type INTeger
+; ----------------------------------------------------------------------
+; 0A9DH - Set NTF to INTEGER
+; ----------------------------------------------------------------------
+VALINT:	ld	a,VTINT		;0a9d - Value type INTeger
 CONISD:	ld	(VALTYP),a	;0a9f
 	ret			;0aa2
 ; ----------------------------------------------------------------------
@@ -3057,6 +3060,9 @@ FRCDBL:	TSTDAT			;0adb
 CONDS:	ld	hl,$0000	;0ae3
 	ld	(DFACLO),hl	;0ae6
 	ld	(DFACLO+2),hl	;0ae9
+; ----------------------------------------------------------------------
+; 0AECH - Set NTF to DOUBLE
+; ----------------------------------------------------------------------
 VALDBL:	ld	a,VTDBL		;0aec - Double Value Type
 ;
 ; ----------------------------------------------------------------------
@@ -3065,6 +3071,9 @@ VALDBL:	ld	a,VTDBL		;0aec - Double Value Type
 ;
 	.DB	LDBCNN		;0aee - Z80 Trick LD BC,nnnn - skip next 2 byte instruction
 ;
+; ----------------------------------------------------------------------
+; 0AEFH - Set NTF to SINGLE
+; ----------------------------------------------------------------------
 VALSNG:	ld	a,VTSNG		;0aef - single precision number type flag (of 4)
 	jp	CONISD		;0af1
 ;
@@ -7846,7 +7855,7 @@ FINREL:	ld	a,b		;23ec
 ;   APPLOP is returned to when
 ;   it is time to apply an arithmetic or numeric comparison operation.
 ;   The STACK has a double byte entry with the operator number and the
-;   VALTYP of the value on the STACK. APPLOP decides what value level
+;   NTF of the value on the STACK. APPLOP decides what value level
 ;   the operation will occur at, and converts the arguments.
 ; ----------------------------------------------------------------------
 APPLOP:	pop	bc		;2406
