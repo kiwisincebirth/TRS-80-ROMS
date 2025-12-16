@@ -649,10 +649,13 @@ USEDEF:	dec	hl		;00e7 - minus 1
 ;
 #IFDEF BUGFIX27
 ;
-; Messageas compacted
+; Messages compacted to save space
+;
 MEMMSG:	.DB	"Mem Size",0		   		; Memory Size Message
 HDGMSG:	.DB	"R/S M3 Basic",$0D			; RS L2 Basic
 	.DB	0, 0, 0, 0, 0, 0			; UNUSED PADDING
+;
+; Untokenize Code Moved here to allow reinstatement of the missing 0677 Entry Point
 ;
 UNTOKEN5A:			; Original Code MOVED here
 	cp 	'E'		;06c9 - Test for an E
@@ -1796,6 +1799,7 @@ DSPERA:	ld 	(hl),SPACE	;05c9 - write a space to cursor
 ; ======================================================================
 ; 05D1H – Get printer status routine – “PRTSTA” (Broken) -
 ;	See 044BH which has the correct code, and definition.
+;       Potentially consider this "Replaced & Broken" Model1 routine as UNUSED
 ; ----------------------------------------------------------------------
 PRTSTA_BROKEN:
 ;
@@ -1806,7 +1810,6 @@ PRTSTA_BROKEN:
 #ELSE
 	; Rumor has it that this is a malicious destruction of the
 	; "printer ready" function was used to hide the name "RON"
-	; unused
         ld 	d,d		;05d1 - R
 	ld 	c,a		;05d2 - O
 	ld 	c,(hl)		;05d3 - N
@@ -11795,7 +11798,7 @@ TIMEREADY:
 ; Shadow Bytes for Printer Status PORT
 ; These bytes are not accessible, address decoder directs to Print Status
 ; ----------------------------------------------------------------------
-	.DB	$FF, $FF	;37E8 - 37E9 - UNUSED ( !! Unusable !! )
+	.DB	$FF, $FF	;37E8 - 37E9 - UNUSABLE
 ;
 ; ----------------------------------------------------------------------
 ; 37EA - Computer Version Number
