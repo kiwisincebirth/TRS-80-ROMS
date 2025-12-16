@@ -1338,7 +1338,6 @@ PRTDRV2:
 	jr 	nc,PRTDRV6	;03e7 - handle the graphics character.
 ;
 ; Handle Translation of printed character using the Translation table
-; See Notes about a possible reimplementation of this code to save rom space
 ;
 	ld 	b,0		;03e9 - set MSB to 0
 	sub 	$20		;03eb - adjust A character to print table offset $20
@@ -1347,6 +1346,16 @@ PRTDRV2:
 	add 	hl,bc		;03f1 - add the offset
 	ld 	c,(hl)		;03f2 - load the print char
 	jr 	PRTDRV5		;03f3 - print it.
+;
+; possible reimplementation of code above to remove PRTABLE, freeing 96 bytes
+; which could be used for other fixes. See Notes at 3145
+;
+; 	CP    	$60		; is it a back quote
+; 	JR    	NZ,PRTDRV5	; no just print it
+; 	LD	c,$40		; translate to '@'
+;	JR	PRTDRV5		; print it
+;	.DB	0, 0, 0, 0	; four NOP fillers
+;
 PRTCR:
 	ld 	a,(ix+5)	;03f5 - num chars printer
 	or 	a		;03f8 - set flags
@@ -10448,7 +10457,7 @@ KEYENTRY4:
 	ret			;3144
 ;
 ; ----------------------------------------------------------------------
-; 3145 - Printer Character Table Codes 32-127.
+; 3145 - Printer Character Translation Table of ASCII codes 32-127.
 ; ----------------------------------------------------------------------
 PRTABLE:
 	.DB	$20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $2A, $2B, $2C, $2D, $2E, $2F
@@ -10459,8 +10468,8 @@ PRTABLE:
 	.DB	$70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $7A, $7B, $7C, $7D, $7E, $7F
 	;
 	; NOTE: The above translation only affect $60 BQUOTE -> $40 @
-	; NOTE: Could be reimplemented without this table, saving ROM space
-	; NOTE: See 03E9 for the use of this table
+	; NOTE: Could be reimplemented without this table, saving 96 bytes
+	; NOTE: See 03EE for the use of this table, and possible reimplementation
 ;
 ; ======================================================================
 ; CASSETTE ROUTINES
@@ -11631,7 +11640,7 @@ SERDCB:
 	.DB	$04		;4213 (TPINTV) - Cass Default Interrupt Vector Setting.
 ;
 	.DB	0		;4214 (VDSCPR) - Video scroll protect: #Lines To Protect (0-7).
-	.DB	0		;4215 - unused
+	.DB	0		;4215 - not used
 	;
 	.DB	CLKFREQ	 	;4216 (CLKHRT) - Clock Data: Heartbeat Counter (defined by Clock Freq)
 	.DB	0,0,0,0,0,0	;4217 (CLKHRS) - 421C (CLKMNT) - Clock Data: SS:MM:HH YY/DD/MM

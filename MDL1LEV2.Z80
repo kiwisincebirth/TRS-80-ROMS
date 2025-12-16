@@ -515,13 +515,13 @@ DELAY:	dec	bc		;0060
 NMI:	jp	_START		;0066 - wrong Stack Pointer.
 ;
 #IFDEF FREHDBT
-;				;If Fre HD we use this space for improved  hdboot routine
+;				;If Fre HD we use this space for improved hdboot routine
 HDBOOT:	call	CLS		;0069 - Clear Screen
 	call	DELAY		;006c - pause for a few seconds
 	jp	HDBOOT2		;006f - continue hdboot
 #ENDIF
 ;
-	.FILL	(0072h - $,0)	;fill the space to next routine with ZERO's
+	.FILL	(0072h - $,0)	;UNUSED fill the space to next routine with ZERO's
 ;
 #ELSE
 ;
@@ -1197,7 +1197,7 @@ OUT2D:	push	de		;033a
 ; 0348H-0357H – VIDEO ROUTINE – “DSPPOS”
 ;   Works out horizontal cursor position based on (CURSOR) vid ram pointer
 ; ----------------------------------------------------------------------
-DSPPOS:	ld	a,(CAST)	;0348 - get shadow copy of casette port
+DSPPOS:	ld	a,(CAST)	;0348 - get shadow copy of cassette port
 	and	CAST32		;034b - mask of the 32 char mode bit
 	ld	a,(CURSOR)	;034d - LSB of the current cursor position
 	jr	z,NT32PS	;0350 - 64 characters per line mode?
@@ -1462,7 +1462,7 @@ DSPGRP:	ld	a,c		;0467 - convert and display the charater
 	jr	nc,DSPGRC	;046f - display graphic
 #IFDEF LOWCASE
 	jr	DSPCHR		;0471 - Disable all Alpha CHR translation
-	.FILL	(047Dh - $,0)	; Fill Deleted code bock (ELSE) with NOP's
+	.FILL	(047Dh - $,0)	;UNUSED Fill Deleted code bock (ELSE) with NOP's
 #ELSE
 	cp	$40		;0471 - is it number or symbol ASCII 20h - 40h
 	jr	c,DSPCHR	;0473 - then display it
@@ -2060,9 +2060,9 @@ INITR:
 ; Keyboard DCB
 	.DB	1		; 4015 (mKDCB) - Device Type = 1 for KB (Read only)
 	.DW	KBDDRV		; 4016 - keyboard driver address
-	.DB	0		; 4017 - unused
-	.DB	0		; 4018 - unused
-	.DB	0		; 4019 - unused
+	.DB	0		; 4017 - Not used on Model 1
+	.DB	0		; 4018 - Not used on Model 1
+	.DB	0		; 4019 - Not used on Model 1
 	.DB	"KI"
 ; Display DCB
 	.DB	7		; 401D (mDDCB) - Device Type = 7 for VID
@@ -2075,7 +2075,7 @@ INITR:
 	.DW	PRTDRV		; 4026 - printer driver address
 	.DB	67		; 4028 - lines per page
 	.DB	0		; 4029 - Current Line Number
-	.DB	0		; 402A - unused
+	.DB	0		; 402A - Not used on Model 1
 	.DB	"PR"
 ;
 ; Normal Disk Operating System re-entry vector.
