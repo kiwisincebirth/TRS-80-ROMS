@@ -10550,7 +10550,7 @@ SYSSTK:	.EQU	MEMEND+$88	; Stack address usd by SYSTEM command
 ; versions into a larger (modern) paged ROM file.
 ;
 #IFDEF	SIZE16K
-	.FILL	(4000h - $), $FF
+	.FILL	(4000h - $)
 #ENDIF
 ; ======================================================================
 ;
