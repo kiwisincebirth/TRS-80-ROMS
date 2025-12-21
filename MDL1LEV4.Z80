@@ -956,7 +956,7 @@ CLOD1:	call	CTBIT		;0298
 ;   Places the double asterisk in the right top corner
 ;   to show that the sync byte has been found
 ; ----------------------------------------------------------------------
-	ld	a,$2A		;029f
+	ld	a,'*'		;029f
 	ld	(vidmem+$3E),a	;02a1
 	ld	(vidmem+$3F),a	;02a4
 	pop	hl		;02a7
