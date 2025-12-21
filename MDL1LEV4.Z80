@@ -1319,6 +1319,10 @@ DSPGRP:	ld	a,c		;0467 - convert and display the charater
 #IFDEF LOWCASE
 	jr	DSPCHR		;0471 - Disable all Alpha CHR translation
 ;
+DSKMSG:
+	; The diskette message fits in this space
+	.DB	"Diskette?", 0 	;Message Asking for Diskette
+;
 	.ECHO	" LOWCASE - Lowercase support enabled \n"
 	.FILL	(047Dh - $,0)	;UNUSED Fill Deleted code bock (ELSE) with NOP's
 #ELSE
@@ -1811,17 +1815,15 @@ CLRAM:	ld	(de),a		;0687 - zero byte in memory starting at 4036h
 ;
 ; This is the beginning of the routine which boots a diskette
 	ld	sp,TMPSTK	;0693 - $407D since Disk load will overite > $4200
+	call	CLS		;Clear Screen
 #IFDEF FREHDBT
 	; FreHD includes these 3 bytes by removing code below (06ac)
 	call	HDBOOT		;0696 - Call to the FreHD hd boot routines.
 #ENDIF
 ;
-	ld	a,(diskstat)	;0696 - status of the disk controller (37ECH)
-	inc	a		;0699
-	cp	$02		;069a - is disk controller present.
-	jp	c,INIT2		;069c - Jump to Level II Init if no disk controller
+	JP	BOOTCHK		; Jump to extracted code to display diskette message
+	.FILL	(069Fh - $,0)	;UNUSED Fill Deleted code bock with NOP's
 ;
-;   fallthrough for floppy boot
 ; ----------------------------------------------------------------------
 ; 069FH-06CBH – Bootstrap from Diskette – "BOOT"
 ; Now we know (can assume) there is a disk controller and we should boot it.
@@ -1832,11 +1834,7 @@ BOOT:	ld	a,$01		;069f
 	ld	hl,diskstat	;06a4 - address of the disk command/status Register 37ECH
 	ld	de,diskdata	;06a7 - address of the disk data Register (37EFH)
 	ld	(hl),$03	;06aa - command 03H (RESTORE and POSITION TO TRACK 0)
-#IFNDEF FREHDBT
-	; FreHD excludes  these 3 bytes for call HDBOOT above (696h)
-	; noting it is expected tha BC = 0000 at this point of the execution
 	ld	bc,$0000	;06ac
-#ENDIF
 	call	DELAY		;06af - delay (BC times 14.65) about 3 seconds
 BOOTDL:	bit	0,(hl)		;06b2 - is the diskette controller is busy
 	jr	nz,BOOTDL	;06b4 - Wait until it is ready
@@ -9315,8 +9313,7 @@ MLOOP:	ld	a,(de)		;2be8
 ; ----------------------------------------------------------------------
 #IFDEF FREHDBT
 ;
-HDBOOT:	call	CLS		;0069 - Clear Screen
-	call	DELAY		;006c - pause for a few seconds
+HDBOOT:	call	DELAY		;006c - pause for a few seconds
 	ld	a,ROM_MODEL_1	;00ff - ROM parameter to FreHD. 1 for Model1.
         out	(WRITEROM),a	;0101 - write the value
         in	a,(READROM)	;0103 - read response
@@ -9353,6 +9350,27 @@ KEYBOU	push	bc		;011C Save Row Address in BC into the STACK
 	.ECHO	($ - KEYBOU)
 	.ECHO	" bytes \n"
 #ENDIF
+; ----------------------------------------------------------------------
+;
+BOOTCHK:
+	; Code extracted Here to accommodate Diskette Message Display
+	ld	a,(diskstat)	;0696 - status of the disk controller (37ECH)
+	inc	a		;0699 - ensure FF is mapped to 00
+	cp	$02		;069a - is disk controller present.
+	jp	c,INIT2		;069c - Jump to Level II Init if no disk controller
+	ld	hl,DSKMSG	;Diskette? message
+	call	STROUT		;print it
+	JP	BOOT		;Continue to disk boot
+;
+#IFNDEF LOWCASE
+DSKMSG:
+	; If Lower Case Not Defined - diskette message is Here
+	.DB	"Diskette?", 0 	;Message Asking for Diskette
+#ENDIF
+; ----------------------------------------------------------------------
+	.ECHO	"  * BOOTCHK uses "
+	.ECHO	($ - BOOTCHK)
+	.ECHO	" bytes \n"
 ; ----------------------------------------------------------------------
 ;
 MEMMSG:	.DB	"Memory Size",0			     ; RS Mem Size Message V1.2
