@@ -14,14 +14,19 @@
 ; Date: 01/07/80-01/13/80
 ; CRC-32: A8E60D9A
 ;
+; Rom Hardware Support
+; #DEFINE EACA80  ; Uncomment to enable System-80 (EACA) hardware support
+;
 ; Rom Bug Fixes
-; #DEFINE BUGFIX5 ; Uncomment to Fix Error 5 - 08A7H - INT(DoubleValue) rounding
+#DEFINE BUGFIX5 ; Uncomment to Fix Error 5 - 08A7H - INT(DoubleValue) rounding
 ;
 ; Rom Additional Features
-; #DEFINE NMIHARD ; Uncomment to set NMI Reset as always hard reset. (0066h)
-; #DEFINE LOWCASE ; Uncomment to Disable Alpha Character Translation (0471h)
-; #DEFINE FREHDBT ; Uncomment to enable FreHD Auto boot at startup (incl NMIHARD)
-; #DEFINE EACA80  ; Uncomment to enable System-80 (EACA) hardware support
+#DEFINE LOWCASE ; Uncomment to Disable Alpha Character Translation (0471h)
+#DEFINE FREHDBT ; Uncomment to enable FreHD Auto boot at startup (incl NMIHARD)
+#DEFINE NMIHARD ; Uncomment to set NMI Reset as always hard reset. (0066h)
+;
+; Rom 1.3 Features (can be disabled to save space)
+#DEFINE KEYBOUNCE ; Uncomment to enable 1.3 Keyboard Debounce
 ;
 ; Build Features
 ; #DEFINE SIZE16K ; Uncomment to build a $FF padded 16K Image for banked ROM
@@ -71,12 +76,6 @@
 ;   • TRS-80 Rom Routines Documented (The Alternate Source) - Jack Decker
 ;
 ; ======================================================================
-;
-;#IFDEF FREHDBT
-;    #IFNDEF NMIHARD
-;	#DEFINE NMIHARD	; NMIHARD must be used if FreHD is defined
-;    #ENDIF
-;#ENDIF
 ;
 ; ----------------------------------------------------------------------
 ;   BASIC TOKENS IDS
@@ -489,13 +488,6 @@ DELAY:	dec	bc		;0060
 ;
 NMI:	jp	_START		;0066 - wrong Stack Pointer.
 ;
-#IFDEF FREHDBT
-;				;If Fre HD we use this space for improved hdboot routine
-HDBOOT:	call	CLS		;0069 - Clear Screen
-	call	DELAY		;006c - pause for a few seconds
-	jp	HDBOOT2		;006f - continue hdboot
-#ENDIF
-;
 	.FILL	(0072h - $,0)	;UNUSED fill the space to next routine with ZERO's
 ;
 #ELSE
@@ -609,68 +601,16 @@ USEDEF:	dec	hl		;00e7 - minus 1
 	add	hl,de		;00f5 - subtract 32 bytes from the memory size
 	ld	(STKTOP),hl	;00f6 - start of string space pointer MEMSIZE-32
 	call	SCRTCH		;00f9 - init the Level II variables and pointers
-#IFNDEF FREHDBT
-	; FreHD does not print this message, saving 6 bytes here
 	ld	hl,HDGMSG	;00fc - Radio Shack L2 Basic - Message
 	call	STROUT		;00ff - print the message
-#ENDIF
-; then it jumps to the entry point for the BASIC command mode
 	jp	READY		;0102 - Level II BASIC READY routine
-;
-#IFDEF FREHDBT
-;
-; ----------------------------------------------------------------------
-; 00FFH-0112H – HDBOOT - FreHD HD bootup routine
-; using space saved by HDGMSG startup message
-; ----------------------------------------------------------------------
-;
-#IFNDEF NMIHARD
-HDBOOT:				; if NMIHARD is not enabled HDBOOT starts here.
-#ENDIF
-;
-HDBOOT2: ld	a,ROM_MODEL_1	;00ff - ROM parameter to FreHD. 1 for Model1.
-        out	(WRITEROM),a	;0101 - write the value
-        in	a,(READROM)	;0103 - read response
-        cp	0FEh		;0105 - FE is FreHD present and valid code!
-        ret	nz		;0107 - return if no FreHD or old firmware
-        ld	hl,ROM_LOAD	;0108 - load more "rom" from FreHD
-        ld	bc,READROM	;010b - port to read and size counter
-        inir			;010e - bulk transfer
-        jp	ROM_LOAD	;0110 - jump to loader in RAM
-;
-#ENDIF
 ;
 ; ----------------------------------------------------------------------
 ; 0105H-011BH – MESSAGE STORAGE
-;   Note: Starts at 0113H if FreHD has been defined
 ; ----------------------------------------------------------------------
 ;
-MEMMSG:	.DB	"MEM SIZE",0	; RS Mem Size Message V1.3
-
-#IFNDEF FREHDBT
-		; If FreHD then this message is removed
-		; saving enough space for the HDBOOT routine (00FFH) above
-HDGMSG:	.DB	"R/S L2 BASIC",ENTER,0 ; RS L2 Basic Message V1.3
-;
-#ENDIF
-;
-; MEMMSG:	.DB	"MEMORY SIZE",0			     ; RS Mem Size Message V1.2
-; HDGMSG:	.DB	"RADIO SHACK LEVEL II BASIC",ENTER,0 ; RS L2 Basic Message V1.2
-; ----------------------------------------------------------------------
-; 011CH-012CH – KEYBOUNCE V1.3
-; using space save by the shortened startup messages
-; ----------------------------------------------------------------------
-KEYBOU	push	bc		;011C Save Row Address in BC into the STACK
-	ld 	bc,$0500	;011D the debounce delay
-	call	DELAY		;0120 delay on delay count in BC (18.8 ms)
-	pop	bc		;0123 Restore the Row Address back to BC
-	ld	a,(bc)		;0124 Reload the original flags from active row
-	and	e		;0125 Combine the current flag lists with the original flag bits
-	ret	z		;0126 Return to caller if zero because the row was not active on the second test
-	ld	a,d		;0127 Otherwise, we have a legitimate active row
-	rlca			;0128 Multiply the row index by 2. twice.
-	rlca			;0129 This code previously existed at the calling site
-	jp	KYDRES		;012A Resume the keyboard driver routine
+MEMMSG:	.DB	"Memory Size",0			     ; RS Mem Size Message V1.2
+HDGMSG:	.DB	"Radio Shack Level IV BASIC",ENTER,0 ; RS L2 Basic Message V1.2
 ;
 ; ----------------------------------------------------------------------
 ; 012DH – ?L3 ERROR ENTRY POINT – "L3ERR"
@@ -1284,8 +1224,18 @@ KEYLP:	ld	a,(bc)		;03eb
 ; 03FAH-040AH – Accept a KB Downstroke and Convert it to ASCII – “KEYDWN”
 ; ----------------------------------------------------------------------
 KEYDWN:	ld	e,a		;03fa
+;
+#IFDEF KEYBOUNCE
+;
         jp	KEYBOU		;03fb jump to the new keyboard debounce routine.
 KYDRES:				;03fe return address for keybounce
+;
+#ELSE
+	ld	a,d		;03fb
+	rlca			;03fc
+	rlca			;03fd
+#ENDIF
+;
 	rlca			;03fe
 	ld	d,a		;03ff
 	ld	c,$01		;0400
@@ -5430,8 +5380,8 @@ STMDSP:
 	.DW	DELETE		; DELETE
 	.DW	AUTO		; AUTO
 	.DW	CLEAR		; CLEAR
-	.DW	CLOAD		; CLOAD
-	.DW	CSAVE		; CSAVE
+	.DW	SNERR		; CLOAD - no longer supported (1.4)
+	.DW	SNERR		; CSAVE - no longer supported (1.4)
 	.DW	SCRATH		; NEW - ID = $BB
 ;
 ; ----------------------------------------------------------------------
@@ -9367,107 +9317,64 @@ MLOOP:	ld	a,(de)		;2be8
 	ld	l,c		;2bf0
 	ld	(VARTAB),hl	;2bf1
 	ret			;2bf4
+;
+; ======================================================================
+	.ECHO 	" ROM REGION - (2BF5 - 2CA5) \n"
+; ======================================================================
+;
 ; ----------------------------------------------------------------------
-; 2BF5-2C1E – LEVEL II BASIC CSAVE ROUTINE – “CSAVE”
+; HDBOOT - FreHD HD bootup routine
 ; ----------------------------------------------------------------------
-CSAVE:	call	CWRTON		;2bf5
-	call	FRMEVL		;2bf8
-	push	hl		;2bfb
-	call	ASC2		;2bfc
-	ld	a,$D3		;2bff - the filename header byte (=D3H which is a “S” with the sign bit on)
-	call	CASOUT		;2c01
-	call	TWOCSO		;2c04
-	ld	a,(de)		;2c07
-	call	CASOUT		;2c08
-	ld	hl,(TXTTAB)	;2c0b
-	ex	de,hl		;2c0e
-	ld	hl,(VARTAB)	;2c0f
-LOPSCO:	ld	a,(de)		;2c12
-	inc	de		;2c13
-	call	CASOUT		;2c14
-	CPDEHL			;2c17
-	jr	nz,LOPSCO	;2c18
-	call	CTOFF		;2c1a
-	pop	hl		;2c1d
-	ret			;2c1e
+#IFDEF FREHDBT
+;
+HDBOOT:	call	CLS		;0069 - Clear Screen
+	call	DELAY		;006c - pause for a few seconds
+	ld	a,ROM_MODEL_1	;00ff - ROM parameter to FreHD. 1 for Model1.
+        out	(WRITEROM),a	;0101 - write the value
+        in	a,(READROM)	;0103 - read response
+        cp	0FEh		;0105 - FE is FreHD present and valid code!
+        ret	nz		;0107 - return if no FreHD or old firmware
+        ld	hl,ROM_LOAD	;0108 - load more "rom" from FreHD
+        ld	bc,READROM	;010b - port to read and size counter
+        inir			;010e - bulk transfer
+        jp	ROM_LOAD	;0110 - jump to loader in RAM
 ; ----------------------------------------------------------------------
-; 2C1F-2CA4 – LEVEL II BASIC CLOAD ROUTINE – “CLOAD”
+	.ECHO	"  * FREHDBT uses "
+	.ECHO	($ - HDBOOT)
+	.ECHO	" bytes. \n"
+	.ECHO
+#ENDIF
+;
 ; ----------------------------------------------------------------------
-CLOAD:	sub	$B2		;2C1F Test for CLOAD? * CLOAD routine
-	jr	z,CLOADP	;2C21 Jmp if CLOAD?
-	xor	a		;2C23 Signal CLOAD
-	;
-	.DB	LDBCNN		; Trick LD BC,NN, skipping next 2 instructions
-	;
-CLOADP:	cpl			;2C25 CPL A=-1 if CLOAD?, 0000 if CLOAD
-	inc	hl		;2C26 INC HL position to file name Save CLOAD? / CLOAD flag
-	push	af		;2C27
-	ld	a,(hl)		;2C28 Get next element from code string. Should be file name
-	or	a		;2C29 Set status flags
-	jr	z,CLOADR	;2C2A Jmp if end of line
-	call	FRMEVL		;2C2C Evaluate expression (get file name)
-	call	ASC2		;2C2F Get addr of file name into DE
-CLOADQ:	ld	a,(de)		;2C32 Get file name
-CLOADR:	ld	l,a		;2C33 And move it to L-reg
-	pop	af		;2C34 Restore CLOAD? / CLOAD flags
-	or	a		;2C35 Set status register according to flags
-	ld	h,a		;2C36 H=CLOAD?/CLOAD flag, L=file name
-	ld	(FACLO),hl	;2C37 Save flag and file name in WRA1
-	call	z,SCRTCH	;2C3A If CLOAD call NEW routine to initialize system variables
-	ld	hl,$0000	;2C3D This will cause the drive to be selected when
-	call	CSRDON 		;2C40 We look for leader and synch byte
-	ld	hl,(FACLO)	;2c43
-	ex	de,hl		;2c46
-LOPCLK:	ld	b,$03		;2c47
-LOPCL2:	call	CASIN		;2c49
-	sub	$D3		;2c4c
-	jr	nz,LOPCLK	;2c4e
-	djnz	LOPCL2		;2c50
-	call	CASIN		;2c52
-	inc	e		;2c55
-	dec	e		;2c56
-	jr	z,NONAMC	;2c57
-	cp	e		;2c59
-	jr	nz,SKPFIL	;2c5a
-NONAMC:	ld	hl,(TXTTAB)	;2c5c
+; KEYBOUNCE - Routine Added to V1.3 ROMS
 ; ----------------------------------------------------------------------
-; This loop is going to read a byte, compare it to the next byte in the
-; program memory, jump away if it doesn’t match AND CLOAD? was chosen,
-; write	(or overwrite) that byte to memory, check for a zero, and loop
-; back	IF no zero was found.
+#IFDEF KEYBOUNCE
+;
+KEYBOU	push	bc		;011C Save Row Address in BC into the STACK
+	ld 	bc,$0500	;011D the debounce delay
+	call	DELAY		;0120 delay on delay count in BC (18.8 ms)
+	pop	bc		;0123 Restore the Row Address back to BC
+	ld	a,(bc)		;0124 Reload the original flags from active row
+	and	e		;0125 Combine the current flag lists with the original flag bits
+	ret	z		;0126 Return to caller if zero because the row was not active on the second test
+	ld	a,d		;0127 Otherwise, we have a legitimate active row
+	rlca			;0128 Multiply the row index by 2. twice.
+	rlca			;0129 This code previously existed at the calling site
+	jp	KYDRES		;012A Resume the keyboard driver routine
 ; ----------------------------------------------------------------------
-DOCRS:	ld	b,$03		;2c5f - number of zeros to look for to stop the load
-DOCSMR:	call	CASIN		;2c61
-	ld	e,a		;2c64
-	sub	(hl)		;2c65
-	and	d		;2c66
-	jr	nz,NOGOOD	;2c67 - if CLOAD? was selected but the bytes don’t match
-	ld	(hl),e		;2c69 - save the character we read to memory pointer in HL
-	call	REASON		;2c6a - Make sure there is more room, if not a ?OM ERROR
-	ld	a,(hl)		;2c6d
-	or	a		;2c6e
-	inc	hl		;2c6f
-	jr	nz,DOCRS	;2c70 - Loop if the byte in Register A isn’t equal to zero
-	call	BCASIN		;2c72
-	djnz	DOCSMR		;2c75 - Do that loop until three zeros in a row have been read
-	ld	(VARTAB),hl	;2c77 - Save the new end of the BASIC program pointer.
-	ld	hl,m_REDDY	;2c7a
-	call	STROUT		;2c7d
-	call	CTOFF		;2c80
-	ld	hl,(TXTTAB)	;2c83 - the start of the BASIC program pointer.
-	push	hl		;2c86 - Save the BASIC program pointer to the STACK, for FINI
-	jp	FINI		;2c87 - reinitialize the BASIC interpreter and continue
-NOGOOD:	ld	hl,NOOKCS	;2c8a
-	call	STROUT		;2c8d
-	jp	STPRDY		;2c90
-SKPFIL:	ld	(vidmem+$3E),a	;2c93
-ZERSRF:	ld	b,$03		;2c96
-GETCHZ:	call	CASIN		;2c98
-	or	a		;2c9b
-	jr	nz,ZERSRF	;2c9c
-	djnz	GETCHZ		;2c9e
-	call	CSRDON3		;2ca0
-	jr	LOPCLK		;2ca3
+	.ECHO	"  * KEYBOUNCE uses "
+	.ECHO	($ - KEYBOU)
+	.ECHO	" bytes. \n"
+	.ECHO
+#ENDIF
+;
+; ======================================================================
+	.ECHO 	"  "
+	.ECHO	($2CA5 - $)
+	.ECHO   " of 176 bytes free \n"
+	.FILL	($2CA5 - $)
+; ======================================================================
+;
 ; ----------------------------------------------------------------------
 ; 2CA5-2CA9 – MESSAGE STORAGE LOCATION – “NOOKCS”
 ; ----------------------------------------------------------------------
@@ -10337,7 +10244,7 @@ SYSSTK:	.EQU	MEMEND+$88	; Stack address usd by SYSTEM command
 ; versions into a larger (modern) paged ROM file.
 ;
 #IFDEF	SIZE16K
-	.FILL	(4000h - $)
+	.FILL	(4000h - $), $FF
 #ENDIF
 ; ======================================================================
 ;
