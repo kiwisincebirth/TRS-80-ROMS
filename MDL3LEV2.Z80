@@ -11092,8 +11092,8 @@ BOOTSTP:
 	out 	(nonmask),a	;345a - This is to clear the non-maskable interrupt status
 	or 	$20		;345c - Bit 5
 	out 	(contprt),a	;345e - Misc control port. turn on bit 5, Video Waits
-	ld 	a,$81		;3460 - drive 0 and double-density
-	out	(fdcdrvp),a	;3462 - write Disk Drive and Disk Density Select
+	ld 	a,$81		;3460 - select drive 0, double density
+	out	(fdcdrvp),a	;3462 - Disk Drive and Disk Density Select
 	ld 	a,$D0		;3464 - D0H - reset; puts FDC in mode 1
 	out 	(fdccmdp),a	;3466 - write command
 	call 	SHRTDLY		;3468 - short delay
@@ -11119,17 +11119,18 @@ BOOTSTP:
 	in 	a,(fdccmdp)	;3492 - verify the disk controller
 	inc 	a		;3494 - turn a FFH into 00H
 	jp 	z,NONDISK	;3495 - Z flag mean "Disk Controller Not Ready".
+;
 	ld 	bc,0		;3498 - set up for a loop of 65,535 times.
 BOOTSTP1:
 	dec 	bc		;349b - dec the loop
-	ld 	a,$81		;349c - Disk 1 Double Density
+	ld 	a,$81		;349c - select drive 0, double density
 	out 	(fdcdrvp),a	;349e - Disk Drive and Disk Density Select
 	ld 	a,b		;34a0
 	or 	c		;34a1 - TEST BC register pair
 	jp 	z,NONDISK	;34a2 - waited long enough, so exit
-	in 	a,(fdccmdp)	;34a5 - FLOPPPY STATUS REGISTER
-	bit 	2,a		;34a7 - Bit 2 of Stus. 0 - haven't got track 0
-	jr 	z,BOOTSTP1	;34a9 - Lopp back if this is the case
+	in 	a,(fdccmdp)	;34a5 - FLOPPY STATUS REGISTER
+	bit 	2,a		;34a7 - Bit 2 of Status.
+	jr 	z,BOOTSTP1	;34a9 - Loop back if havent got track 0
 ;
 ; ----------------------------------------------------------------------
 ; WARM BOOT
@@ -11143,30 +11144,36 @@ WARMBOOT2:
 	bit 	1,a		;34b2 - if bit 1 (meaning "Drive Busy") is set.
 	jr 	nz,WARMBOOT3	;34b4 - then Jump
 	dec 	bc		;34b6 - loop counter
-	ld 	a,$81		;34b7 - Drive 1 Double Density
-	out 	(fdcdrvp),a	;34b9 - Select the Drive
+	ld 	a,$81		;34b7 - select drive 0, double density
+	out 	(fdcdrvp),a	;34b9 - Select the Drive and density
 	ld 	a,b		;34bb
 	or 	c		;34bc - TEST the BC register pair
 	jr 	nz,WARMBOOT2	;34bd - Not Zero so loop
+;
 	ld 	hl,MSGDISK	;34bf - "Diskette?" Message
 	call 	VDLINE		;34c2 - Display It
 	jr 	WARMBOOT	;34c5 - and loop back
 WARMBOOT3:
 	dec 	e		;34c7 - need to find the index mark. First decrement E by 1.
 	jr 	nz,WARMBOOT1	;34c8 - loop back and retry
+;
 WARMBOOT4:
 	ld 	a,$81		;34ca - select drive 0, double density
-	out 	(fdcdrvp),a	;34cc - write this
+	out 	(fdcdrvp),a	;34cc - Select the Drive and density
+;
 	ld 	hl,NMIJUMP	;34ce - jump address for NMI Vector
 	ld 	(NMIVEC+1),hl	;34d1 - write the jump address to NMI vector
 	ld 	a,OPJPNN	;34d4 - JP hhhh - Jump Op Code
 	ld 	(NMIVEC),a	;34d6 - write first byte of NMI Vector
+;
 	ld 	a,$80		;34d9 - INTRQ Status = 1
 	out 	(nonmask),a	;34db - set non-maskable interrupt latch
+;
 	ld 	bc,fdcdata	;34dd - LD B=0; C=Floppy Data register Port
 	ld 	hl,MEMEND	;34e0 - $4300 where the data is going to go.
-	ld 	a,1		;34e3
-	out 	(fdcsect),a	;34e5 - Set Track Register = 1
+;
+	ld 	a,1		;34e3 - Sector 1
+	out 	(fdcsect),a	;34e5 - Set Sector Register = 1
 	ld 	a,$80		;34e7 - command READ SECTOR
 	out 	(fdccmdp),a	;34e9 - execute it
 	call	SHRTDLY		;34eb - short delay
@@ -11176,9 +11183,9 @@ WARMBOOT5:
 	jp 	z,WARMBOOT5	;34f2 - Loop back, keep polling until index found
 	ini			;34f5 - Input the data byte
 WARMBOOT6:
-	ld 	a,$81		;34f7 - select disk 0.
-	or 	$40		;34f9 - double density
-	out 	(fdcdrvp),a	;34fb - OUT Disk Drive and Disk Density Select
+	ld 	a,$81		;34f7 - select drive 0, double density
+	or 	$40		;34f9 - enable wait state generation
+	out 	(fdcdrvp),a	;34fb - Select the Drive and density
 	ini			;34fd - Input the data byte.
 	jp 	WARMBOOT6	;34ff - Loop back to 34F7 to set drive and density
 ;
@@ -11845,6 +11852,7 @@ seruart: 	.EQU	$EA	; Rs232 Serial Uart Port
 serdata: 	.EQU	$EB	; Rs232 Serial Data Port
 contprt:	.EQU	$EC	; MISC Control Port
 fdccmdp: 	.EQU	$F0	; Floppy Command Status PORT
+fdctrk: 	.EQU	$F1	; Floppy Track Register
 fdcsect: 	.EQU	$F2	; Floppy Sector Register
 fdcdata: 	.EQU	$F3	; Floppy Data Register
 fdcdrvp: 	.EQU	$F4	; Floppy Drive Select PORT

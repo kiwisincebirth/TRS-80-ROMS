@@ -1817,7 +1817,7 @@ CLRAM:	ld	(de),a		;0687 - zero byte in memory starting at 4036h
 #ENDIF
 ;
 	ld	a,(diskstat)	;0696 - status of the disk controller (37ECH)
-	inc	a		;0699
+	inc	a		;0699 - FF => 0, 0 => 1
 	cp	$02		;069a - is disk controller present.
 	jp	c,INIT2		;069c - Jump to Level II Init if no disk controller
 ;
@@ -1827,8 +1827,9 @@ CLRAM:	ld	(de),a		;0687 - zero byte in memory starting at 4036h
 ; Now we know (can assume) there is a disk controller and we should boot it.
 ; ----------------------------------------------------------------------
 ;
-BOOT:	ld	a,$01		;069f
-	ld	(dskselect),a	;06a1 - Select Drive :0 and turn the motor on
+BOOT:	ld	a,$01		;069f - Drive 0
+	ld	(dskselect),a	;06a1 - Select Drive, turning motor on
+;
 	ld	hl,diskstat	;06a4 - address of the disk command/status Register 37ECH
 	ld	de,diskdata	;06a7 - address of the disk data Register (37EFH)
 	ld	(hl),$03	;06aa - command 03H (RESTORE and POSITION TO TRACK 0)
@@ -1840,14 +1841,17 @@ BOOT:	ld	a,$01		;069f
 	call	DELAY		;06af - delay (BC times 14.65) about 3 seconds
 BOOTDL:	bit	0,(hl)		;06b2 - is the diskette controller is busy
 	jr	nz,BOOTDL	;06b4 - Wait until it is ready
+;
 	xor	a		;06b6
 	ld	(disksect),a	;06b7 - set the disk sector register with 0
 	ld	bc,MEMEND	;06ba - address to read sector data (4200H)
 	ld	a,$8C		;06bd - command to read single IBM formatted sector
-	ld	(hl),a		;06bf
+	ld	(hl),a		;06bf - send command to FDC register
+;
 BOOTLP:	bit	1,(hl)		;06c0 - check to see if there is data available
-	jr	z,BOOTLP	;06c2
-	ld	a,(de)		;06c4 - load byte from disk controller
+	jr	z,BOOTLP	;06c2 - loop indefinately until data ready
+;
+	ld	a,(de)		;06c4 - load byte from disk data register
 	ld	(bc),a		;06c5 - write byte to ram.
 	inc	c		;06c6 - next mem address
 	jr	nz,BOOTLP	;06c7 - Loop until whole 256 byte sector has been read
