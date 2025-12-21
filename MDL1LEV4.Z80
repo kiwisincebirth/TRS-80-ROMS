@@ -990,10 +990,11 @@ SYSTEM:	call	SYSOUT		;02b2 - Call the DOS exit for system command at 41E2H.
 ; ======================================================================
 ;
 ; ======================================================================
+R1FREE:	.EQU 	($0314 - $)
 	.ECHO 	"  "
-	.ECHO	($0314 - $)
+	.ECHO	R1FREE
 	.ECHO   " of 67 bytes free \n"
-	.FILL	($0314 - $)
+	.FILL	R1FREE
 ; ======================================================================
 ;
 ; ----------------------------------------------------------------------
@@ -9328,8 +9329,7 @@ HDBOOT:	call	CLS		;0069 - Clear Screen
 ; ----------------------------------------------------------------------
 	.ECHO	"  * FREHDBT uses "
 	.ECHO	($ - HDBOOT)
-	.ECHO	" bytes. \n"
-	.ECHO
+	.ECHO	" bytes \n"
 #ENDIF
 ;
 ; ----------------------------------------------------------------------
@@ -9351,7 +9351,7 @@ KEYBOU	push	bc		;011C Save Row Address in BC into the STACK
 ; ----------------------------------------------------------------------
 	.ECHO	"  * KEYBOUNCE uses "
 	.ECHO	($ - KEYBOU)
-	.ECHO	" bytes. \n"
+	.ECHO	" bytes \n"
 #ENDIF
 ; ----------------------------------------------------------------------
 ;
@@ -9359,13 +9359,14 @@ MEMMSG:	.DB	"Memory Size",0			     ; RS Mem Size Message V1.2
 ; ----------------------------------------------------------------------
 	.ECHO	"  * MEMMSG uses "
 	.ECHO	($ - MEMMSG)
-	.ECHO	" bytes. \n"
+	.ECHO	" bytes \n"
 ;
 ; ======================================================================
+R2FREE:	.EQU 	($2CA5 - $)
 	.ECHO 	"  "
-	.ECHO	($2CA5 - $)
+	.ECHO	R2FREE
 	.ECHO   " of 176 bytes free \n"
-	.FILL	($2CA5 - $)
+	.FILL	R2FREE
 ; ======================================================================
 ;
 ; ----------------------------------------------------------------------
@@ -10231,6 +10232,11 @@ MEMEND:	.EQU	RAM+$200	; End of Reserved RAM Communications area
 ;
 SYSSTK:	.EQU	MEMEND+$88	; Stack address usd by SYSTEM command
 ;
+; ======================================================================
+; Report Free Memory
+	.ECHO 	" "
+	.ECHO	R1FREE + R2FREE
+	.ECHO   " TOTAL bytes free \n"
 ; ======================================================================
 ;
 ; PADDING to create 16KB ROM Image, to allow append multiple
