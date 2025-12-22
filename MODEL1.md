@@ -39,17 +39,14 @@ There are several optional features.
 
 Bug Fixes can be applied
 * `#DEFINE BUGFIX5` - Fix Error 5 - 08A7H - INT(DoubleValue) rounding
+* `#DEFINE BUGFIX8` - Fix Error 8 - 1009H - PRINT USING, - sign at end of field
 
 Some additional defines, which are build options rather than features
 * `#DEFINE SIZE16K` - Will pad the end of the rom with $FF to 16KB size. useful if want to append multiple ROM
   images for used in large 16K paged rom
 * `#DEFINE DONTEND` - Disable `.END` directive if `#INCLUDE`ing the source inside another file.
 
-Experimental - use at your own risk
-* `#DEFINE NO37EXH` - Disable the use of memory mapped hardware at `37Exh`, Floppy disk, Printer, etc.
-  This is useful in machines where these peripherals are not needed (e.g. in a FreHD only system)
-  and allows the use of the 2kb memory `3000h - 37FFh` without interference from the ROM code.
-  This also implies `NMIHARD` since the reset function check based on floppy disk availability
+VERY Experimental - use at your own risk
 * `#DEFINE _EMBED` - Strip all HW, and IO routines leaving just BASIC language as standalone code
   and used in L2 Basic for CP/M
 

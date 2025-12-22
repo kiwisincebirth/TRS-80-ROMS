@@ -1,6 +1,7 @@
 ;
 ; ======================================================================
-;        TRS-80 Model I Level IV BASIC ROM
+;          TRS-80 Model I Level II BASIC ROM
+;              "Modernised" Revision 1.4
 ;
 ;     Source Code Created By : kiwisincebirth - 2025
 ;     [https://github.com/kiwisincebirth/TRS-80]
@@ -18,15 +19,16 @@
 ; #DEFINE EACA80  ; Uncomment to enable System-80 (EACA) hardware support
 ;
 ; Rom Bug Fixes
-#DEFINE BUGFIX5 ; Uncomment to Fix Error 5 - 08A7H - INT(DoubleValue) rounding
+#DEFINE BUGFIX5 ; Fix Error 5 - 08A7H - INT(DoubleValue) rounding
+#DEFINE BUGFIX8 ; Fix Error 8 - 1009H - PRINT USING, - sign at end of field
 ;
 ; Rom Additional Features
-#DEFINE LOWCASE ; Uncomment to Disable Alpha Character Translation (0471h)
-#DEFINE FREHDBT ; Uncomment to enable FreHD Auto boot at startup (069Ch)
-#DEFINE NMIHARD ; Uncomment to set NMI Reset as always hard reset. (0066h)
+#DEFINE LOWCASE ; Disable Alpha Character Translation (0471h)
+#DEFINE FREHDBT ; Enable FreHD Auto boot at startup (069Ch)
+#DEFINE NMIHARD ; Set NMI Reset as always hard reset. (0066h)
 ;
 ; Rom 1.3 Features (can be disabled to save space)
-#DEFINE KEYBOUNCE ; Uncomment to enable 1.3 Keyboard Debounce (03FBh)
+#DEFINE KEYBOUNCE ; Enable 1.3 Keyboard Debounce (03FBh)
 ;
 ; Build Features
 ; #DEFINE SIZE16K ; Uncomment to build a $FF padded 16K Image for banked ROM
@@ -36,21 +38,9 @@
 ;     INFORMATION
 ; ----------------------------------------------------------------------
 ;
-; Original disassembled souce code obtained from:
-;   https://gitlab.com/retroabandon/trs80i34-re
-;
-; With Following Additions
-;   * Replaced all auto generated Labels with meaninful labels
-;   * Ensured all jumps referenced code labels
-;   * Replaced $3xxx hardware references with EQU defintions
-;   * Replaced $4xxx buffer references with EQU definitions
-;   * Replaced op-code with Byte definitions for Data Segments
-;   * Replaced incorrect op-codes, where Better Else code "Trick" was was used.
-;   * Added V1.3 modifications into the source code, with use of #IFDEF
-;   * Added code Documentation from various sources
-;
-; This source code has been compiled with Telemark Assembler, and tested
-; using a DIFF tool to ensure binary compatibility of the generated output.
+; Code was based off the Model 1 Rev 1.3 source code, provided in the GIT Repo
+; and enhanced modernised, with new features removing support for cassette
+; based operations.
 ;
 ; ======================================================================
 ;      ERRORS - "TRS-80 ROM Errors - Vernon Hester"
@@ -64,6 +54,16 @@
 ; to single-precision first, then performs the INT function. e.g.
 ;
 ; PRINT INT(2.9999999) -> produces 3 instead of 2.
+;
+; Error 8 - 1099 - PRINT USING, sign at end of field
+;
+; RULE: A PRINT USING statement with a negative sign at the end of the field prints
+; a negative sign after negative numbers and prints a space for positive numbers.
+; However, if the field specifiers in the string also has two asterisks at the
+; beginning of the field, the ROM prints an asterisk instead of a space after a
+; positive number.
+;
+; PRINT USING "**####-";1234 -> produces '**1234*' instead of '**1234-'
 ;
 ; ======================================================================
 ;      REFERENCES
@@ -498,7 +498,7 @@ DELAY:	dec	bc		;0060
 NMI:	jp	_START		;0066 - wrong Stack Pointer.
 ;
 	.ECHO	" NMIHARD - NMI full system reset enabled \n"
-	.FILL	(0072h - $,0)	;UNUSED fill the space to next routine with ZERO's
+	.FILL	$0072 - $ ,0	;UNUSED fill the space to next routine with ZERO's
 ;
 #ELSE
 ;
@@ -621,7 +621,7 @@ USEDEF:	dec	hl		;00e7 - minus 1
 ;
 HDGMSG:	.DB	"Radio Shack Level II BASIC",ENTER	; RS L2 Basic Message V1.2
 	.DB	"(Rev 1.4a)",ENTER,0
-	.FILL	($012D - $)				; UNUSED
+	.FILL	$012D - $				; UNUSED
 ;
 ; ----------------------------------------------------------------------
 ; 012DH – ?L3 ERROR ENTRY POINT – "L3ERR"
@@ -1320,7 +1320,7 @@ DSPGRP:	ld	a,c		;0467 - convert and display the charater
 	jr	DSPCHR		;0471 - Disable all Alpha CHR translation
 ;
 	.ECHO	" LOWCASE - Lowercase support enabled \n"
-	.FILL	(047Dh - $,0)	;UNUSED Fill Deleted code bock (ELSE) with NOP's
+	.FILL	$047D - $ ,0	;UNUSED Fill Deleted code bock (ELSE) with NOP's
 #ELSE
 	cp	$40		;0471 - is it number or symbol ASCII 20h - 40h
 	jr	c,DSPCHR	;0473 - then display it
@@ -2787,6 +2787,7 @@ FRCINT:	TSTDAT			;0a7f - check the value of the current number type
 ; truncation, causing values like 2.9999999# to become 3.0 in single-precision,
 ; and then INT(3.0) = 3. For single-precision or integer inputs, no call is made,
 ; and direct truncation occurs (correct behavior).
+; CREDIT : Ira Goldklang
 ;
 	call	nc,CONSD	;0a87 - If Double, Convert to single precision
 #ENDIF
@@ -3998,7 +3999,19 @@ FOUTZS:	ld	hl,FBUFFR	;0ff5
 	cp	c		;1004
 	ld	c,'*'		;1005
 	jr	nz,FOTZS1	;1007
+;
+#IFDEF BUGFIX8
+	.ECHO	" BUGFIX8 - ROM Error 8 Patched \n"
+	NOP
+#ELSE
+; The ROM's formatting routine incorrectly applies the asterisk
+; fill character to the trailing position for positive numbers,
+; replacing the intended space with *.
+; CREDIT : Ira Goldklang
+;
 	ld	b,c		;1009
+#ENDIF
+;
 FOTZS1:	ld	(hl),c		;100a
 	GETCHR			;100b - rst 10h
 	jr	z,FOTZS4	;100c
@@ -10249,7 +10262,7 @@ SYSSTK:	.EQU	MEMEND+$88	; Stack address usd by SYSTEM command
 ; versions into a larger (modern) paged ROM file.
 ;
 #IFDEF	SIZE16K
-	.FILL	(4000h - $)
+	.FILL	$4000 - $
 #ENDIF
 ; ======================================================================
 ;

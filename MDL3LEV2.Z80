@@ -20,6 +20,7 @@
 ;
 ; Rom Bug Fixes
 ; #DEFINE BUGFIX5  ; Uncomment to Fix Error 5 - 08A7H - INT(DoubleValue) rounding
+; #DEFINE BUGFIX8  ; Uncomment to Fix Error 8 - 1009H - PRINT USING, - sign at end of field
 ; #DEFINE BUGFIX27 ; Uncomment to Fix Error 27, 29, 31 - 0072H - Basic Entry 06CCh.
 ; #DEFINE BUGFIX28 ; Uncomment to Fix Error 28 - 02B5H - Stack Init
 ; #DEFINE BUGFIX30 ; Uncomment to Fix Error 30 - 034BH - 32 Char Mode
@@ -53,6 +54,16 @@
 ; to single-precision first, then performs the INT function. e.g.
 ;
 ; PRINT INT(2.9999999) -> produces 3 instead of 2.
+;
+; Error 8 - 1099 - PRINT USING, sign at end of field
+;
+; RULE: A PRINT USING statement with a negative sign at the end of the field prints
+; a negative sign after negative numbers and prints a space for positive numbers.
+; However, if the field specifiers in the string also has two asterisks at the
+; beginning of the field, the ROM prints an asterisk instead of a space after a
+; positive number.
+;
+; PRINT USING "**####-";1234 -> produces '**1234*' instead of '**1234-'
 ;
 ; Error 27 - 06CC Basic Entry Point - Also Fixes Error's 29, 31
 ;
@@ -4193,7 +4204,18 @@ FOUTZS:	ld	hl,FBUFFR	;0ff5
 	cp	c		;1004
 	ld	c,'*'		;1005
 	jr	nz,FOTZS1	;1007
+;
+#IFDEF BUGFIX8
+	NOP
+#ELSE
+; The ROM's formatting routine incorrectly applies the asterisk
+; fill character to the trailing position for positive numbers,
+; replacing the intended space with *.
+; CREDIT : Ira Goldklang
+;
 	ld	b,c		;1009
+#ENDIF
+;
 FOTZS1:	ld	(hl),c		;100a
 	GETCHR			;100b - rst 10h
 	jr	z,FOTZS4	;100c

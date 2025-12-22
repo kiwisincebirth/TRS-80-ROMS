@@ -23,14 +23,12 @@
 ;
 ; Rom Bug Fixes
 ; #DEFINE BUGFIX5 ; Uncomment to Fix Error 5 - 08A7H - INT(DoubleValue) rounding
+; #DEFINE BUGFIX8 ; Uncomment to Fix Error 8 - 1009H - PRINT USING, - sign at end of field
 ;
 ; Rom Additional Features
 ; #DEFINE NMIHARD ; Uncomment to set NMI Reset as always hard reset. (0066h)
 ; #DEFINE LOWCASE ; Uncomment to Disable Alpha Character Translation (0471h)
 ; #DEFINE FREHDBT ; Uncomment to enable FreHD Auto boot at startup (incl VER13, NMIHARD)
-;
-; Experimental Features
-; #DEFINE NO37EXH ; Uncomment to disable use of memory mapped devices at 37Ex (incl NMIHARD)
 ;
 ; Build Features
 ; #DEFINE SIZE16K ; Uncomment to build a $FF padded 16K Image for banked ROM
@@ -69,6 +67,16 @@
 ;
 ; PRINT INT(2.9999999) -> produces 3 instead of 2.
 ;
+; Error 8 - 1099 - PRINT USING, sign at end of field
+;
+; RULE: A PRINT USING statement with a negative sign at the end of the field prints
+; a negative sign after negative numbers and prints a space for positive numbers.
+; However, if the field specifiers in the string also has two asterisks at the
+; beginning of the field, the ROM prints an asterisk instead of a space after a
+; positive number.
+;
+; PRINT USING "**####-";1234 -> produces '**1234*' instead of '**1234-'
+;
 ; ======================================================================
 ;      REFERENCES
 ; ----------------------------------------------------------------------
@@ -93,12 +101,6 @@
     #ENDIF
     #IFNDEF NMIHARD
 	#DEFINE NMIHARD	; NMIHARD must be used if FreHD is defined
-    #ENDIF
-#ENDIF
-;
-#IFDEF NO37EXH
-    #IFNDEF NMIHARD
-	#DEFINE NMIHARD	; NMIHARD must be used if NO37EXH is defined
     #ENDIF
 #ENDIF
 ;
@@ -939,11 +941,7 @@ CTON:	ld	a,(hl)		;01fe - char from BASIC program pointer
 ; ----------------------------------------------------------------------
 DEFDRV:
 #IFNDEF EACA80
-    #IFDEF NO37EXH
-    	NOP3			;0212 - No memory mapped IO so just ignore
-    #ELSE
 	ld	(casselect),a	;0212 - Set the requested cassette
-    #ENDIF
 #ELSE
 	out	(casport),a	;0212 - On Dick Smith System-80 (EACA) use IO port
 	nop			;0214 - Nop since OUT is only 2 byte instruction
@@ -1742,11 +1740,7 @@ PRTFF:	call	PRTSTA		;05a6 - Call the GET PRINTER STATUS routine
 	jr	nz,PRTFF	;05a9 - Loop back until the printer is ready
 	ld	a,LINEF		;05ab - We print line feed character(s)
 #IFNDEF EACA80
-    #IFDEF NO37EXH
-    	NOP3			;05ad - Dont output since we dont have memory mapped IO
-    #ELSE
 	ld	(prtstat),a	;05ad - Send the character to the printer port 37E8H
-    #ENDIF
 #ELSE
 	nop			;05ad
 	out	(prtport),a	;05ae - On Dick Smith System-80 (EACA) use IO port
@@ -1761,11 +1755,7 @@ PRTIT2:	call	PRTSTA		;05b5 - Call the GET PRINTER STATUS routine
 	jr	nz,PRTIT2	;05b8 - Loop back until the printer is ready
 	pop	af		;05ba
 #IFNDEF EACA80
-    #IFDEF NO37EXH
-    	NOP3			;05ad - Dont output since we dont have memory mapped IO
-    #ELSE
 	ld	(prtstat),a	;05ad - Send the character to the printer port 37E8H
-    #ENDIF
 #ELSE
 	nop			;05bb
 	out	(prtport),a	;05bc - On Dick Smith System-80 (EACA) use IO port
@@ -1788,12 +1778,7 @@ PRTOP:	ld	(ix+4),0	;05cc
 ; ----------------------------------------------------------------------
 PRTSTA:
 #IFNDEF EACA80
-    #IFDEF NO37EXH
-    	ld	a,$30		;05d1 - No printer so return READY status
-    	nop
-    #ELSE
 	ld	a,(prtstat)	;05d1 - Get the status value from the printer (37E8H)
-    #ENDIF
 #ELSE
 	nop			;05d1
 	in	a,(prtport)	;05d2 - On Dick Smith System-80 (EACA) use IO port
@@ -1980,25 +1965,6 @@ CLRAM:	ld	(de),a		;0687 - zero byte in memory starting at 4036h
 	call	HDBOOT		;0696 - Call to the FreHD hd boot routines.
 #ENDIF
 ;
-#IFDEF NO37EXH
-;
-; (start no Floppy boot Support)
-;
-	jp	INIT2		;0696 - Dont detect disk controller, JP to L2 Basic init
-	.FILL	(069Fh - $,0)	;fill the space to next routine with ZERO's
-;
-; ----------------------------------------------------------------------
-; 069FH-06CBH – IGNORE Bootstrap from Diskette – "BOOT"
-; ----------------------------------------------------------------------
-BOOT:	jp	_START		;069f - NO DISK - Just do Power Up cycle
-	.FILL	(06CCh - $,0)	;fill the space to next routine with ZERO's
-;
-; (end no Floppy boot Support)
-;
-#ELSE
-;
-; (start of Floppy boot Support)
-;
 	ld	a,(diskstat)	;0696 - status of the disk controller (37ECH)
 	inc	a		;0699 - FF => 0, 0 => 1
 	cp	$02		;069a - is disk controller present.
@@ -2040,10 +2006,6 @@ BOOTLP:	bit	1,(hl)		;06c0 - check to see if there is data available
 	inc	c		;06c6 - next mem address
 	jr	nz,BOOTLP	;06c7 - Loop until whole 256 byte sector has been read
 	jp	MEMEND		;06c9 - Hand execution to the boot sector code $4200
-;
-; (end of Floppy boot Support)
-;
-#ENDIF
 ;
 ; ----------------------------------------------------------------------
 ; 06CCH-06CEH – (Model 1 Only!) - re-entry point into BASIC – "RESETR"
@@ -2971,6 +2933,7 @@ FRCINT:	TSTDAT			;0a7f - check the value of the current number type
 ; truncation, causing values like 2.9999999# to become 3.0 in single-precision,
 ; and then INT(3.0) = 3. For single-precision or integer inputs, no call is made,
 ; and direct truncation occurs (correct behavior).
+; CREDIT : Ira Goldklang
 ;
 	call	nc,CONSD	;0a87 - If Double, Convert to single precision
 #ENDIF
@@ -4182,7 +4145,18 @@ FOUTZS:	ld	hl,FBUFFR	;0ff5
 	cp	c		;1004
 	ld	c,'*'		;1005
 	jr	nz,FOTZS1	;1007
+;
+#IFDEF BUGFIX8
+	NOP
+#ELSE
+; The ROM's formatting routine incorrectly applies the asterisk
+; fill character to the trailing position for positive numbers,
+; replacing the intended space with *.
+; CREDIT : Ira Goldklang
+;
 	ld	b,c		;1009
+#ENDIF
+;
 FOTZS1:	ld	(hl),c		;100a
 	GETCHR			;100b - rst 10h
 	jr	z,FOTZS4	;100c
@@ -10368,8 +10342,6 @@ vidcmt:	 .EQU	$FF		; VIDEO I/O Mode select and Cassette Port
 ;  Memory Mapped Hardware
 ; ----------------------------------------------------------------------
 ;
-#IFNDEF NO37EXH
-;
 dskselect:	.EQU $37E1	; Disk Drive Select Latch Address
 casselect:	.EQU $37E4	; Cassette Select Latch Address
 prtstat:	.EQU $37E8	; Printer Status (Read) & Data (Write)
@@ -10377,8 +10349,6 @@ diskstat:	.EQU $37EC	; Disk controller status
 disktrk:	.EQU $37ED	; Disk track select
 disksect:	.EQU $37EE	; Disk sector select
 diskdata:	.EQU $37EF	; Disk data byte
-;
-#ENDIF
 ;
 kbdmatrix:	.EQU $3800	; Keyboard matrix start (100H bytes)
 vidmem:		.EQU $3C00	; Video RAM start (400H bytes)

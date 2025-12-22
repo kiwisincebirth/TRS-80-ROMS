@@ -33,6 +33,7 @@ There are several optional features.
 
 Bug Fixes can be applied
 * `#DEFINE BUGFIX5` - Fix Error 5 - 08A7H - INT(DoubleValue) rounding issue
+* `#DEFINE BUGFIX8` - Fix Error 8 - 1009H - PRINT USING, - sign at end of field
 * `#DEFINE BUGFIX27` - Fix Error 27 - 06CCH - Basic Entry Point. Also Fixes 29, 31.
 * `#DEFINE BUGFIX28` - Fix Error 28 - 034BH - Stack Initialisation Problem
 * `#DEFINE BUGFIX30` - Fix Error 30 - 034BH - 32 char Mode, Incompatible Model 1 code
