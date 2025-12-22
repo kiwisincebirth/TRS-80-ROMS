@@ -26,12 +26,16 @@
 #DEFINE LOWCASE ; Disable Alpha Character Translation (0471h)
 #DEFINE FREHDBT ; Enable FreHD Auto boot at startup (069Ch)
 #DEFINE NMIHARD ; Set NMI Reset as always hard reset. (0066h)
+#DEFINE NEWBOOT ; USE NEW DISKETTE? ROUTINE THAT CLEARS SCREEN, ALLOWS FOR BREAK AND RETRIES (John SwiderskI)
 ;
 ; Rom 1.3 Features (can be disabled to save space)
 #DEFINE KEYBOUNCE ; Enable 1.3 Keyboard Debounce (03FBh)
+;#DEFINE MEMSIZE ; uncomment to turn on Memory Size? Check at boot (John Swiderski)
+#DEFINE NOMEMSIZE ; Uncomment to add Memory Size to "New" Command (do not turn on both these options) (John Swiderski)
+;#DEFINE OLDBOOT ; comment if using newboot above
 ;
 ; Build Features
-; #DEFINE SIZE16K ; Uncomment to build a $FF padded 16K Image for banked ROM
+#DEFINE SIZE16K ; Uncomment to build a $FF padded 16K Image for banked ROM
 ; #DEFINE DONTEND ; Uncomment to Disable END directive, use if #include
 ;
 ; ======================================================================
@@ -567,6 +571,7 @@ LOPRTS:	ld	(hl),OPRET	;00a1 - Store RET OpCode
 	call	STKINI		;00af - Go initialize the Level II BASIC variables and pointers
 	call	CLS		;00b2 - clears the screen, changes to 64 characters, and homes the screen)
 ;
+#IFDEF MEMSIZE
 MEMGET:	ld	hl,MEMMSG	;00b5 - MEMORY SIZE? message
 	call	STROUT		;00b8 - print it
 	call	QINLIN		;00bb - Print a “?” and get input from the keyboard
@@ -610,7 +615,39 @@ USEDEF:	dec	hl		;00e7 - minus 1
 	ld	(MEMSIZ),hl	;00f2 - Save the MEMORY SIZE? amount
 	add	hl,de		;00f5 - subtract 32 bytes from the memory size
 	ld	(STKTOP),hl	;00f6 - start of string space pointer MEMSIZE-32
-	call	SCRTCH		;00f9 - init the Level II variables and pointers
+
+#ENDIF
+
+	JP 	GORDY		; JUMP TO START
+
+#IFDEF NEWBOOT
+; custom print screen routine for pre-initialization state
+BOOT_CLS:
+    	LD   HL,3C00h
+    	LD   BC,0400h      ; 64*16 = 1024
+    	LD   A,20h         ; space
+BCS1:
+    	LD   (HL),A
+    	INC  HL
+    	DEC  BC
+    	LD   A,B
+    	OR   C
+    	LD   A,20h         ; re-load space (do NOT leave A as B/C)
+    	JR   NZ,BCS1
+    	RET
+BOOT_PRT:
+    	LD   A,(HL)
+    	OR   A
+    	RET  Z
+    	LD   (DE),A
+    	INC  HL
+    	INC  DE
+    	JR   BOOT_PRT
+    	RET
+;
+#ENDIF
+
+GORDY:	call	SCRTCH		;00f9 - init the Level II variables and pointers
 	ld	hl,HDGMSG	;00fc - Radio Shack L2 Basic - Message
 	call	STROUT		;00ff - print the message
 	jp	READY		;0102 - Level II BASIC READY routine
@@ -619,9 +656,10 @@ USEDEF:	dec	hl		;00e7 - minus 1
 ; 0105H-011BH – MESSAGE STORAGE
 ; ----------------------------------------------------------------------
 ;
-HDGMSG:	.DB	"Radio Shack Level II BASIC",ENTER	; RS L2 Basic Message V1.2
-	.DB	"(Rev 1.4a)",ENTER,0
-	.FILL	$012D - $				; UNUSED
+HDGMSG:	.DB	"Radio Shack Level II 1.4A",ENTER,0	; RS L2 Basic Message V1.2
+;
+DSKMSG:	.DB	"DISKETTE?",0	; DISKETTE MESSAGE
+	.FILL	($012D - $)	
 ;
 ; ----------------------------------------------------------------------
 ; 012DH – ?L3 ERROR ENTRY POINT – "L3ERR"
@@ -988,7 +1026,52 @@ SYSTEM:	call	SYSOUT		;02b2 - Call the DOS exit for system command at 41E2H.
 ; ======================================================================
 	.ECHO 	" ROM REGION - (02D0 - 0313) - System \n"
 ; ======================================================================
+#IFDEF NOMEMSIZE
+MEMGET:	ld	hl,MEMMSG	;00b5 - MEMORY SIZE? message
+	call	STROUT		;00b8 - print it
+	call	QINLIN		;00bb - Print a “?” and get input from the keyboard
+	;jr	c,MEMGET	;00be - If the BREAK key was pressed, ask again.
+	GETCHR			;00c0 - rst 10h
+	or	a		;00c1
+	jr	nz,TYPMEM	;00c2 - was a response to the MEMORY SIZE?
 ;
+; start testing RAM at 434CH towards FFFFH
+	ld	hl,MEMEND+$14C	;00c4 - starting address for the memory size check (434C)
+LOOPMM:	inc	hl		;00c7 - next ram location
+	ld	a,h		;00c8 - MSB of ram location
+	or	l		;00c9 - combine with LSB of ram location
+	jr	z,USEDEF	;00ca - if the current memory pointer HL is equal to zero
+	ld	a,(hl)		;00cc - get byte at memory location
+	ld	b,a		;00cd - save it
+	cpl			;00ce - and invert it (A) for test
+	ld	(hl),a		;00cf - write it back to ram
+	cp	(hl)		;00d0 - retrieve and compare test value
+	ld	(hl),b		;00d1 - and save original value back
+	jr	z,LOOPMM	;00d2 - loop back until the end of memory is found
+	jr	USEDEF		;00d4 - If the address didn’t exist, have reached HIMEM
+;
+; process the users input to MEMORY SIZE ?
+TYPMEM:	call	LINGET		;00d6 - convert user input string (HL) into value in DE
+	or	a		;00d9 - Set Flags
+	;jp	nz,SNERR	;00da - Display a ?SN ERROR if Register A is not equal to zero
+	ex	de,hl		;00dd - move value to HL
+	dec	hl		;00de - minus 1
+	ld	a,$8F		;00df - Load Register A with a memory test value
+	ld	b,(hl)		;00e1 - read and save current value
+	ld	(hl),a		;00e2 - write the test value
+	cp	(hl)		;00e3 - read and compare to see if value was saved
+	ld	(hl),b		;00e4 - restore the original value
+	jr	nz,MEMGET	;00e5 - if not a usaable ram adress, back to MEM SIZE prompt
+USEDEF:	dec	hl		;00e7 - minus 1
+	ld	de,MEMEND+$214	;00e8 - the minimum MEMORY SIZE? response.
+	CPDEHL			;00eb - RST 18 - compare DE (input)  and HL (minimum)
+	jp	c,OMERR		;00ec - less than memory required, so OM ERROR
+	ld	de,$FFCE	;00ef - Subtract 32 Bytes
+	ld	(MEMSIZ),hl	;00f2 - Save the MEMORY SIZE? amount
+	add	hl,de		;00f5 - subtract 32 bytes from the memory size
+	ld	(STKTOP),hl	;00f6 - start of string space pointer MEMSIZE-32
+	ret
+#ENDIF
 ; ======================================================================
 R1FREE:	.EQU 	($0314 - $)
 	.ECHO 	"  "
@@ -1828,6 +1911,7 @@ CLRAM:	ld	(de),a		;0687 - zero byte in memory starting at 4036h
 ; Now we know (can assume) there is a disk controller and we should boot it.
 ; ----------------------------------------------------------------------
 ;
+#IFDEF OLDBOOT
 BOOT:	ld	a,$01		;069f - Drive 0
 	ld	(dskselect),a	;06a1 - Select Drive, turning motor on
 ;
@@ -1859,6 +1943,70 @@ BOOTLP:	bit	1,(hl)		;06c0 - check to see if there is data available
 	jr	nz,BOOTLP	;06c7 - Loop until whole 256 byte sector has been read
 	jp	MEMEND		;06c9 - Hand execution to the boot sector code $4200
 ;
+#ENDIF
+
+#IFDEF NEWBOOT
+BOOT:
+    	CALL 	BOOT_CLS
+    	LD   	HL,DSKMSG
+    	LD   	DE,3C00h+ (64*7) + 27   ; row 7, col ~27 (rough centering)
+    	CALL 	BOOT_PRT
+
+	ld	a,$01		;069f - Drive 0
+	ld	(dskselect),a	;06a1 - Select Drive, turning motor on
+;
+	ld	hl,diskstat	;06a4 - address of the disk command/status Register 37ECH
+	ld	de,diskdata	;06a7 - address of the disk data Register (37EFH)
+	ld	(hl),$03	;06aa - command 03H (RESTORE and POSITION TO TRACK 0)
+#IFNDEF FREHDBT
+	; FreHD excludes  these 3 bytes for call HDBOOT above (696h)
+	; noting it is expected tha BC = 0000 at this point of the execution
+	ld	bc,$0000	;06ac
+#ENDIF
+	call	DELAY		;06af - delay (BC times 14.65) about 3 seconds
+;
+BOOTDL:	bit	0,(hl)		;06b2 - is the diskette controller is busy
+	jr	nz,BOOTDL	;06b4 - Wait until it is ready
+;
+	xor	a		;06b6
+	ld	(disksect),a	;06b7 - set the disk sector register with 0
+	ld	bc,MEMEND	;06ba - address to read sector data (4200H)
+	ld	a,$8C		;06bd - command to read single IBM formatted sector
+	ld	(hl),a		;06bf - send command to FDC register
+;
+; If DRQ never appears, wait ~2 seconds then restart BOOT (full re-init).
+; IMPORTANT: Do not use D/E as counters (DE must stay = diskdata for ld a,(de)).
+	exx
+	ld	hl,$C000	; ~2 second-ish timeout (tune if needed)
+	exx
+;
+BOOTLP:
+	bit	1,(hl)		; DRQ ready?
+	jr	nz,BOOTRD	; yes -> read a byte now
+
+	ld	a,(kbdmatrix+$40) ; check BREAK while waiting
+	and	$04
+	jp	nz,INIT2
+
+	; countdown until we restart BOOT
+	exx
+	dec	hl
+	ld	a,h
+	or	l
+	exx
+	jr	nz,BOOTLP
+
+	; timed out waiting for DRQ -> start over
+	jp	BOOT
+;
+BOOTRD:
+	ld	a,(de)		; read data register
+	ld	(bc),a		; write to RAM
+	inc	c
+	jr	nz,BOOTLP
+	jp	MEMEND
+;
+#ENDIF
 ; ----------------------------------------------------------------------
 ; 06CCH-06CEH – (Model 1 Only!) - re-entry point into BASIC – "RESETR"
 ;  This is the best re-entry point to BASIC on the Model I.
@@ -5962,6 +6110,9 @@ SCRATH:	ret	nz		;1b49
 ; 1B4A - Does a NEW as well as clearing the screen
 ; ----------------------------------------------------------------------
 	call	CLS		;1b4a
+#IFDEF NOMEMSIZE
+	CALL	MEMGET		;ADD MEMGET TO THE NEW ROUTINE WHEN DISABLING FROM STARTUP
+#ENDIF
 ; ----------------------------------------------------------------------
 ; 1B4D - NEW - This routine will wipe out the BASIC program currently
 ;    in memory by resetting the pointers associated with it .
