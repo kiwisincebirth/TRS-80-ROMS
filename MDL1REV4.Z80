@@ -498,7 +498,7 @@ DELAY:	dec	bc		;0060
 NMI:	jp	_START		;0066 - wrong Stack Pointer.
 ;
 	.ECHO	" NMIHARD - NMI full system reset enabled \n"
-	.FILL	(0072h - $,0)	;UNUSED fill the space to next routine with ZERO's
+	.FILL	$0072 - $ ,0	;UNUSED fill the space to next routine with ZERO's
 ;
 #ELSE
 ;
@@ -621,7 +621,7 @@ USEDEF:	dec	hl		;00e7 - minus 1
 ;
 HDGMSG:	.DB	"Radio Shack Level II BASIC",ENTER	; RS L2 Basic Message V1.2
 	.DB	"(Rev 1.4a)",ENTER,0
-	.FILL	($012D - $)				; UNUSED
+	.FILL	$012D - $				; UNUSED
 ;
 ; ----------------------------------------------------------------------
 ; 012DH – ?L3 ERROR ENTRY POINT – "L3ERR"
@@ -1320,7 +1320,7 @@ DSPGRP:	ld	a,c		;0467 - convert and display the charater
 	jr	DSPCHR		;0471 - Disable all Alpha CHR translation
 ;
 	.ECHO	" LOWCASE - Lowercase support enabled \n"
-	.FILL	(047Dh - $,0)	;UNUSED Fill Deleted code bock (ELSE) with NOP's
+	.FILL	$047D - $ ,0	;UNUSED Fill Deleted code bock (ELSE) with NOP's
 #ELSE
 	cp	$40		;0471 - is it number or symbol ASCII 20h - 40h
 	jr	c,DSPCHR	;0473 - then display it
@@ -10249,7 +10249,7 @@ SYSSTK:	.EQU	MEMEND+$88	; Stack address usd by SYSTEM command
 ; versions into a larger (modern) paged ROM file.
 ;
 #IFDEF	SIZE16K
-	.FILL	(4000h - $)
+	.FILL	$4000 - $
 #ENDIF
 ; ======================================================================
 ;
