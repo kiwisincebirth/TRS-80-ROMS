@@ -89,6 +89,14 @@
 	.ECHO	" FREHDBT - FreHD autoboot support enabled \n"
 #ENDIF
 
+#IFDEF NEWBOOT
+	.ECHO	" NEWBOOT - NEW floppy prompt support enabled \n"
+#ENDIF
+
+#IFDEF NOMEMSIZE
+	.ECHO	" NOMEMSIZE - Skip memory size? prompt and enable updated new command \n"
+#ENDIF
+
 ;
 ; ----------------------------------------------------------------------
 ;   BASIC TOKENS IDS
