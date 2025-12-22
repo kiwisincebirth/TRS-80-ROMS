@@ -4,8 +4,10 @@
 
 This repository contains well documented, well-structured Source Code for the Tandy TRS-80 line of computers.
 The source code has also been extended with optional `#DEFINE`'s to provide common customisation options.
-Two ROMS are available:
+
+Three ROMS are available:
 * [Tandy TRS-80 Model 1 Level 2 BASIC ROMS](./MODEL1.md)
+* [Tandy TRS-80 Model 1 Level 2 BASIC Rev 1.4](./MODEL1.4.md)
 * [Tandy TRS-80 Model III Level 2 BASIC ROMS](./MODEL3.md)
 
 ### Motivation
@@ -38,6 +40,7 @@ that save a few bytes by allowing Jumps to the second byte of 2 byte instruction
 
 See The following for details of source code including Build Options:
 * [Model 1 Build Options](./MODEL1.md)
+* [Model 1 Build Options Rev 1.4](./MODEL1.4.md)
 * [Model III Build Options](./MODEL3.md)
 
 ### Compiling
