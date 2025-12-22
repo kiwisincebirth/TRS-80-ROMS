@@ -1795,9 +1795,10 @@ INITA1:	ld	hl,INITR	;0676 - starting address of the RST’s and DCB’s
 	ld	bc,$36		;067c - move 54 bytes
 	ldir			;067f - Move 6D2-707 to 4000-4035
 ;
-	dec	a		;0681 - count down by 2 starting at 0
-	dec	a		;0682 - so effective loop
-	jr	nz,INITA1	;0683 - Loop back until block move occurred 128 times
+	NOP			;Following Loop was removed - for FreHD call below
+;	dec	a		;0681 - count down by 2 starting at 0
+;	dec	a		;0682 - so effective loop
+;	jr	nz,INITA1	;0683 - Loop back until block move occurred 128 times
 ;
 	ld	b,$27		;0685 - 39 bytes of memory need to be zerod
 CLRAM:	ld	(de),a		;0687 - zero byte in memory starting at 4036h
@@ -1812,9 +1813,11 @@ CLRAM:	ld	(de),a		;0687 - zero byte in memory starting at 4036h
 ;
 ; This is the beginning of the routine which boots a diskette
 	ld	sp,TMPSTK	;0693 - $407D since Disk load will overite > $4200
+;
 #IFDEF FREHDBT
-	; FreHD includes these 3 bytes by removing code below (06ac)
-	call	HDBOOT		;0696 - Call to the FreHD hd boot routines.
+	call	HDBOOT		;Call to the FreHD hd boot routines.
+#ELSE
+	call	CLS		;If no FreHD still need to Clear the Screen.
 #ENDIF
 ;
 	ld	a,(diskstat)	;0696 - status of the disk controller (37ECH)
@@ -1834,11 +1837,8 @@ BOOT:	ld	a,$01		;069f - Drive 0
 	ld	hl,diskstat	;06a4 - address of the disk command/status Register 37ECH
 	ld	de,diskdata	;06a7 - address of the disk data Register (37EFH)
 	ld	(hl),$03	;06aa - command 03H (RESTORE and POSITION TO TRACK 0)
-#IFNDEF FREHDBT
-	; FreHD excludes  these 3 bytes for call HDBOOT above (696h)
-	; noting it is expected tha BC = 0000 at this point of the execution
+;
 	ld	bc,$0000	;06ac
-#ENDIF
 	call	DELAY		;06af - delay (BC times 14.65) about 3 seconds
 ;
 BOOTDL:	bit	0,(hl)		;06b2 - is the diskette controller is busy

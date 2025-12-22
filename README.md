@@ -6,9 +6,9 @@ This repository contains well documented, well-structured Source Code for the Ta
 The source code has also been extended with optional `#DEFINE`'s to provide common customisation options.
 
 Three ROMS are available:
-* [Tandy TRS-80 Model 1 Level 2 BASIC ROMS](./MODEL1.md)
-* [Tandy TRS-80 Model 1 Level 2 BASIC Rev 1.4](./MODEL1.4.md)
-* [Tandy TRS-80 Model III Level 2 BASIC ROMS](./MODEL3.md)
+* [Tandy TRS-80 Model 1 Level 2 BASIC ROM](./MODEL1.md)
+* [Tandy TRS-80 Model 1 Level 2 BASIC ROM Rev 1.4](./MODEL1.4.md)
+* [Tandy TRS-80 Model III Level 2 BASIC ROM](./MODEL3.md)
 
 ### Motivation
 
