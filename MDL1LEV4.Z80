@@ -164,7 +164,7 @@ ERRL3:	.EQU	2CH	; Disk BASIC Command
 ; ----------------------------------------------------------------------
 DEV0VID:	.EQU	$00	; 0 - VIDEO DEVICE (Z Flag) - uses XOR A to set
 DEV1PRT:	.EQU	$01	; 1 - PRINTER DEVICE (NZ Flag - positive number)
-DEVTAPE:	.EQU	$80	; $80 - TAPE DEVICE (M Flag - negative number)
+;DEVTAPE:	.EQU	$80	; $80 - TAPE DEVICE (M Flag - negative number)
 ;
 ; ----------------------------------------------------------------------
 ;   Z-80 TRICKS - these are 1 byte opcode for multibyte instructions
@@ -498,7 +498,7 @@ DELAY:	dec	bc		;0060
 NMI:	jp	_START		;0066 - wrong Stack Pointer.
 ;
 	.ECHO	" NMIHARD - NMI full system reset enabled \n"
-	.FILL	(0072h - $,0)	;UNUSED fill the space to next routine with ZERO's
+	.FILL	$0072 - $ ,0	;UNUSED fill the space to next routine with ZERO's
 ;
 #ELSE
 ;
@@ -621,7 +621,7 @@ USEDEF:	dec	hl		;00e7 - minus 1
 ;
 HDGMSG:	.DB	"Radio Shack Level II BASIC",ENTER	; RS L2 Basic Message V1.2
 	.DB	"(Rev 1.4a)",ENTER,0
-	.FILL	($012D - $)				; UNUSED
+	.FILL	$012D - $				; UNUSED
 ;
 ; ----------------------------------------------------------------------
 ; 012DH – ?L3 ERROR ENTRY POINT – "L3ERR"
@@ -779,194 +779,38 @@ RANDOM:	ld	a,r		;01d3 - R (refresh) Reg - semi random number.
 	ld	(RNDX+1),a	;01d5
 	ret			;01d8
 ;
-; ----------------------------------------------------------------------
-; 01D9H-01F7H – CASSETTE ROUTINE
-;   Output a pulse to the cassette recorder
-; ----------------------------------------------------------------------
-CTPULS:	ld	hl,$FC01	;01d9 - a top of pulse
-	call	CTCHG		;01dc - output pulse
-	ld	b,$0B		;01df - delay count of 80 milliseconds
-CT1:	djnz	CT1		;01e1 - delay loop
-	ld	hl,$FC02	;01e3 - a bottom of pulse
-	call	CTCHG		;01e6 - output pulse
-	ld	b,$0B		;01e9 - delay count of 80 milliseconds
-CT2:	djnz	CT2		;01eb - delay loop
-	ld	hl,$FC00	;01ed - clear pulse
-	call	CTCHG		;01f0 - output pulse
-	ld	b,$5C		;01f3 - delay count of 671 milliseconds
-CT3:	djnz	CT3		;01f5 - delay loop
-	ret			;01f7
+; ======================================================================
+; LEGACY CASSETTE ROUTINES FOR LEVEL 2 BASIC BACKWARS COMPATIBILITY
+; ======================================================================
 ;
 ; ----------------------------------------------------------------------
-; 01F8H-01FDH – CASSETTE ROUTINE (TURN OFF CASSETTE) – “CTOFF”
-; ----------------------------------------------------------------------
-CTOFF:	push	hl		;01f8 - Save The HL Register
-	ld	hl,$FB00	;01f9 - And Or Flags, turn off cassette
-	jr	CTCHG2		;01fc - process this
-;
-; ----------------------------------------------------------------------
-; 01FEH-0211H- CASSETTE ROUTINE (EVALUATE DRIVE NUMBER) – “CTON”
+; CASSETTE ROUTINE (EVALUATE DRIVE NUMBER) – “CTON”
 ; ----------------------------------------------------------------------
 CTON:	ld	a,(hl)		;01fe - char from BASIC program pointer
 	sub	'#'		;01ff - Check for a # character
-	ld	a,$00		;0201 - A default value, doesnt set flags
-	jr	nz,DEFDRV	;0203 - Isnt a # char so process default = 0
+	ret	nz		;0203 - Isnt a # char so nothing to do
 	call	GETINT		;0205 - get INT drive number from BASIC program -> DE
 	SYNTAX	(',')		;0208 - rst 08h - See if we have a Comma
-	ld	a,e		;020a - need to convert from the negative number to positive
-	and	d		;020b - combine the MSB with the LSB of the drive number
-	add	a,$02		;020c - add 2 to make the drive number positive
-	jp	nc,FCERR	;020e - If the drive number is invalid, FC ERROR
-	dec	a		;0211 - dec the drive number
-;
-; ----------------------------------------------------------------------
-; 0212H-021DH – CASSETTE ROUTINE (TURN ON CASSETTE) “DEFDRV”
-;   CALL 212H will select the cassette unit specified in A-Register
-;   and start the motor. Units are numbered from one.
-;   Put 00H in A Register to turn on cassette 1, or O1H to turn on cassette 2.
-;   All registers are used.
-; ----------------------------------------------------------------------
-DEFDRV:
-#IFNDEF EACA80
-	ld	(casselect),a	;0212 - Set the requested cassette
-#ELSE
-	out	(casport),a	;0212 - On Dick Smith System-80 (EACA) use IO port
-	nop			;0214 - Nop since OUT is only 2 byte instruction
-#ENDIF
-	push	hl		;0215 - Save HL Register
-	ld	hl,$FF04	;0216 - AND OR flags to turn on the cassette motor
-CTCHG2:	call	CTCHG		;0219 - output this command
-	pop	hl		;021c - current BASIC program pointer from the STACK
 	ret			;021d
 ; ----------------------------------------------------------------------
-; 021EH-022BH – CASSETTE ROUTINE – “CTSTAT”
+; CASSETTE ROUTINE (TURN ON CASSETTE AND WRITE LEADER) – “CWRTON”
 ; ----------------------------------------------------------------------
-CTSTAT:	ld	hl,$FF00	;021e - no change to the cassette port
-CTCHG:	ld	a,(CAST)	;0221 - saved shadow ram copy of cassette port
-	and	h		;0224 - mask the value, remove unwanted bits
-	or	l		;0225 - and set bits we want
-	out	(vidcmt),a	;0226 - send value to the CAS port
-	ld	(CAST),a	;0228 - save it for future
-	ret			;022b
-; ----------------------------------------------------------------------
-; 022CH-0234H – CASSETTE ROUTINE (BLINK **) – “BCASIN”
-;   Alternately displays and clears an asterisk in the upper right hand comer.
-;   Uses all registers.
-; ----------------------------------------------------------------------
-BCASIN:	ld	a,(vidmem+$3F)	;022c
-	xor	$0A		;022f
-	ld	(vidmem+$3F),a	;0231
-	ret			;0234
-; ----------------------------------------------------------------------
-; 0235H-0240H – CASSETTE ROUTINE (READ A BYTE) – “CASIN”
-;   Read One Byte: Reads one byte from the currently selected unit.
-;   The byte read is returned in the A-register. Other registers preserved
-; ----------------------------------------------------------------------
-CASIN:	push	bc		;0235
-	push	hl		;0236
-	ld	b,$08		;0237
-CTB0:	call	CTBIT		;0239
-	djnz	CTB0		;023c
-	pop	hl		;023e
-	pop	bc		;023f
-	ret			;0240
-; ----------------------------------------------------------------------
-; 0241H-0260H – CASSETTE ROUTINE (READ A BIT) – “CTBIT”
-;   Routine waits for timing pulse, and then performs a timing loop.
-;   When the time is up it tests the tape for a bit, which will be “1”
-;   if present and “0” if not. A CALL 241H is used by 235H eight times
-;   to input one byte.
-; ----------------------------------------------------------------------
-CTBIT:	push	bc		;0241
-	push	af		;0242
-CB0:	in	a,(vidcmt)	;0243 - Read BIT from cassette port
-	rla			;0245
-	jr	nc,CB0		;0246
-	ld	b,$60		;0248 - Delay for 703 microseconds (assume)
-	; ld	b,$41		;0248 - Delay for 476 microseconds (V1.2)
-CB1:	djnz	CB1		;024a - Delay Loop
-	call	CTSTAT		;024c - clear the cassette controller
-	ld	b,$85		;024f - Then Delay for 975 microseconds (assume)
-	; ld	b,$76		;024f - Then delay for 865 microseconds (V1.2)
-CB2:	djnz	CB2		;0251 - Delay Loop
-	in	a,(vidcmt)	;0253 - Read BIT from cassette port
-	ld	b,a		;0255
-	pop	af		;0256
-	rl	b		;0257
-	rla			;0259
-	push	af		;025a
-	call	CTSTAT		;025b - clear the cassette controller
-	pop	af		;025e
-	pop	bc		;025f
-	ret			;0260
-; ----------------------------------------------------------------------
-; 0261H-0263H – CASSETTE ROUTINE – “TWOCSO”
-; ----------------------------------------------------------------------
-TWOCSO:	call	CASOUT		;0261
-;
-; ----------------------------------------------------------------------
-; 0264H-027DH – CASSETTE ROUTINE (WRITE A BYTE) – “CASOUT”
-;   Writes the byte in the A Register to tape. BC, DE and HL are unchanged
-; ----------------------------------------------------------------------
-CASOUT:	push	hl		;0264
-	push	bc		;0265
-	push	de		;0266
-	push	af		;0267
-	ld	c,$08		;0268
-	ld	d,a		;026a
-BYT0:	call	CTPULS		;026b
-	ld	a,d		;026e
-	rlca			;026f
-	ld	d,a		;0270
-	jr	nc,BYT2		;0271
-	call	CTPULS		;0273
-BYT1:	dec	c		;0276
-	jr	nz,BYT0		;0277
-	pop	af		;0279
-	pop	de		;027a
-	pop	bc		;027b
-	pop	hl		;027c
+CWRTON: call	CTON		;0284
+	ld	a,$A5		;028f - sync byte (A5H)      **NEEDED**
 	ret			;027d
 ; ----------------------------------------------------------------------
-; 027EH-0283H –	CASSETTE ROUTINE
-; ----------------------------------------------------------------------
-BYT2:	ld	b,$87		;027e
-BYT3:	djnz	BYT3		;0280
-	jr	BYT1		;0282
-; ----------------------------------------------------------------------
-; 0284H-0292H – CASSETTE ROUTINE (TURN ON CASSETTE AND WRITE LEADER) – “CWRTON”
-; ----------------------------------------------------------------------
-CWRTON:	call	CTON		;0284
-	ld	b,$FF		;0287
-	xor	a		;0289
-CSAV1:	call	CASOUT		;028a
-	djnz	CSAV1		;028d
-	ld	a,$A5		;028f - sync byte (A5H)
-	jr	CASOUT		;0291
-; ----------------------------------------------------------------------
-; 0293H-029EH –	CASSETTE ROUTINE (TURN ON CASSETTE AND READ LEADER) – “CSRDON”
-; ----------------------------------------------------------------------
-CSRDON:	call	CTON		;0293
-CSRDON3: push	hl		;0296
-	xor	a		;0297
-CLOD1:	call	CTBIT		;0298
-	cp	$A5		;029b - sync byte (A5H)
-	jr	nz,CLOD1	;029d
-; ----------------------------------------------------------------------
-; 029FH-02A8H – CASSETTE ROUTINE
-;   Places the double asterisk in the right top corner
-;   to show that the sync byte has been found
-; ----------------------------------------------------------------------
-	ld	a,'*'		;029f
-	ld	(vidmem+$3E),a	;02a1
-	ld	(vidmem+$3F),a	;02a4
-	pop	hl		;02a7
-	ret			;02a8
 ;
-ENBLK:	call	CADRIN		;02a9
-	ld	(TEMP),hl	;02ac
-	call	CTOFF		;02af
+; ======================================================================
+	.ECHO 	" ROM REGION - (01E9 - 02A8) - Cassette \n"
+; ======================================================================
 ;
+; ======================================================================
+R1FREE:	.EQU 	($02B2 - $)
+	.ECHO 	"  "
+	.ECHO	R1FREE
+	.ECHO   " of 201 bytes free \n"
+	.FILL	R1FREE
+; ======================================================================
 ;
 ; ----------------------------------------------------------------------
 ; 02B2 – LEVEL II BASIC SYSTEM ROUTINE – “SYSTEM”
@@ -986,27 +830,17 @@ SYSTEM:	call	SYSOUT		;02b2 - Call the DOS exit for system command at 41E2H.
 	jr	GODO		;jump to routine to handle execution
 ;
 ; ======================================================================
-	.ECHO 	" ROM REGION - (02D0 - 0313) - System \n"
+	.ECHO 	" ROM REGION - (02D1 - 031C) - System \n"
 ; ======================================================================
 ;
 ; ======================================================================
-R1FREE:	.EQU 	($0314 - $)
+R2FREE:	.EQU 	($031D - $)
 	.ECHO 	"  "
-	.ECHO	R1FREE
-	.ECHO   " of 67 bytes free \n"
-	.FILL	R1FREE
+	.ECHO	R2FREE
+	.ECHO   " of 76 bytes free \n"
+	.FILL	R2FREE
 ; ======================================================================
 ;
-; ----------------------------------------------------------------------
-; 0314H – Read 2 bytes from the tape into Register Pair HL – “CADRIN”
-;   This routine is commonly used by the SYSTEM routine to read
-;   the last two bytes on tape which give the entry point.
-; ----------------------------------------------------------------------
-CADRIN:	call	CASIN		;0314 - read one byte from cassette
-	ld	l,a		;0317
-	call	CASIN		;0318 - read one byte from cassette
-	ld	h,a		;031b
-	ret			;031c
 ; ----------------------------------------------------------------------
 ; 031DH – Execute the Cassette Program which was Loaded – “GODO”
 ; ----------------------------------------------------------------------
@@ -1026,13 +860,16 @@ GODO:	ex	de,hl		;031d - put user input buffer into DE
 ;   the location 409CH must be loaded with -1 tape, 0 video, or 1 for printer.
 ; ----------------------------------------------------------------------
 OUTDO:	push	bc		;032a
-	ld	c,a		;032b
-	call	EXOUTC		;032c
+	ld	c,a		;032b - Save the character
+	call	EXOUTC		;032c - DOS EXIT for character output
 	ld	a,(PRTFLG)	;032f - get the current Device
 	or	a		;0332 - set the flags
-	ld	a,c		;0333
+	ld	a,c		;0333 - get the character back into A
 	pop	bc		;0334
-	jp	m,CASOUT	;0335 - if is It Cassette
+;
+	ret	m		; If cassette skip the write return immediately
+	NOP2
+;	jp	m,CASOUT	;0335 - if is It Cassette
 	jr	nz,OUTLPT	;0338 - if it is Printer
 ; ----------------------------------------------------------------------
 ; 033AH-0347H – OUTPUT ROUTINE – “OUT2D”
@@ -1111,7 +948,7 @@ INCHR:	call	ISCHAR		;0384
 ; ----------------------------------------------------------------------
 ; 038BH-039BH – PRINTER ROUTINE – “FINLPT”
 ; ----------------------------------------------------------------------
-FINLPT:	xor	a		;038b
+FINLPT:	xor	a		;038b - DEV0VID
 	ld	(PRTFLG),a	;038c - set current output device VIDEO
 	ld	a,(LPTPOS)	;038f
 	or	a		;0392
@@ -1320,7 +1157,7 @@ DSPGRP:	ld	a,c		;0467 - convert and display the charater
 	jr	DSPCHR		;0471 - Disable all Alpha CHR translation
 ;
 	.ECHO	" LOWCASE - Lowercase support enabled \n"
-	.FILL	(047Dh - $,0)	;UNUSED Fill Deleted code bock (ELSE) with NOP's
+	.FILL	$047D - $ ,0	;UNUSED Fill Deleted code bock (ELSE) with NOP's
 #ELSE
 	cp	$40		;0471 - is it number or symbol ASCII 20h - 40h
 	jr	c,DSPCHR	;0473 - then display it
@@ -5486,7 +5323,7 @@ CONSTR:	sub	$00		;4080 (FDIVC) - Note Argument is set into working RAM
 	.DB	0		;4099 (CHARC) - Inkey $ Storage
 	.DB	0		;409A (ERRFLG) - current error flag
 	.DB	0		;409B (LPTPOS) - current tab position
-	.DB	0		;409C (PRTFLG) - device output flag
+	.DB	DEV0VID		;409C (PRTFLG) - device output flag
 	.DB	64		;409D (LINLEN) - max chars on video disp line
 	.DB	48		;409E (CLMLST) - Size of print line
 	.DB	0		;409F - RESERVED
@@ -5725,7 +5562,9 @@ STPRDY:	pop	bc		;1a18
 ; ======================================================================
 READY:	call	FINLPT		;1a19 - set the current output device to the video display
 	call	PRGFIN		;1a1c - dos exit for BASIC startup
-	call	CTOFF		;1a1f - turn off the cassette recorder
+;
+	NOP3			;skip the cassette call
+;	call	CTOFF		;1a1f - turn off the cassette recorder
 	call	CRDONZ		;1a22 - display a carriage return if necessary
 	ld	hl,m_REDDY	;1a25 - the starting address of word “READY”
 	call	STROUT		;1a28 - Display the word “READY”
@@ -7002,7 +6841,7 @@ LPRIN1:	jp	NEWCHR		;206c * * *
 ; 206F-2177 – LEVEL II BASIC PRINT@ ROUTINE – FOR v1.0 ONLY – “PRINT”
 ; ----------------------------------------------------------------------
 PRINT:	call	FILGET		;206f
-	cp	'#'		;2072
+	cp	'#'		;2072 Check for Cassette
 	jr	nz,PNOTAT	;2074
 	call	CWRTON		;2076 Write header on cassette file
 	ld	(PRTFLG),a 	;2079 Set current system device to cassette
@@ -7049,12 +6888,14 @@ PRINTD:	ld	a,(hl)		;20A5 Reload next element from code string
 	or	a		;20cf - set flags
 	jp	m,LINCH2	;20d0 - If we writing to a cassette
 	jr	z,ISTTY		;20d3 - If NOT LPRINT
+; ----------------------------------------------------------------------
+;   Lands here if we are sure we are using the printer
+; ----------------------------------------------------------------------
 	ld	a,(LPTPOS)	;20d5 - We have a LPRINT, Get carriage POS
 	add	a,(hl)		;20d8
 	cp	132		;20d9 - Is the adjusted length greater than 132
 	jr	LINCHK		;20db
 ; ----------------------------------------------------------------------
-; 20DDH – LEVEL II BASIC PRINT@ ROUTINE – “ISTTY”
 ;   Jumped here if we are sure we are using the display
 ; ----------------------------------------------------------------------
 ISTTY:	ld	a,(LINLEN)	;20dd
@@ -7062,6 +6903,7 @@ ISTTY:	ld	a,(LINLEN)	;20dd
 	ld	a,(TTYPOS)	;20e1 - current video line position
 	add	a,(hl)		;20e4 - Add the len of string to be displayed
 	cp	b		;20e5 - compare with line size
+;
 LINCHK:	call	nc,CRDO		;20e6 - the new line will overflow the buffer -> CR
 LINCH2:	call	STRPRT		;20e9
 	ld	a,SPACE		;20ec
@@ -7146,13 +6988,14 @@ NOTABR:	pop	hl		;2164
 ;        necessary. CALLs Disk BASIC link at 41BEH prior to return.
 ; ----------------------------------------------------------------------
 FINPRT:
-	ld	a,(PRTFLG)	;2169 - current output device flag
-	or	a		;216c - check the flags
-	call	m,CTOFF		;216d - If cassette, turn it off
-	xor	a		;2170
+;	ld	a,(PRTFLG)	;2169 - current output device flag
+;	or	a		;216c - check the flags
+;	call	m,CTOFF		;216d - If cassette, turn it off
+	xor	a		;2170 - DEV0VID
 	ld	(PRTFLG),a	;2171 - set current output device type = VIDEO
 	call	FINDRT		;2174 - DOS Exit Point
 	ret			;2177
+	.FILL	$2178 - $	; UNUSED
 ; ----------------------------------------------------------------------
 ; 2178-217E – MESSAGE STORAGE LOCATION FOR REDO MESSAGE – “TRYAGN”
 ; ----------------------------------------------------------------------
@@ -7161,14 +7004,18 @@ TRYAGN:	.DB	"?REDO"
 	.DB	0
 ; ----------------------------------------------------------------------
 ; 217F-2285 – INPUT AND READ ROUTINES– “TRMNOK”
+;   This is a multi-purpose processing routine. We can wind up here because
+;     DATA was typed in ; DATA statements were improperly formatted.
+;   We can also wind up here where we want an INPUT to start again.
+;   If we are here because of a READ, throw a ?SN ERROR at the data line.
 ; ----------------------------------------------------------------------
 TRMNOK:	ld	a,(FLGINP)	;217f
 	or	a		;2182
 	jp	nz,DATSNE	;2183
-	ld	a,(CASFLG)	;2186
+	ld	a,(CASFLG)	;2186 - test the cassette flag
 	or	a		;2189
-	ld	e,ERRFD		;218a
-	jp	z,ERROR		;218c
+	ld	e,ERRFD		;218a - ?FD ERROR
+	jp	z,ERROR		;218c - If input device is cassette
 	pop	bc		;218f
 	ld	hl,TRYAGN	;2190
 	call	STROUT		;2193
@@ -7185,22 +7032,28 @@ INPUT:	call	ERRDIR		;219a
 	ld	(CASFLG),a	;21a3
 	ld	a,(hl)		;21a6
 	jr	nz,INTCAS	;21a7
-	call	CSRDON		;21a9
-	push	hl		;21ac
-	ld	b,250		;21ad - Max characters which can be read
-	ld	hl,(BUFPNT)	;21af - input buffer
-FILBUF:	call	CASIN		;21b2
-	ld	(hl),a		;21b5
-	inc	hl		;21b6
-	cp	ENTER		;21b7
-	jr	z,ENDREC	;21b9
-	djnz	FILBUF		;21bb
-ENDREC:	dec	hl		;21bd
-	ld	(hl),$00	;21be
-	call	CTOFF		;21c0
-	ld	hl,(BUFPNT)	;21c3
-	dec	hl		;21c6
-	jr	INPCN3		;21c7
+;
+	ld	e,ERRFD		; ?FD ERROR - bad data file
+	jp	z,ERROR		; If input device is cassette
+	.FILL	$21C9 - $	; UNUSED
+;
+;	call	CSRDON		;21a9
+;	push	hl		;21ac
+;	ld	b,250		;21ad - Max characters which can be read
+;	ld	hl,(BUFPNT)	;21af - input buffer
+;FILBUF:	call	CASIN		;21b2
+;	ld	(hl),a		;21b5
+;	inc	hl		;21b6
+;	cp	ENTER		;21b7
+;	jr	z,ENDREC	;21b9
+;	djnz	FILBUF		;21bb
+;ENDREC:	dec	hl		;21bd
+;	ld	(hl),$00	;21be
+;	call	CTOFF		;21c0
+;	ld	hl,(BUFPNT)	;21c3
+;	dec	hl		;21c6
+;	jr	INPCN3		;21c7
+;
 INTCAS:	ld	bc,NOTQTI	;21c9
 	push	bc		;21cc
 	cp	DQUOTE		;21cd
@@ -7259,10 +7112,10 @@ LOPDAT:	call	PTRGET		;21fd
 	ld	a,(FLGINP)	;2207
 	or	a		;220a
 	jp	nz,DATLOP	;220b
-	ld	a,(CASFLG)	;220e
-	or	a		;2211
-	ld	e,ERROD		;2212
-	jp	z,ERROR		;2214
+	ld	a,(CASFLG)	;220e - value of the cassette input flag.
+	or	a		;2211 - set flags
+	ld	e,ERROD		;2212 - ?OD ERROR
+	jp	z,ERROR		;2214 - if the input is from cassette
 	ld	a,'?'		;2217
 	call	OUTDO		;2219
 	call	QINLIN		;221c
@@ -9368,11 +9221,11 @@ MEMMSG:	.DB	"Memory Size",0			     ; RS Mem Size Message V1.2
 	.ECHO	" bytes \n"
 ;
 ; ======================================================================
-R2FREE:	.EQU 	($2CA5 - $)
+R3FREE:	.EQU 	($2CA5 - $)
 	.ECHO 	"  "
-	.ECHO	R2FREE
+	.ECHO	R3FREE
 	.ECHO   " of 176 bytes free \n"
-	.FILL	R2FREE
+	.FILL	R3FREE
 ; ======================================================================
 ;
 ; ----------------------------------------------------------------------
@@ -10038,7 +9891,6 @@ QED:	pop	bc		;2ff6
 ;
 ; On Disk Smith System 80 (EACA) there are additional Hardware IO ports
 prtport: .EQU	$FD		; Printer Port (replaces 37E8)
-casport: .EQU	$FE		; Cassette Select Port (replaces 37E4)
 ;
 #ENDIF
 ;
@@ -10241,7 +10093,7 @@ SYSSTK:	.EQU	MEMEND+$88	; Stack address usd by SYSTEM command
 ; ======================================================================
 ; Report Free Memory
 	.ECHO 	" "
-	.ECHO	R1FREE + R2FREE
+	.ECHO	R1FREE + R2FREE + R3FREE
 	.ECHO   " TOTAL bytes free \n"
 ; ======================================================================
 ;
@@ -10249,7 +10101,7 @@ SYSSTK:	.EQU	MEMEND+$88	; Stack address usd by SYSTEM command
 ; versions into a larger (modern) paged ROM file.
 ;
 #IFDEF	SIZE16K
-	.FILL	(4000h - $)
+	.FILL	$4000 - $
 #ENDIF
 ; ======================================================================
 ;
