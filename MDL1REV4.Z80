@@ -1974,43 +1974,10 @@ BOOT:
 BOOTDL:	bit	0,(hl)		;06b2 - is the diskette controller is busy
 	jr	nz,BOOTDL	;06b4 - Wait until it is ready
 ;
-	xor	a		;06b6
-	ld	(disksect),a	;06b7 - set the disk sector register with 0
-	ld	bc,MEMEND	;06ba - address to read sector data (4200H)
-	ld	a,$8C		;06bd - command to read single IBM formatted sector
-	ld	(hl),a		;06bf - send command to FDC register
-;
-; If DRQ never appears, wait ~2 seconds then restart BOOT (full re-init).
-; IMPORTANT: Do not use D/E as counters (DE must stay = diskdata for ld a,(de)).
-	exx
-	ld	hl,$C000	; ~2 second-ish timeout (tune if needed)
-	exx
-;
-BOOTLP:
-	bit	1,(hl)		; DRQ ready?
-	jr	nz,BOOTRD	; yes -> read a byte now
 
-	ld	a,(kbdmatrix+$40) ; check BREAK while waiting
-	and	$04
-	jp	nz,INIT2
-
-	; countdown until we restart BOOT
-	exx
-	dec	hl
-	ld	a,h
-	or	l
-	exx
-	jr	nz,BOOTLP
-
-	; timed out waiting for DRQ -> start over
-	jp	BOOT
+	JP 	BOOTPLP
 ;
-BOOTRD:
-	ld	a,(de)		; read data register
-	ld	(bc),a		; write to RAM
-	inc	c
-	jr	nz,BOOTLP
-	jp	MEMEND
+	.FILL	$06cc - $ ,0	;UNUSED fill the space to next routine with ZERO's
 ;
 #ENDIF
 ; ----------------------------------------------------------------------
@@ -9537,6 +9504,52 @@ MEMMSG:	.DB	"Memory Size",0			     ; RS Mem Size Message V1.2
 	.ECHO	($ - MEMMSG)
 	.ECHO	" bytes \n"
 ;
+#IFDEF NEWBOOT
+BOOTPLP:
+	xor	a		;06b6
+	ld	(disksect),a	;06b7 - set the disk sector register with 0
+	ld	bc,MEMEND	;06ba - address to read sector data (4200H)
+	ld	a,$8C		;06bd - command to read single IBM formatted sector
+	ld	(hl),a		;06bf - send command to FDC register
+;
+; If DRQ never appears, wait ~2 seconds then restart BOOT (full re-init).
+; IMPORTANT: Do not use D/E as counters (DE must stay = diskdata for ld a,(de)).
+	exx
+	ld	hl,$C000	; ~2 second-ish timeout (tune if needed)
+	exx
+BOOTLP:
+	bit	1,(hl)		; DRQ ready?
+	jr	nz,BOOTRD	; yes -> read a byte now
+
+	ld	a,(kbdmatrix+$40) ; check BREAK while waiting
+	and	$04
+	jp	nz,INIT2
+
+	; countdown until we restart BOOT
+	exx
+	dec	hl
+	ld	a,h
+	or	l
+	exx
+	jr	nz,BOOTLP
+
+	; timed out waiting for DRQ -> start over
+	jp	BOOT
+;
+BOOTRD:
+	ld	a,(de)		; read data register
+	ld	(bc),a		; write to RAM
+	inc	c
+	jr	nz,BOOTLP
+	jp	MEMEND
+#ENDIF
+; ----------------------------------------------------------------------
+;
+	.ECHO	"  * NEWBOOT uses "
+	.ECHO	($ - BOOTPLP)
+	.ECHO	" bytes \n"
+;
+
 ; ======================================================================
 R2FREE:	.EQU 	($2CA5 - $)
 	.ECHO 	"  "
