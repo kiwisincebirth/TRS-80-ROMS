@@ -64,6 +64,7 @@ There are several optional features.
   This is useful when a lower case mod is installed, but an alternate video driver has not been installed,
   or where the font rom on the machine has the alternate characters in the 00h 1Fh range (0471h)
 * `#DEFINE KEYBOUNCE` - Enables the Keyboard debounce routines that where introduced in rev1.3
+* `#DEFINE NEWBOOT` - Enables a new boot routine which asks for "diskette?" when no disk is detected and retries. It also allows for break to be pressed at any time.
   These routine can be disabled saving some space in the ROMS
 
 Bug Fixes Applied
