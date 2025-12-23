@@ -30,11 +30,11 @@ Breaking Features
 The following has been changed
 * CLOAD - loadig program from cassette will cause `SN Error`
 * CSAVE - saving program to cassette will cause `SN Error`
-* SYSTEM load - binary file loading will cause `SN Error`, only `/nnnnn` is supported
-* PRINT # -1 writing to cassette will silently fail, it will be skipped.
-* INPUT # -1 reading from cassette will cause `FD Error`
+* SYSTEM - binary file loading will cause `SN Error`, only `/nnnnn` is supported
+* PRINT #-1 - writing to cassette will silently fail, it will be skipped.
+* INPUT #-1 - reading from cassette will cause `FD Error`
 
-Machine language programs that use these routines directly may fail
+Machine language programs that use any cassette routines will fail
 and potentially cause a system crash.
 
 It is unknown how disk basic will treat these changes.

@@ -808,7 +808,7 @@ CWRTON: call	CTON		;0284
 ; ----------------------------------------------------------------------
 ;
 ; ======================================================================
-	.ECHO 	" ROM REGION - (01E9 - 02A8) - Cassette \n"
+	.ECHO 	" ROM REGION - (01E9 - 02B1) - Cassette \n"
 ; ======================================================================
 ;
 ; ======================================================================
@@ -833,32 +833,28 @@ SYSTEM:	call	SYSOUT		;02b2 - Call the DOS exit for system command at 41E2H.
 	GETCHR			;02c6 - rst 10h - first byte of user input
 	jp	z,SNERR		;02c7 - if no input then a syntax error
 	cp	'/'		;02ca - check for a slash command
+;
+; Rest of SYSTEM Code was removed/changed to remove cassette functionality
+; Code below was moved up (see original addresses), and modified slightly
+;
 	jp	nz,SNERR	;IF NOT a "/" command then a syntax error
-	jr	GODO		;jump to routine to handle execution
-;
-; ======================================================================
-	.ECHO 	" ROM REGION - (02D1 - 031C) - System \n"
-; ======================================================================
-;
-; ======================================================================
-R2FREE:	.EQU 	($031D - $)
-	.ECHO 	"  "
-	.ECHO	R2FREE
-	.ECHO   " of 76 bytes free \n"
-	.FILL	R2FREE
-; ======================================================================
-;
-; ----------------------------------------------------------------------
-; 031DH – Execute the Cassette Program which was Loaded – “GODO”
-; ----------------------------------------------------------------------
-GODO:	ex	de,hl		;031d - put user input buffer into DE
-	ld	hl,(TEMP)	;031e - execution address read from tape
-	ex	de,hl		;0321 - Swap back, user input buffer into HL
-	GETCHR			;0322 - rst 10h
-	call	nz,LINGET	;0323 - Convert to ascii string
-	jr	nz,SYSTEM	;0326 - if no address defined Display * promt
+GODO:	GETCHR			;0322 - rst 10h
+	call	LINGET		;0323 - Convert to ascii string
+	jr	nz,SYSTEM	;0326 - if no address defined Display * prompt
 	ex	de,hl		;0328 - execution address into HL
 	jp	(hl)		;0329 - jump to execution address
+;
+; ======================================================================
+	.ECHO 	" ROM REGION - (02D7 - 0329) - System \n"
+; ======================================================================
+;
+; ======================================================================
+R2FREE:	.EQU 	($032A - $)
+	.ECHO 	"  "
+	.ECHO	R2FREE
+	.ECHO   " of 83 bytes free \n"
+	.FILL	R2FREE
+; ======================================================================
 ;
 ; ----------------------------------------------------------------------
 ; 032AH-0347H – OUTPUT ROUTINE – “OUTCH1” and “OUTDO”
