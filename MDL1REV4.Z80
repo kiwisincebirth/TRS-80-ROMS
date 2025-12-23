@@ -1873,13 +1873,6 @@ BOOTLP:	bit	1,(hl)		;06c0 - check to see if there is data available
 ;
 #ENDIF
 ;
-BOOTRD:
-	ld	a,(de)		;06c4 - load byte from disk data register
-	ld	(bc),a		;06c5 - write byte to ram.
-	inc	c		;06c6 - next mem address
-	jr	nz,BOOTLP	;06c7 - Loop until whole 256 byte sector has been read
-	jp	MEMEND		;06c9 - Hand execution to the boot sector code $4200
-;
 ; ----------------------------------------------------------------------
 ; 06CCH-06CEH – (Model 1 Only!) - re-entry point into BASIC – "RESETR"
 ;  This is the best re-entry point to BASIC on the Model I.
@@ -9425,13 +9418,32 @@ BOOTLP:
 	jr	nz,BOOTLP
 ;
 	; Display the Diskette Message
+	CALL 	CLS
 	ld	hl,DSKMSG	;00fc - Radio Shack L2 Basic - Message
-	call	STROUT		;00ff - print the message
+	LD   	DE,3C00h        ;TOP LEFT
+	CALL 	BOOT_PRT	;00ff - print the message
 ;
 	; timed out waiting for DRQ -> start over
 	jp	BOOT
 ;
-DSKMSG:	.DB	CLINE, ELINE	; Start of Line, Erase to EOL
+BOOTRD:
+	ld	a,(de)		;06c4 - load byte from disk data register
+	ld	(bc),a		;06c5 - write byte to ram.
+	inc	c		;06c6 - next mem address
+	jr	nz,BOOTLP	;06c7 - Loop until whole 256 byte sector has been read
+	jp	MEMEND		;06c9 - Hand execution to the boot sector code $4200
+
+; custom print screen routine for pre-initialization state
+BOOT_PRT:
+    	LD   A,(HL)
+    	OR   A
+    	RET  Z
+    	LD   (DE),A
+    	INC  HL
+    	INC  DE
+    	JR   BOOT_PRT
+    	RET
+DSKMSG:	
 	.DB	"Diskette?",0	; diskette message
 ;
 ; ----------------------------------------------------------------------
