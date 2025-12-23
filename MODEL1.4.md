@@ -66,7 +66,8 @@ There are several optional features.
 * `#DEFINE KEYBOUNCE` - Enables the Keyboard debounce routines that where introduced in rev1.3
   These routine can be disabled saving some space in the ROMS
 
-Bug Fixes can be applied
+Bug Fixes Applied
+* `#DEFINE BUGFIX1` - Fix Error 1 - 04F6H - 32 Character Mode Line Length
 * `#DEFINE BUGFIX5` - Fix Error 5 - 08A7H - INT(DoubleValue) rounding
 * `#DEFINE BUGFIX8` - Fix Error 8 - 1009H - PRINT USING, - sign at end of field
 
@@ -74,8 +75,6 @@ Some additional defines, which are build options rather than features
 * `#DEFINE SIZE16K` - (OPTIONAL) Will pad the end of the rom with $FF to 16KB size. useful if want to append multiple ROM
   images for used in large 16K paged rom
 * `#DEFINE DONTEND` - (OPTIONAL) Disable `.END` directive if `#INCLUDE`ing the source inside another file.
-
-
 
 ## Bug Fixes
 
