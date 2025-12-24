@@ -836,7 +836,7 @@ DSPLINLTH1:
 #ENDIF
 ;
 ; ======================================================================
-	#DEFINE	R1FREE	= $02B2 - $
+	DEFC	R1FREE	= $02B2 - $
 	; .ECHO	"  "
 	; .ECHO	R1FREE
 	; .ECHO	" of 201 bytes free \n"
@@ -873,7 +873,7 @@ GODO:	GETCHR			;0322 - rst 10h
 ; ======================================================================
 ;
 ; ======================================================================
-	#DEFINE	R2FREE	= $032A - $
+	DEFC	R2FREE	= $032A - $
 	; .ECHO 	"  "
 	; .ECHO	R2FREE
 	; .ECHO   " of 83 bytes free \n"
@@ -10203,6 +10203,13 @@ DEFC	SYSSTK	= MEMEND+$88	; Stack address usd by SYSTEM command
 	; .ECHO 	" "
 	; .ECHO	R1FREE + R2FREE + R3FREE
 	; .ECHO   " TOTAL bytes free \n"
+	DEFC	TOTFREE = R1FREE + R2FREE + R3FREE
+	PUBLIC	R1FREE
+	PUBLIC	R2FREE
+	PUBLIC	R3FREE
+	PUBLIC	TOTFREE
+
+
 ; ======================================================================
 ;
 ; PADDING to create 16KB ROM Image, to allow append multiple
