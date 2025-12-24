@@ -41,5 +41,5 @@ jobs:
         with:
           name: bin files
           path: |
-            *.BIN
+            *.*
 
