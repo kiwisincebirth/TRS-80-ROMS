@@ -27,7 +27,9 @@ jobs:
 
       # Runs a set of commands using the runners shell
       - name: Install z88dk
-        run: sudo snap install z88dk --beta
+        run: |
+          sudo snap install z88dk --beta
+          sudo snap alias z88dk.z88dk-z80asm z80asm
 
       # Runs a set of commands using the runners shell
       - name: Compile MDL1LEV2
