@@ -27,7 +27,7 @@
 #DEFINE LOWCASE ; Disable Alpha Character Translation (0471h)
 #DEFINE FREHDBT ; Enable FreHD Auto boot at startup (069Ch)
 #DEFINE NMIHARD ; Set NMI Reset as always hard reset. (0066h)
-#DEFINE NEWBOOT ; New diskette? startup routine. ()
+#DEFINE NEWBOOT ; New diskette? startup routine. (06C0)
 ;
 ; Rom 1.3 Features (can be disabled to save space)
 #DEFINE KEYBOUNCE ; Enable 1.3 Keyboard Debounce (03FBh)
@@ -1727,34 +1727,23 @@ BOOTDL:	bit	0,(hl)		;06b2 - is the diskette controller is busy
 ;
 	xor	a		;06b6
 	ld	(disksect),a	;06b7 - set the disk sector register with 0
-	ld	bc,MEMEND	;06ba - address to read sector data (4200H)
 	ld	a,$8C		;06bd - command to read single IBM formatted sector
 	ld	(hl),a		;06bf - send command to FDC register
 ;
 #IFDEF NEWBOOT
-;
-	JP	NEWBOOTENTRY	; Jump to the New Boot Loop
-	;NOP			; NOT NEEDED - 1 byte padding as we are using an extra byte below with a jp statement
-;
+	JP	NEWBOOTENTRY	; Jump to the New Boot Loop, returns to BOOTRD
 #ELSE
+	ld	bc,MEMEND	;06ba - 4200H for sector data - MOVED down from above
+#ENDIF
+;
 BOOTLP:	bit	1,(hl)		;06c0 - check to see if there is data available
 	jr	z,BOOTLP	;06c2 - loop indefinitely until data ready
-;
-#ENDIF
 ;
 BOOTRD:	ld	a,(de)		;06c4 - load byte from disk data register
 	ld	(bc),a		;06c5 - write byte to ram.
 	inc	c		;06c6 - next mem address
-;
-#IFDEF NEWBOOT 			;This is needed to preserve the oldboot method as we need a JP here to get back to the newboot version of BOOTLP
-	jp	nz,NB_BOOTLP	;06c7 - Loop until whole 256 byte sector has been read
-#ELSE
 	jr	nz,BOOTLP	;06c7 - Loop until whole 256 byte sector has been read
-#ENDIF
-;
 	jp	MEMEND		;06c9 - Hand execution to the boot sector code $4200
-;
-.FILL	$06CC - $	; TEST TO SEE IF WE ARE AT 06CC
 ;
 ; ----------------------------------------------------------------------
 ; 06CCH-06CEH – (Model 1 Only!) - re-entry point into BASIC – "RESETR"
@@ -9297,42 +9286,38 @@ KEYBOU	push	bc		;011C Save Row Address in BC into the STACK
 #IFDEF NEWBOOT
 ;
 NEWBOOTENTRY:
-;
-; If DRQ never appears, wait ~2 seconds then restart BOOT (full re-init).
-; IMPORTANT: Do not use D/E as counters (DE must stay = diskdata for ld a,(de)).
-	exx
-	ld	hl,$C000	; ~2 second-ish timeout (tune if needed)
-	exx
+	; If DRQ never appears, wait ~2 seconds then restart BOOT (full re-init).
+	ld	bc,$C000	; ~2 second-ish timeout (tune if needed)
 ;
 NB_BOOTLP:
 	bit	1,(hl)		; DRQ ready?
-	jp	nz,BOOTRD	; yes -> read a byte now
+	jr	z,NB_BOOTLP1	; no -> continue thru loop
+	ld	bc,MEMEND	;06ba - 4200H for sector data
+	jp	BOOTRD		; EXIT and return to the main boot process
 ;
+NB_BOOTLP1:
 	ld	a,(kbdmatrix+$40) ; check BREAK while waiting
-	and	$04
-	jp	nz,INIT2
+	and	$04		; the BREAK key
+	jp	nz,INIT2	; if break, Level2 basic INIT
 ;
-	; countdown until we restart BOOT
-	exx
-	dec	hl
-	ld	a,h
-	or	l
-	exx
-	jr	nz,NB_BOOTLP
+	dec	bc		; countdown until we restart BOOT
+	ld	a,b
+	or	c
+	jr	nz,NB_BOOTLP	; not zero so need to wait, LOOP
 ;
 	; Display the Diskette Message
-	CALL 	CLS		; Clear the screen
 	ld	hl,DSKMSG	; load Diskette? Message
 ;
 NB_PRTLP:			; Print using OUT2D one character at a time
     	ld  	a,(hl)
     	or  	a
-    	jp  	z,BOOT
+    	jp  	z,BOOT		; if no more chars, EXIT to main boot
     	call 	OUT2D           ; OUT2D prints the char in A (one char)
     	inc 	hl
-    	jr  	NB_PRTLP
+    	jr  	NB_PRTLP	; loop to next char
 ;
-DSKMSG:	
+DSKMSG:
+	.DB	CHOME, ELINE	; Cursor Home, Clear to EOL
 	.DB	"Diskette?",0	; diskette message
 ;
 ; ----------------------------------------------------------------------

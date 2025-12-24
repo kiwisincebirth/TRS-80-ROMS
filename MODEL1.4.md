@@ -48,12 +48,9 @@ __TBD__
 ## Build Options
 
 There are several `DEFINE`'s that can be set in the code (very start) to enable certain features.
-By default, all of these options are set unless marked as 
+By default, all of these options are enabled (unless noted), and can individually be disabled. 
 
-The base ROM version can be defined.
-* `#DEFINE EACA80` - (OPTIONAL) uncomment to enable Dick Smith System-80 (EACA) hardware support.
-
-There are several optional features.
+There are several enhanced features:
 * `#DEFINE FREHDBT` - Enables the FreHD auto boot feature, i.e. the Auto boot ROM. This requires version 1.3
   ROM as a base, please do NOT define `VER12` as it is not compatible (it will be ignored anyway)
   Consider also enabling NMIHARD to ensure reset (on non-floppy machine) will force a reset.
@@ -64,13 +61,16 @@ There are several optional features.
   This is useful when a lower case mod is installed, but an alternate video driver has not been installed,
   or where the font rom on the machine has the alternate characters in the 00h 1Fh range (0471h)
 * `#DEFINE KEYBOUNCE` - Enables the Keyboard debounce routines that where introduced in rev1.3
-* `#DEFINE NEWBOOT` - Enables a new boot routine which asks for "diskette?" when no disk is detected and retries. It also allows for break to be pressed at any time.
-  These routine can be disabled saving some space in the ROMS
+* `#DEFINE NEWBOOT` - Enables a new boot routine which asks for "diskette?" when no disk is detected and retries. 
+  It also allows for break to be pressed at any time. (Credit : John Swiderski)
 
 Bug Fixes Applied
 * `#DEFINE BUGFIX1` - Fix Error 1 - 04F6H - 32 Character Mode Line Length
 * `#DEFINE BUGFIX5` - Fix Error 5 - 08A7H - INT(DoubleValue) rounding
 * `#DEFINE BUGFIX8` - Fix Error 8 - 1009H - PRINT USING, - sign at end of field
+
+The base ROM can also be customised to hardware.
+* `#DEFINE EACA80` - (OPTIONAL) uncomment to enable Dick Smith System-80 (EACA) hardware support.
 
 Some additional defines, which are build options rather than features
 * `#DEFINE SIZE16K` - (OPTIONAL) Will pad the end of the rom with $FF to 16KB size. useful if want to append multiple ROM

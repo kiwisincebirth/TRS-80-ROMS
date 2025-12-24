@@ -5,10 +5,12 @@
 This repository contains well documented, well-structured Source Code for the Tandy TRS-80 line of computers.
 The source code has also been extended with optional `#DEFINE`'s to provide common customisation options.
 
-Three ROMS are available:
+Two primary ROMS are available:
 * [Tandy TRS-80 Model 1 Level 2 BASIC ROM](./MODEL1.md)
-* [Tandy TRS-80 Model 1 Level 2 BASIC ROM Rev 1.4](./MODEL1.4.md)
 * [Tandy TRS-80 Model III Level 2 BASIC ROM](./MODEL3.md)
+
+And a third enhanced ROM
+* [Tandy TRS-80 Model 1 Level 2 BASIC ROM Rev 1.4](./MODEL1.4.md)
 
 ### Motivation
 
@@ -50,6 +52,13 @@ compatibility of the generated output. If you have issues compiling it with a di
 please let me know how the code can be fixed
 
 ## Extensions
+
+### Model 1 - Modern Rev 1.4
+
+Tandy released several versions of the Model 1 ROM, ending in 
+Revision 1.3 released in 1980.
+The following provides an updated [Level 2 BASIC ROM Rev 1.4](./MODEL1.4.md)
+which has features, fixes for modern enthusiasts.
 
 ### L2 Basic for CP/M
 
