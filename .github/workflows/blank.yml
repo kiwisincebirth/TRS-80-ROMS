@@ -33,7 +33,11 @@ jobs:
 
       # Runs a set of commands using the runners shell
       - name: Compile MDL1LEV2
-        run: z80asm -b MDL1LEV2.Z80
+        run: z80asm -b -l -s MDL1LEV2.Z80
+
+      # Runs a set of commands using the runners shell
+      - name: Compile MDL1REV4
+        run: z80asm -b -l -s MDL1REV4.Z80
 
       # Capture artifacts
       - name: Archive Artifacts
