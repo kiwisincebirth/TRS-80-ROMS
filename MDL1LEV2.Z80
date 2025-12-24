@@ -258,11 +258,11 @@ DEFC	CURCHR	= $5F	; _ cursor character
 ; ----------------------------------------------------------------------
 #IFDEF FREHDBT
 ;
-ROM_MODEL_1	.EQU	1	; TRS model : passed by the patched rom
-ROM_MODEL_3	.EQU 	3	; TRS model : passed by the patched rom
-READROM:	.EQU 	$C4	; read only
-WRITEROM	.EQU 	$C5	; write only
-ROM_LOAD	.EQU 	$5000	; where the extra "rom is loaded
+DEFC	ROM_MODEL_1	= 1	; TRS model : passed by the patched rom
+DEFC	ROM_MODEL_3	= 3	; TRS model : passed by the patched rom
+DEFC	READROM		= $C4	; read only
+DEFC	WRITEROM	= $C5	; write only
+DEFC	ROM_LOAD	= $5000	; where the extra "rom is loaded
 ;
 #ENDIF
 ;
@@ -522,7 +522,7 @@ HDBOOT:	call	CLS		;0069 - Clear Screen
 	jp	HDBOOT2		;006f - continue hdboot
 #ENDIF
 ;
-	.FILL	$0072 - $ ,0	;UNUSED fill the space to next routine with ZERO's
+	DEFS	$0072 - $	;UNUSED fill the space to next routine with ZERO's
 ;
 #ELSE
 ;
@@ -1467,7 +1467,7 @@ DSPGRP:	ld	a,c		;0467 - convert and display the charater
 	jr	nc,DSPGRC	;046f - display graphic
 #IFDEF LOWCASE
 	jr	DSPCHR		;0471 - Disable all Alpha CHR translation
-	.FILL	$047D - $ ,0	;UNUSED Fill Deleted code bock (ELSE) with NOP's
+	DEFS	$047D - $	;UNUSED Fill Deleted code bock (ELSE) with NOP's
 #ELSE
 	cp	$40		;0471 - is it number or symbol ASCII 20h - 40h
 	jr	c,DSPCHR	;0473 - then display it

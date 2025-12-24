@@ -80,96 +80,96 @@
 ; ======================================================================
 ;
 #IFDEF EACA80
-	.ECHO	" EACA80 - EACA hardware support enabled \n"
+	; .ECHO	" EACA80 - EACA hardware support enabled \n"
 #ENDIF
 
 #IFDEF FREHDBT
-	.ECHO	" FREHDBT - FreHD autoboot support enabled \n"
+	; .ECHO	" FREHDBT - FreHD autoboot support enabled \n"
 #ENDIF
 
 #IFDEF NEWBOOT
-	.ECHO	" NEWBOOT - Diskette? prompt support enabled \n"
+	; .ECHO	" NEWBOOT - Diskette? prompt support enabled \n"
 #ENDIF
 ;
 ; ----------------------------------------------------------------------
 ;   BASIC TOKENS IDS
 ;   (note: this is not complete, just constants used in code)
 ; ----------------------------------------------------------------------
-TKOFF	.EQU	$80	; Offset - The first Token, Token Offset.
-TKEND	.EQU	$80	; END
-TKFOR:	.EQU	$81	; FOR
-TKNEXT:	.EQU	$87	; NEXT
-TKDATA:	.EQU	$88	; DATA
-TKGOTO:	.EQU	$8D	; GOTO
-TKIF:	.EQU	$8F	; IF
-TKGOSU:	.EQU	$91	; GOSUB
-TKREM:	.EQU	$93	; REM
-TKELSE:	.EQU	$95	; ELSE
-TKERRO:	.EQU	$9E	; ERROR
-TKPRNT:	.EQU	$B2	; PRINT
-TKTAB:	.EQU	$BC	; TAB(
-TKTO:	.EQU	$BD	; TO
-TKFN:	.EQU	$BE	; FN
-TKUSNG:	.EQU	$BF	; USING
-TKVARP:	.EQU	$C0	; VARPTR
-TKUSR:	.EQU	$C1	; USR
-TKERL:	.EQU	$C2	; ERL
-TKERR:	.EQU	$C3	; ERR
-TKSTRG:	.EQU	$C4	; STRING$
-TKINST:	.EQU	$C5	; INSTR
-TKPOIN:	.EQU	$C6	; POINT
-TKTIME:	.EQU	$C7	; TIME$
-TKMEM:	.EQU	$C8	; MEM
-TKINKY:	.EQU	$C9	; INKEY$
-TKTHEN:	.EQU	$CA	; THEN
-TKNOT:	.EQU	$CB	; NOT
-TKSTEP:	.EQU	$CC	; STEP
-TKPLUS:	.EQU	$CD	; +
-TKMNUS:	.EQU	$CE	; -
-TKGT:	.EQU	$D4	; >
-TKEQL:	.EQU	$D5	; =
-TKLT:	.EQU	$D6	; <
-TKSGN:	.EQU	$D7	; SGN
-ONEFUN: .EQU	$D7	; SGN - Called ONEFUN in TRS-80.COM disassembly.
-TKSQR:	.EQU	$DD	; SQR
-TKATN:	.EQU	$E4	; ATN
-TKMID:	.EQU	$FA	; MID
-TKSNQT:	.EQU	$FB	; '
+DEFC	TKOFF	= $80	; Offset - The first Token, Token Offset.
+DEFC	TKEND	= $80	; END
+DEFC	TKFOR	= $81	; FOR
+DEFC	TKNEXT	= $87	; NEXT
+DEFC	TKDATA	= $88	; DATA
+DEFC	TKGOTO	= $8D	; GOTO
+DEFC	TKIF	= $8F	; IF
+DEFC	TKGOSU	= $91	; GOSUB
+DEFC	TKREM	= $93	; REM
+DEFC	TKELSE	= $95	; ELSE
+DEFC	TKERRO	= $9E	; ERROR
+DEFC	TKPRNT	= $B2	; PRINT
+DEFC	TKTAB	= $BC	; TAB(
+DEFC	TKTO	= $BD	; TO
+DEFC	TKFN	= $BE	; FN
+DEFC	TKUSNG	= $BF	; USING
+DEFC	TKVARP	= $C0	; VARPTR
+DEFC	TKUSR	= $C1	; USR
+DEFC	TKERL	= $C2	; ERL
+DEFC	TKERR	= $C3	; ERR
+DEFC	TKSTRG	= $C4	; STRING$
+DEFC	TKINST	= $C5	; INSTR
+DEFC	TKPOIN	= $C6	; POINT
+DEFC	TKTIME	= $C7	; TIME$
+DEFC	TKMEM	= $C8	; MEM
+DEFC	TKINKY	= $C9	; INKEY$
+DEFC	TKTHEN	= $CA	; THEN
+DEFC	TKNOT	= $CB	; NOT
+DEFC	TKSTEP	= $CC	; STEP
+DEFC	TKPLUS	= $CD	; +
+DEFC	TKMNUS	= $CE	; -
+DEFC	TKGT	= $D4	; >
+DEFC	TKEQL	= $D5	; =
+DEFC	TKLT	= $D6	; <
+DEFC	TKSGN	= $D7	; SGN
+DEFC	ONEFUN	= $D7	; SGN - Called ONEFUN in TRS-80.COM disassembly.
+DEFC	TKSQR	= $DD	; SQR
+DEFC	TKATN	= $E4	; ATN
+DEFC	TKMID	= $FA	; MID
+DEFC	TKSNQT	= $FB	; '
 ;
 ; ----------------------------------------------------------------------
 ;   ERROR CODES - in format ERRnn where "nn" is the basic Error
 ;       SEE table at 18C9 for the associated Text descriptions
 ; ----------------------------------------------------------------------
-ERRNF:	.EQU	00H   	; NEXT without FOR
-ERRSN:	.EQU	02H	; Syntax Error
-ERRRG:	.EQU	04H	; RETURN without GOSUB
-ERROD:	.EQU	06H	; Out of DATA
-ERRFC:	.EQU	08H	; Illegal Function Call
-ERROV:	.EQU	0AH	; Overflow
-ERROM:	.EQU	0CH	; Out of Memory
-ERRUL:	.EQU	0EH	; Underfined Line Number
-ERRBS:	.EQU	10H	; Subscript out of Range
-ERRDD:	.EQU	12H	; Redimensioned Array
-ERRD0:	.EQU	14H	; Division by Zero
-ERRID:	.EQU	16H	; Illegal Direct Operation
-ERRTM:	.EQU	18H	; Type Mismatch
-ERROS:	.EQU	1AH	; Out of String Message
-ERRLS:	.EQU	1CH	; Out of Memory
-ERRST:	.EQU	1EH	; String Too Long
-ERRCN:	.EQU	20H	; Can’t Continue
-ERRNR:	.EQU	22H	; No RESUME
-ERRRW:	.EQU	24H	; RESUME Without Error
-ERRUE:	.EQU	26H	; Unprintable Error
-ERRMO:	.EQU	28H	; Missing Operand
-ERRFD:	.EQU	2AH	; Bad file Data
-ERRL3:	.EQU	2CH	; Disk BASIC Command
+DEFC	ERRNF	= 00H   ; NEXT without FOR
+DEFC	ERRSN	= 02H	; Syntax Error
+DEFC	ERRRG	= 04H	; RETURN without GOSUB
+DEFC	ERROD	= 06H	; Out of DATA
+DEFC	ERRFC	= 08H	; Illegal Function Call
+DEFC	ERROV	= 0AH	; Overflow
+DEFC	ERROM	= 0CH	; Out of Memory
+DEFC	ERRUL	= 0EH	; Underfined Line Number
+DEFC	ERRBS	= 10H	; Subscript out of Range
+DEFC	ERRDD	= 12H	; Redimensioned Array
+DEFC	ERRD0	= 14H	; Division by Zero
+DEFC	ERRID	= 16H	; Illegal Direct Operation
+DEFC	ERRTM	= 18H	; Type Mismatch
+DEFC	ERROS	= 1AH	; Out of String Message
+DEFC	ERRLS	= 1CH	; Out of Memory
+DEFC	ERRST	= 1EH	; String Too Long
+DEFC	ERRCN	= 20H	; Can’t Continue
+DEFC	ERRNR	= 22H	; No RESUME
+DEFC	ERRRW	= 24H	; RESUME Without Error
+DEFC	ERRUE	= 26H	; Unprintable Error
+DEFC	ERRMO	= 28H	; Missing Operand
+DEFC	ERRFD	= 2AH	; Bad file Data
+DEFC	ERRL3	= 2CH	; Disk BASIC Command
 ;
 ; ----------------------------------------------------------------------
 ; Device Code Types. See PRTFLG
 ; ----------------------------------------------------------------------
-DEV0VID:	.EQU	$00	; 0 - VIDEO DEVICE (Z Flag) - uses XOR A to set
-DEV1PRT:	.EQU	$01	; 1 - PRINTER DEVICE (NZ Flag - positive number)
-;DEVTAPE:	.EQU	$80	; $80 - TAPE DEVICE (M Flag - negative number)
+DEFC	DEV0VID	= $00	; 0 - VIDEO DEVICE (Z Flag) - uses XOR A to set
+DEFC	DEV1PRT	= $01	; 1 - PRINTER DEVICE (NZ Flag - positive number)
+;DEFC	DEVTAPE	= $80	; $80 - TAPE DEVICE (M Flag - negative number)
 ;
 ; ----------------------------------------------------------------------
 ;   Z-80 TRICKS - these are 1 byte opcode for multibyte instructions
@@ -178,63 +178,63 @@ DEV1PRT:	.EQU	$01	; 1 - PRINTER DEVICE (NZ Flag - positive number)
 ;   https://rosettacode.org/wiki/Category:Z80_Assembly#Inlined_bytecode
 ;   https://wikiti.brandonw.net/index.php?title=Z80_Optimization#Better_else
 ; ----------------------------------------------------------------------
-LDBCNN:	.EQU 	$01	; LD BC,nnnn - skip 2 bytes
-LDBNN:	.EQU 	$06	; LD B,nn - skip next byte
-LDCNN:	.EQU 	$0E	; LD C,nn - skipping next byte
-LDDENN:	.EQU 	$11	; LD DE,nnnn - skip next 2 bytes
-LDDNN:	.EQU 	$16	; LD D,nn - skipping next byte
-LDHLNN:	.EQU 	$21	; LD HL,nnnn - skip 2 bytes
-LDLNN:	.EQU 	$2E	; LD L,nn - skip 1 byte
-LDANN:	.EQU 	$3E	; LD A,nn - skip 1 byte
-OPJPNN:	.EQU 	$C3	; JP nnnn (Opcode)
-OPRET:	.EQU	$C9	; RET (Opcode)
-JPZNN:	.EQU 	$CA	; JP Z,nnnn - skip 2 bytes
-JPNCNN:	.EQU 	$D2	; JP NC,nnnn - skip 2 bytes
-JPCNN:	.EQU 	$DA	; JP C,nnnn - skips 2 bytes
-ORNN:	.EQU 	$F6	; OR nn - skip 1 byte
-JPMNN:	.EQU 	$FA	; JP M,nnnn - skip 2 bytes
-CPNN:	.EQU 	$FE	; CP nn - skip next bytye
+DEFC	LDBCNN	= $01	; LD BC,nnnn - skip 2 bytes
+DEFC	LDBNN	= $06	; LD B,nn - skip next byte
+DEFC	LDCNN	= $0E	; LD C,nn - skipping next byte
+DEFC	LDDENN	= $11	; LD DE,nnnn - skip next 2 bytes
+DEFC	LDDNN	= $16	; LD D,nn - skipping next byte
+DEFC	LDHLNN	= $21	; LD HL,nnnn - skip 2 bytes
+DEFC	LDLNN	= $2E	; LD L,nn - skip 1 byte
+DEFC	LDANN	= $3E	; LD A,nn - skip 1 byte
+DEFC	OPJPNN	= $C3	; JP nnnn (Opcode)
+DEFC	OPRET	= $C9	; RET (Opcode)
+DEFC	JPZNN	= $CA	; JP Z,nnnn - skip 2 bytes
+DEFC	JPNCNN	= $D2	; JP NC,nnnn - skip 2 bytes
+DEFC	JPCNN	= $DA	; JP C,nnnn - skips 2 bytes
+DEFC	ORNN	= $F6	; OR nn - skip 1 byte
+DEFC	JPMNN	= $FA	; JP M,nnnn - skip 2 bytes
+DEFC	CPNN	= $FE	; CP nn - skip next bytye
 ;
 ; ----------------------------------------------------------------------
 ;   ASCII Codes for Keyboard and Display
 ; Comments (In Brackets) are the Keyboard mappings,
 ; ----------------------------------------------------------------------
-BREAK:	.EQU	$01	; (BREAK Key)
-ETX:	.EQU	$03	; End Of Text (Ascii)
+DEFC	BREAK	= $01	; (BREAK Key)
+DEFC	ETX	= $03	; End Of Text (Ascii)
 ;
-BACKS:	.EQU 	$08	; (LEFT  Arrow) - Backspace
-TAB:	.EQU 	$09	; (RIGHT Arrow) - Tab
-LINEF:	.EQU 	$0A	; (DOWN  Arrow)
-VERTAB:	.EQU 	$0B	; Vertical Tab (Ascii)
-FORMF:	.EQU 	$0C	; Form Feed (Ascii)
-ENTER:	.EQU 	$0D	; (ENTER Key) - Return
+DEFC	BACKS	= $08	; (LEFT  Arrow) - Backspace
+DEFC	TAB	= $09	; (RIGHT Arrow) - Tab
+DEFC	LINEF	= $0A	; (DOWN  Arrow)
+DEFC	VERTAB	= $0B	; Vertical Tab (Ascii)
+DEFC	FORMF	= $0C	; Form Feed (Ascii)
+DEFC	ENTER	= $0D	; (ENTER Key) - Return
 ;
 ; Following are special meaning CHR codes, not ASCII standard
-CURON:	.EQU	$0E	; turn on cursor.
-CUROFF:	.EQU	$0F 	; turn off cursor.
-MODE32:	.EQU	$17	; select line size of 32 char/line.
-ARLEFT:	.EQU	$18	; (Shift-LEFT Arrow) backspace one character
-ARIGHT:	.EQU	$19	; (Shift-RIGHT Arrow) skip forward one character
-ARDOWN:	.EQU	$1A	; (Shift-DOWN Arrow) skip down one line
-ARUP:	.EQU	$1B	; (Shift-UP  Arrow) skip up one line
-CHOME:	.EQU	$1C	; home cursor. select 64 char/line.
-CLINE:	.EQU	$1D	; position cursor to Start of current line
-ELINE:	.EQU	$1E	; erase from cursor to end of line
-CLRKEY:	.EQU	$1F	; (CLEAR Key) erase from Cursor to end of frame
+DEFC	CURON	= $0E	; turn on cursor.
+DEFC	CUROFF	= $0F 	; turn off cursor.
+DEFC	MODE32	= $17	; select line size of 32 char/line.
+DEFC	ARLEFT	= $18	; (Shift-LEFT Arrow) backspace one character
+DEFC	ARIGHT	= $19	; (Shift-RIGHT Arrow) skip forward one character
+DEFC	ARDOWN	= $1A	; (Shift-DOWN Arrow) skip down one line
+DEFC	ARUP	= $1B	; (Shift-UP  Arrow) skip up one line
+DEFC	CHOME	= $1C	; home cursor. select 64 char/line.
+DEFC	CLINE	= $1D	; position cursor to Start of current line
+DEFC	ELINE	= $1E	; erase from cursor to end of line
+DEFC	CLRKEY	= $1F	; (CLEAR Key) erase from Cursor to end of frame
 ;
-SPACE:	.EQU 	$20	; A space character
-DQUOTE	.EQU	$22	; A Double Quote ( " )
-SQUOTE	.EQU	$27	; A Single Quote ( ' )
-SEMICO	.EQU	$3B	; Note ';' in code; was breaking some assemblers
-UPARRW	.EQU	$5B	; (UP Arrow) Special Up Arrow ↑ Character in TRS Charset
-BQUOTE	.EQU	$60	; A Back Quote ( ` )
-CURCHR  .EQU	$5F	; _ cursor character
+DEFC	SPACE	= $20	; A space character
+DEFC	DQUOTE	= $22	; A Double Quote ( " )
+DEFC	SQUOTE	= $27	; A Single Quote ( ' )
+DEFC	SEMICO	= $3B	; Note ';' in code; was breaking some assemblers
+DEFC	UPARRW	= $5B	; (UP Arrow) Special Up Arrow ↑ Character in TRS Charset
+DEFC	BQUOTE	= $60	; A Back Quote ( ` )
+DEFC	CURCHR	= $5F	; _ cursor character
 ;
 ; ======================================================================
 ; MACROS
 ; ======================================================================
 ;
-#DEFINE	SYNTAX(char)	rst 08h\ .DB char
+#DEFINE	SYNTAX(char)	rst 08h\ DEFB char
 #DEFINE	GETCHR		rst 10h
 #DEFINE	CPDEHL		rst 18h
 #DEFINE	TSTDAT		rst 20h
@@ -246,11 +246,11 @@ CURCHR  .EQU	$5F	; _ cursor character
 ; ----------------------------------------------------------------------
 #IFDEF FREHDBT
 ;
-ROM_MODEL_1	.EQU	1	; TRS model : passed by the patched rom
-ROM_MODEL_3	.EQU 	3	; TRS model : passed by the patched rom
-READROM:	.EQU 	$C4	; read only
-WRITEROM	.EQU 	$C5	; write only
-ROM_LOAD	.EQU 	$5000	; where the extra "rom is loaded
+DEFC	ROM_MODEL_1	= 1	; TRS model : passed by the patched rom
+DEFC	ROM_MODEL_3	= 3	; TRS model : passed by the patched rom
+DEFC	READROM		= $C4	; read only
+DEFC	WRITEROM	= $C5	; write only
+DEFC	ROM_LOAD	= $5000	; where the extra "rom is loaded
 ;
 #ENDIF
 ;
@@ -259,8 +259,8 @@ ROM_LOAD	.EQU 	$5000	; where the extra "rom is loaded
 ; ======================================================================
 ;
 ;
-	.ORG	$0000	; Start of ROM Code Base
-RAM:	.EQU	$4000	; Start of RAM Communications area
+	ORG	$0000	; Start of ROM Code Base
+DEFC	RAM	= $4000	; Start of RAM Communications area
 ;
 ; ----------------------------------------------------------------------
 ; 0000H-0004H – POWER UP ROUTINE – "_START"
@@ -467,18 +467,15 @@ _KEY:	call	_KBD		;0049
 ;   XXX in 1.3, Shift-↓ is $00 to act as a Ctrl key
 ;                Std    Shifted
 ; ----------------------------------------------------------------------
-KEYTAB:	.DB	ENTER,	ENTER	; ENTER
-	.DB	CLRKEY,	CLRKEY	; CLEAR
-	.DB	BREAK,	BREAK	; BREAK
-	.DB	UPARRW,	ARUP	; ↑ Up Arrow
-	.DB	LINEF,	$00	; ↓ Down Arrow
+KEYTAB:	DEFB	ENTER,	ENTER	; ENTER
+	DEFB	CLRKEY,	CLRKEY	; CLEAR
+	DEFB	BREAK,	BREAK	; BREAK
+	DEFB	UPARRW,	ARUP	; ↑ Up Arrow
+	DEFB	LINEF,	$00	; ↓ Down Arrow
 				; to permit Shift-Down-Arrow to act as a control key
-	; Previously in V1.2 it was
-	; .DB	LINEF,	ARDOWN	; LF, ↓ Down Arrow
-
-	.DB	BACKS,	ARLEFT	; BS, ← Left arrow
-	.DB	TAB,	ARIGHT	; Tab, -> right arrow
-	.DB	SPACE,	SPACE	; Space
+	DEFB	BACKS,	ARLEFT	; BS, ← Left arrow
+	DEFB	TAB,	ARIGHT	; Tab, -> right arrow
+	DEFB	SPACE,	SPACE	; Space
 ;
 ; ----------------------------------------------------------------------
 ; 0060H-0065H – DELAY ROUTINE – "$DELAY"
@@ -502,8 +499,8 @@ DELAY:	dec	bc		;0060
 ;
 NMI:	jp	_START		;0066 - wrong Stack Pointer.
 ;
-	.ECHO	" NMIHARD - NMI full system reset enabled \n"
-	.FILL	$0072 - $ ,0	;UNUSED fill the space to next routine with ZERO's
+	; .ECHO	" NMIHARD - NMI full system reset enabled \n"
+	DEFS	$0072 - $	;UNUSED fill the space to next routine with ZERO's
 ;
 #ELSE
 ;
@@ -624,12 +621,12 @@ USEDEF:	dec	hl		;00e7 - minus 1
 ; 0105H-011BH – MESSAGE STORAGE
 ; ----------------------------------------------------------------------
 ;
-MEMMSG:	.DB	"MEMORY SIZE",0			     ; RS Mem Size Message V1.2
-HDGMSG:	.DB	"R/S Level II BASIC Rev 1.4",ENTER,0 ; RS L2 Basic Message V1.4
+MEMMSG:	DEFB	"MEMORY SIZE",0			     ; RS Mem Size Message V1.2
+HDGMSG:	DEFB	"R/S Level II BASIC Rev 1.4",ENTER,0 ; RS L2 Basic Message V1.4
 ;
-; 	.DB	"RADIO SHACK LEVEL II BASIC",ENTER,0 ; RS L2 Basic Message V1.2
+; 	DEFB	"RADIO SHACK LEVEL II BASIC",ENTER,0 ; RS L2 Basic Message V1.2
 ;
-	.FILL	$012D - $	; Padding (also checks for overrun)
+	DEFS	$012D - $	; Padding (also checks for overrun)
 ;
 ; ----------------------------------------------------------------------
 ; 012DH – ?L3 ERROR ENTRY POINT – "L3ERR"
@@ -648,13 +645,13 @@ POINT:	GETCHR			;0132 - rst 10h
 ; This way, they didn’t have to jump over SET or RESET to get to the common graphics code.
 ; If parsing straight down, this loads BC with 0380H and then moves to 0136H. But if jump
 ; straight to 0136H, you skip that 01H opcode, and get a real instruciton of 3EH 80H
-	.DB	LDBCNN		;0134
+	DEFB	LDBCNN		;0134
 ;
 ; ----------------------------------------------------------------------
 ; 0135H-0137H – LEVEL II BASIC SET COMMAND ENTRY POINT – “SET”
 ; ----------------------------------------------------------------------
 SET:	ld	a,$80		;0135
-	.DB	LDBCNN		;0137 - See comment above about what this does
+	DEFB	LDBCNN		;0137 - See comment above about what this does
 ;
 ; ----------------------------------------------------------------------
 ; 0138H-0139H – LEVEL II BASIC RESET COMMAND ENTRY POINT – “RESET”
@@ -813,7 +810,7 @@ CWRTON: call	CTON		;0284
 ; ----------------------------------------------------------------------
 ;
 ; ======================================================================
-	.ECHO 	" ROM REGION - (01E9 - 02B1) - Cassette \n"
+	; .ECHO 	" ROM REGION - (01E9 - 02B1) - Cassette \n"
 ; ======================================================================
 ;
 ; ----------------------------------------------------------------------
@@ -833,17 +830,17 @@ DSPLINLTH1:
 	ret
 ;
 ; ----------------------------------------------------------------------
-	.ECHO	"  * BUGFIX1 uses "
-	.ECHO	($ - DSPLINLTH)
-	.ECHO	" bytes \n"
+	; .ECHO	"  * BUGFIX1 uses "
+	; .ECHO	($ - DSPLINLTH)
+	; .ECHO	" bytes \n"
 #ENDIF
 ;
 ; ======================================================================
-R1FREE:	.EQU 	($02B2 - $)
-	.ECHO 	"  "
-	.ECHO	R1FREE
-	.ECHO   " of 201 bytes free \n"
-	.FILL	R1FREE
+	#DEFINE	R1FREE	= $02B2 - $
+	; .ECHO	"  "
+	; .ECHO	R1FREE
+	; .ECHO	" of 201 bytes free \n"
+	DEFS	$02B2 - $
 ; ======================================================================
 ;
 ; ----------------------------------------------------------------------
@@ -872,15 +869,15 @@ GODO:	GETCHR			;0322 - rst 10h
 	jp	(hl)		;0329 - jump to execution address
 ;
 ; ======================================================================
-	.ECHO 	" ROM REGION - (02D7 - 0329) - System \n"
+	; .ECHO 	" ROM REGION - (02D7 - 0329) - System \n"
 ; ======================================================================
 ;
 ; ======================================================================
-R2FREE:	.EQU 	($032A - $)
-	.ECHO 	"  "
-	.ECHO	R2FREE
-	.ECHO   " of 83 bytes free \n"
-	.FILL	R2FREE
+	#DEFINE	R2FREE	= $032A - $
+	; .ECHO 	"  "
+	; .ECHO	R2FREE
+	; .ECHO   " of 83 bytes free \n"
+	DEFS	$032A - $
 ; ======================================================================
 ;
 ; ----------------------------------------------------------------------
@@ -1186,8 +1183,8 @@ DSPGRP:	ld	a,c		;0467 - convert and display the charater
 #IFDEF LOWCASE
 	jr	DSPCHR		;0471 - Disable all Alpha CHR translation
 ;
-	.ECHO	" LOWCASE - Lowercase support enabled \n"
-	.FILL	$047D - $ ,0	;UNUSED Fill Deleted code bock (ELSE) with NOP's
+	; .ECHO	" LOWCASE - Lowercase support enabled \n"
+	DEFS	$047D - $	;UNUSED Fill Deleted code bock (ELSE) with NOP's
 #ELSE
 	cp	$40		;0471 - is it number or symbol ASCII 20h - 40h
 	jr	c,DSPCHR	;0473 - then display it
@@ -1333,7 +1330,7 @@ DSPETB:
 	or	CAST32		;04f9 - Set the 32 Char mode bit
 	ld	(CAST),a	;04fb - save shadow copy of cassette port
 #IFDEF BUGFIX1
-	.ECHO	" BUGFIX1 - 32 Character Mode Line Length fixed \n"
+	; .ECHO	" BUGFIX1 - 32 Character Mode Line Length fixed \n"
 	jp	DSPLINLTH	;BUGFIX - Set vidcmt and update line length
 #ELSE
 	out	(vidcmt),a	;04fd - output setting the HW register
@@ -1772,25 +1769,25 @@ INITR:
 	ret
 	nop
 ; Keyboard DCB
-	.DB	1		; 4015 (mKDCB) - Device Type = 1 for KB (Read only)
-	.DW	KBDDRV		; 4016 - keyboard driver address
-	.DB	0		; 4017 - Not used on Model 1
-	.DB	0		; 4018 - Not used on Model 1
-	.DB	0		; 4019 - Not used on Model 1
-	.DB	"KI"
+	DEFB	1		; 4015 (mKDCB) - Device Type = 1 for KB (Read only)
+	DEFW	KBDDRV		; 4016 - keyboard driver address
+	DEFB	0		; 4017 - Not used on Model 1
+	DEFB	0		; 4018 - Not used on Model 1
+	DEFB	0		; 4019 - Not used on Model 1
+	DEFB	"KI"
 ; Display DCB
-	.DB	7		; 401D (mDDCB) - Device Type = 7 for VID
-	.DW	DSPDRV		; 401E - DISPLAY driver address
-	.DW	vidmem		; 4020 (CURSOR) - Cursor Position (3C00H to 3FFFH)
-	.DB	0		; 4022 - Character "covered" on video by Cursor
-	.DB	"DO"
+	DEFB	7		; 401D (mDDCB) - Device Type = 7 for VID
+	DEFW	DSPDRV		; 401E - DISPLAY driver address
+	DEFW	vidmem		; 4020 (CURSOR) - Cursor Position (3C00H to 3FFFH)
+	DEFB	0		; 4022 - Character "covered" on video by Cursor
+	DEFB	"DO"
 ; Printer DCB
-	.DB	6		; 4025 (mPDCB) - Device Type = 6 for Printer
-	.DW	PRTDRV		; 4026 - printer driver address
-	.DB	67		; 4028 - lines per page
-	.DB	0		; 4029 - Current Line Number
-	.DB	0		; 402A - Not used on Model 1
-	.DB	"PR"
+	DEFB	6		; 4025 (mPDCB) - Device Type = 6 for Printer
+	DEFW	PRTDRV		; 4026 - printer driver address
+	DEFB	67		; 4028 - lines per page
+	DEFB	0		; 4029 - Current Line Number
+	DEFB	0		; 402A - Not used on Model 1
+	DEFB	"PR"
 ;
 ; Normal Disk Operating System re-entry vector.
 	jp	$5000		; 402D - MAKE SYS1 (10) DOS REQUEST,
@@ -2040,15 +2037,15 @@ SHRADD:	rra			;07eb
 ; ----------------------------------------------------------------------
 ; 07F8H-07FBH – SINGLE PRECISION CONSTANT STORAGE LOCATION – “FONE”
 ; ----------------------------------------------------------------------
-FONE:	.DB	0, 0, 0, $81	; store a value of 1.0
+FONE:	DEFB	0, 0, 0, $81	; store a value of 1.0
 ;
 ; ----------------------------------------------------------------------
 ; 07FCH-0808H – SINGLE PRECISION CONSTANTS STORAGE LOCATION 2 – “LOGCN2”
 ; ----------------------------------------------------------------------
-LOGCN2:	.DB	3			; count of numbers in table
-	.DB	$AA, $56, $19, $80	; 0.598978650
-	.DB	$F1, $22, $76, $80	; 0.961470632
-	.DB	$45, $AA, $38, $82	; 2.88539129
+LOGCN2:	DEFB	3			; count of numbers in table
+	DEFB	$AA, $56, $19, $80	; 0.598978650
+	DEFB	$F1, $22, $76, $80	; 0.961470632
+	DEFB	$45, $AA, $38, $82	; 2.88539129
 ;
 ; ======================================================================
 ; 0809H – LEVEL II BASIC LOG ROUTINE – “FNLOG”
@@ -2202,7 +2199,7 @@ FDIV1:	push	hl		;08c7
 	pop	af		;08d6
 ;
 	scf			;08d7 - Z80 Trick - Set Carry Flag
-	.DB	JPNCNN		;08d8 - JP NC,nnnn - skip next 2 instruction
+	DEFB	JPNCNN		;08d8 - JP NC,nnnn - skip next 2 instruction
 ;
 FDIV2:	pop	bc		;08d9
 	pop	hl		;08da
@@ -2245,7 +2242,7 @@ FDIV2:	pop	bc		;08d9
 ; ----------------------------------------------------------------------
 MULDVS:	ld	a,$FF		;0907
 ;
-	.DB	LDLNN		;0909 - Z80 Trick - LD L,nn - skip next instruction
+	DEFB	LDLNN		;0909 - Z80 Trick - LD L,nn - skip next instruction
 ;
 MULDVA:	xor	a		;090a
 	ld	hl,ARG-1	;090b
@@ -2315,7 +2312,7 @@ SIGN:	ld	a,(FAC)		;0955
 	ret	z		;0959
 	ld	a,(FAC-1)	;095a
 ;
-	.DB	CPNN		;095d - Z80 Trick - CP nn - skip next bytye
+	DEFB	CPNN		;095d - Z80 Trick - CP nn - skip next bytye
 ;
 FCOMPS:	cpl			;095e
 ICOMPS:	rla			;095f
@@ -2663,7 +2660,7 @@ FRCINT:	TSTDAT			;0a7f - check the value of the current number type
 ;
 #IFDEF BUGFIX5
 ;
-	.ECHO	" BUGFIX5 - ROM Error 5 Patched \n"
+	; .ECHO	" BUGFIX5 - ROM Error 5 Patched \n"
 	NOP3
 #ELSE
 ; If double-precision (NC flag set based on type), call the subroutine at 0AB9H
@@ -2786,7 +2783,7 @@ VALDBL:	ld	a,VTDBL		;0aec - Double Value Type
 ; 0AEEH-0AF3H – MATH ROUTINE – “VALSNG”
 ; ----------------------------------------------------------------------
 ;
-	.DB	LDBCNN		;0aee - Z80 Trick LD BC,nnnn - skip next 2 byte instruction
+	DEFB	LDBCNN		;0aee - Z80 Trick LD BC,nnnn - skip next 2 byte instruction
 ;
 ; ----------------------------------------------------------------------
 ; 0AEFH - Set NTF to SINGLE
@@ -3062,7 +3059,7 @@ IMULT3:	xor	$80		;0c1f
 	jr	z,IMULT4	;0c22
 	ex	de,hl		;0c24
 ;
-	.DB	LDBCNN		;0c25 - Z80 trick - LD BC,nnnn skip next 2 bytes
+	DEFB	LDBCNN		;0c25 - Z80 trick - LD BC,nnnn skip next 2 bytes
 IMULT5:	pop	bc		;0c26
 	pop	hl		;0c27
 ;
@@ -3427,8 +3424,8 @@ DMULT5:	ld	hl,FAC-1	;0dcc
 ; 0DD4H-0DDBH – DOUBLE PRECISION CONSTANT STORAGE AREA – “DTEN” and “FTEN”
 ; ----------------------------------------------------------------------
 ;
-DTEN:	.DB	$00, $00, $00, $00; A double precision constant 10.0 (8 bytes)
-FTEN:	.DB	$00, $00, $20, $84; A single precision constant 10.0
+DTEN:	DEFB	$00, $00, $00, $00; A double precision constant 10.0 (8 bytes)
+FTEN:	DEFB	$00, $00, $20, $84; A single precision constant 10.0
 ;
 ; ----------------------------------------------------------------------
 ; 0DDCH-0DE4H – DOUBLE PRECISION MATH ROUTINE – “DDIV10”
@@ -3468,7 +3465,7 @@ DDIV1:	ld	de,FMLTT0	;0df9
 	call	DADDS		;0e0d
 ;
 	xor	a		;0e10 - Clear the CF for the Z80 Trick
-	.DB	JPCNN		;0e11 - JP C,nnnn, since C flag cleared skips next 2 bytes
+	DEFB	JPCNN		;0e11 - JP C,nnnn, since C flag cleared skips next 2 bytes
 ;
 DDIV2:	ld	(de),a		;0e12
 	inc	b		;0e13
@@ -3541,7 +3538,7 @@ DMUL10:	call	VMOVAF		;0e4d
 FINDBL:	call	ZERO		;0e65
 	call	VALDBL		;0e68
 ;
-	.DB	ORNN		;0e6b - Z80 Trick - OR nn - next instruction skippd NZ flag SET
+	DEFB	ORNN		;0e6b - Z80 Trick - OR nn - next instruction skippd NZ flag SET
 ;
 ; ======================================================================
 ; 0E6CH - ASCII To Binary - "FIN"
@@ -3799,7 +3796,7 @@ FINEDG:	ld	a,e		;0f94
 	sub	$30		;0f9e
 	ld	e,a		;0fa0
 ;
-	.DB	JPMNN		;0fa1 - Z80 Trick - JP M,nnnn - skip next 2 bytes
+	DEFB	JPMNN		;0fa1 - Z80 Trick - JP M,nnnn - skip next 2 bytes
 ;
 FINEDO:	ld	e,$32		;0fa2
 	jp	FINEC		;0fa4
@@ -3887,7 +3884,7 @@ FOUTZS:	ld	hl,FBUFFR	;0ff5
 	jr	nz,FOTZS1	;1007
 ;
 #IFDEF BUGFIX8
-	.ECHO	" BUGFIX8 - ROM Error 8 Patched \n"
+	; .ECHO	" BUGFIX8 - ROM Error 8 Patched \n"
 	NOP
 #ELSE
 ; The ROM's formatting routine incorrectly applies the asterisk
@@ -4086,7 +4083,7 @@ FOUBE2:	push	af		;10df
 	jr	nc,FOUBE4	;10f5
 	dec	hl		;10f7
 ;
-	.DB	LDBCNN		;10f8 Z80 Trick - LD BC,nnnn - skip next 2 instructions
+	DEFB	LDBCNN		;10f8 Z80 Trick - LD BC,nnnn - skip next 2 instructions
 ;
 ; ----------------------------------------------------------------------
 ; 10F9 – MATH ROUTINE – “FOUBE3”
@@ -4242,7 +4239,7 @@ FFXIFL:	push	hl		;11a3
 FFXFLV:	jp	z,FFXSFL	;11aa
 	ld	e,$10		;11ad - maximum length of a double
 ;
-	.DB	LDBCNN		;11af - Z80 Trick - LD BC,nnnn - skip 2 byte instruction
+	DEFB	LDBCNN		;11af - Z80 Trick - LD BC,nnnn - skip 2 byte instruction
 ;
 FFXSFL:	ld	e,$06		;11b0 - maximum length of a single precision value
 	call	SIGN		;11b2
@@ -4585,49 +4582,49 @@ FOUCI2:	inc	b		;1348
 ; 1364-136B – DOUBLE PRECISION CONSTANT STORAGE LOCATION – “TENTEN”
 ; A double precision constant equal to 10000000000
 ; ----------------------------------------------------------------------
-TENTEN:	.DB	$00, $00, $00, $00, $F9, $02, $15, $A2
+TENTEN:	DEFB	$00, $00, $00, $00, $F9, $02, $15, $A2
 ;
 ; ----------------------------------------------------------------------
 ; 136C-1373 – DOUBLE PRECISION CONSTANT STORAGE LOCATION – “FOUTDL”
 ; A double precision constant equal to 999,999,999,999,999.95
 ; ----------------------------------------------------------------------
-FOUTDL:	.DB	$FD, $FF, $9F, $31, $A9, $5F, $63, $B2
+FOUTDL:	DEFB	$FD, $FF, $9F, $31, $A9, $5F, $63, $B2
 ;
 ; ----------------------------------------------------------------------
 ; 1374-137B – DOUBLE PRECISION CONSTANT STORAGE LOCATION – “FOUTDU”
 ; A double precision constant equal to 9,999,999,999,999,999.5
 ; ----------------------------------------------------------------------
-FOUTDU:	.DB	$FE, $FF, $03, $BF, $C9, $1B, $0E, $B6
+FOUTDU:	DEFB	$FE, $FF, $03, $BF, $C9, $1B, $0E, $B6
 ;
 ; ----------------------------------------------------------------------
 ; 137C-1383 – DOUBLE PRECISION CONSTANT STORAGE LOCATION – “DHALF”
 ; ----------------------------------------------------------------------
 ; A double precision constant equal to 0.5D0 .
-DHALF:	.DB	$00, $00, $00, $00
+DHALF:	DEFB	$00, $00, $00, $00
 ;
 ; A single precision constant equal to 0.5E0 .
 ; Referencing : half-way through double precision value, results in a single precision value of 0.5
-FHALF:	.DB	$00, $00, $00, $80
+FHALF:	DEFB	$00, $00, $00, $80
 ;
 ; ----------------------------------------------------------------------
 ; 1384-138B – DOUBLE PRECISION CONSTANT STORAGE LOCATION – “FFXDXM”
 ; A double precision constant equal to 1D16
 ; ----------------------------------------------------------------------
-FFXDXM:	.DB	$00, $00, $04, $BF, $C9, $1B, $0E, $B6
+FFXDXM:	DEFB	$00, $00, $04, $BF, $C9, $1B, $0E, $B6
 ;
 ; ----------------------------------------------------------------------
 ; 138C-13D1 – DOUBLE PRECISION INTEGER CONSTANT STORAGE LOCATION – “FODTBL”
 ; ----------------------------------------------------------------------
-FODTBL:	.DB	$00, $80, $C6, $A4, $7E, $8D, $03	; 1D15
-	.DB	$00, $40, $7A, $10, $F3, $5A, $00	; 1D14
-	.DB	$00, $A0, $72, $4E, $18, $09, $00	; 1D13
-	.DB	$00, $10, $A5, $D4, $E8, $00, $00	; 1D12
-	.DB	$00, $E8, $76, $48, $17, $00, $00	; 1D10
-	.DB	$00, $E4, $0B, $54, $02, $00, $00	; 1D9
-	.DB	$00, $CA, $9A, $3B, $00, $00, $00	; 1D8
-	.DB	$00, $E1, $F5, $05, $00, $00, $00	; 1D7
-	.DB	$80, $96, $98, $00, $00, $00, $00	; 1D6
-	.DB	$40, $42, $0F, $00, $00, $00, $00	; 1D5
+FODTBL:	DEFB	$00, $80, $C6, $A4, $7E, $8D, $03	; 1D15
+	DEFB	$00, $40, $7A, $10, $F3, $5A, $00	; 1D14
+	DEFB	$00, $A0, $72, $4E, $18, $09, $00	; 1D13
+	DEFB	$00, $10, $A5, $D4, $E8, $00, $00	; 1D12
+	DEFB	$00, $E8, $76, $48, $17, $00, $00	; 1D10
+	DEFB	$00, $E4, $0B, $54, $02, $00, $00	; 1D9
+	DEFB	$00, $CA, $9A, $3B, $00, $00, $00	; 1D8
+	DEFB	$00, $E1, $F5, $05, $00, $00, $00	; 1D7
+	DEFB	$80, $96, $98, $00, $00, $00, $00	; 1D6
+	DEFB	$40, $42, $0F, $00, $00, $00, $00	; 1D5
 ;
 ; NOTE: The above data does not (exactly) match what is held
 ; in the TRS-80 web site rom disassembly
@@ -4635,17 +4632,17 @@ FODTBL:	.DB	$00, $80, $C6, $A4, $7E, $8D, $03	; 1D15
 ; ----------------------------------------------------------------------
 ; 13D2-13D7 – SINGLE PRECISION POWER OF TEN TABLE LOCATION – “FOSTBL
 ; ----------------------------------------------------------------------
-FOSTBL:	.DB	$A0, $86, $01	; 1E5
-	.DB	$10, $27, $00	; 1E4
+FOSTBL:	DEFB	$A0, $86, $01	; 1E5
+	DEFB	$10, $27, $00	; 1E4
 ;
 ; ----------------------------------------------------------------------
 ; 13D8 - 13E1 – SINGLE PRECISION POWER OF TEN TABLE LOCATION – “FOITBL
 ; ----------------------------------------------------------------------
-FOITBL:	.DB	$10, $27	; 10,000
-	.DB	$E8, $03	; 1,000
-	.DB	$64, $00	; 100
-	.DB	$0A, $00	; 10
-	.DB	$01, $00	; 1
+FOITBL:	DEFB	$10, $27	; 10,000
+	DEFB	$E8, $03	; 1,000
+	DEFB	$64, $00	; 100
+	DEFB	$0A, $00	; 10
+	DEFB	$01, $00	; 1
 ;
 ; ----------------------------------------------------------------------
 ; 13E2-13E6 – MATH ROUTINE – “PSHNEG”
@@ -4757,15 +4754,15 @@ FNEXP:	call	PUSHF		;1439
 ; This represents 1/6, -1/5, 1/4, -1/3, 1/2, -1, and 1 – “EXPCON”
 ; ----------------------------------------------------------------------
 ;
-EXPCON:	.DB	$08		; number of constants which follow
-	.DB	$40, $2E, $94, $74; constant equal to -0.00014171607 (-1.413165 * 10e-4)
-	.DB	$70, $4F, $2E, $77; constant equal to 0.00132988204 (1.32988 * 10e-3, roughly -1/6)
-	.DB	$6E, $02, $88, $7A; constant equal to -0.00830136052 (-8.30136 * 10e-3, roughly -1/5)
-	.DB	$E6, $A0, $2A, $7C; constant equal to 0.04165735095 (roughly 1/4)
-	.DB	$50, $AA, $AA, $7E; constant equal to -0.16666531543 (roughly -1/3)
-	.DB	$FF, $FF, $7F, $7F; constant equal to 0.49999996981 (roughly 1/2)
-	.DB	$00, $00, $80, $81; constant equal to -1.0
-	.DB	$00, $00, $00, $81; constant equal to 1.0
+EXPCON:	DEFB	$08		; number of constants which follow
+	DEFB	$40, $2E, $94, $74; constant equal to -0.00014171607 (-1.413165 * 10e-4)
+	DEFB	$70, $4F, $2E, $77; constant equal to 0.00132988204 (1.32988 * 10e-3, roughly -1/6)
+	DEFB	$6E, $02, $88, $7A; constant equal to -0.00830136052 (-8.30136 * 10e-3, roughly -1/5)
+	DEFB	$E6, $A0, $2A, $7C; constant equal to 0.04165735095 (roughly 1/4)
+	DEFB	$50, $AA, $AA, $7E; constant equal to -0.16666531543 (roughly -1/3)
+	DEFB	$FF, $FF, $7F, $7F; constant equal to 0.49999996981 (roughly 1/2)
+	DEFB	$00, $00, $80, $81; constant equal to -1.0
+	DEFB	$00, $00, $00, $81; constant equal to 1.0
 ;
 ; ----------------------------------------------------------------------
 ; 149A-14C8 – MATH ROUTINE – “POLYX”
@@ -4796,7 +4793,7 @@ POLY:	call	PUSHF		;14a9
 ;
 ; Z-80 Trick! If passing through, this will simply alter
 ;Register B and the next instruction of POP AF will not be processed.
-	.DB	LDBNN		;14b1
+	DEFB	LDBNN		;14b1
 ;
 POLY1:	pop	af		;14b2
 	pop	bc		;14b3
@@ -4944,22 +4941,22 @@ SIN1:	push	af		;1577
 ; ----------------------------------------------------------------------
 ; 158B-158E – SINGLE PRECISION CONSTANT STORAGE LOCATION – “PI2”
 ; ----------------------------------------------------------------------
-PI2:	.DB	$DB, $0F, $49, $81
+PI2:	DEFB	$DB, $0F, $49, $81
 ; ----------------------------------------------------------------------
 ; 158F-1592 – SINGLE PRECISION CONSTANT STORAGE LOCATION – “FR4”
 ; ----------------------------------------------------------------------
-FR4:	.DB	$00, $00, $00, $7F
+FR4:	DEFB	$00, $00, $00, $7F
 ; ----------------------------------------------------------------------
 ; 1593-15A7 – SINGLE PRECISION CONSTANTS STORAGE LOCATION – “SINCON”
 ; ----------------------------------------------------------------------
 ;
-SINCON:	.DB	05H		; The number of single precision constants (05) which follows
+SINCON:	DEFB	05H		; The number of single precision constants (05) which follows
 ; These are the coefficients used in the power series to compute SIN(x)
-	.DB	$BA, $D7, $1E, $86; 39.7106704708
-	.DB	$64, $26, $99, $87; -76.5749816893
-	.DB	$58, $34, $23, $87; 81.6022338865
-	.DB	$E0, $5D, $A5, $86; -41.3416748045
-	.DB	$DA, $0F, $49, $83; 6.28318500497
+	DEFB	$BA, $D7, $1E, $86; 39.7106704708
+	DEFB	$64, $26, $99, $87; -76.5749816893
+	DEFB	$58, $34, $23, $87; 81.6022338865
+	DEFB	$E0, $5D, $A5, $86; -41.3416748045
+	DEFB	$DA, $0F, $49, $83; 6.28318500497
 ;
 ; ======================================================================
 ; 15A8 – LEVEL II BASIC TAN(n) ROUTINE – “FNTAN”
@@ -5003,16 +5000,16 @@ ATAN2:	ld	hl,ATNCON	;15d9
 ; ----------------------------------------------------------------------
 ; 15E3-1607 – SINGLE PRECISION CONSTANTS STORAGE LOCATION – “ATNCON”
 ; ----------------------------------------------------------------------
-ATNCON:	.DB	$09		; number constants which follows
-	.DB	$4A, $D7, $3B, $78; 0.00286622549
-	.DB	$02, $6E, $84, $7B; -0.01616573699
-	.DB	$FE, $C1, $2F, $7C; 0.04290961441
-	.DB	$74, $31, $9A, $7D; 0.07528963666
-	.DB	$84, $3D, $5A, $7D; 0.10656264407
-	.DB	$C8, $7F, $91, $7E; -0.14208900905
-	.DB	$E4, $BB, $4C, $7E; 0.19993549561
-	.DB	$6C, $AA, $AA, $7F; -0.33333146561
-	.DB	$00, $00, $00, $81; 1.0
+ATNCON:	DEFB	$09		; number constants which follows
+	DEFB	$4A, $D7, $3B, $78; 0.00286622549
+	DEFB	$02, $6E, $84, $7B; -0.01616573699
+	DEFB	$FE, $C1, $2F, $7C; 0.04290961441
+	DEFB	$74, $31, $9A, $7D; 0.07528963666
+	DEFB	$84, $3D, $5A, $7D; 0.10656264407
+	DEFB	$C8, $7F, $91, $7E; -0.14208900905
+	DEFB	$E4, $BB, $4C, $7E; 0.19993549561
+	DEFB	$6C, $AA, $AA, $7F; -0.33333146561
+	DEFB	$00, $00, $00, $81; 1.0
 ;
 ; ----------------------------------------------------------------------
 ; 1608-18C8 – LIST OF BASIC RESERVED WORDS, TOKENS, AND ENTRY LOCATIONS
@@ -5027,46 +5024,46 @@ ATNCON:	.DB	$09		; number constants which follows
 ;           - for functions stating at token $D7 (SGN) to $FA (MID$)
 ; ----------------------------------------------------------------------
 FUNDSP:
-	.DW	FNSGN		; SGN() - ($D7)
-	.DW	FNINT		; INT()
-	.DW	FNABS		; ABS()
-	.DW	FNFRE		; FRE
-	.DW	FNINP		; INP
-	.DW	FNPOS		; POS()
-	.DW	FNSQR		; SQR()
-	.DW	FNRND		; RND()
-	.DW	FNLOG		; LOG()
-	.DW	FNEXP		; EXP()
-	.DW	FNCOS		; COS()
-	.DW	FNSIN		; SIN()
-	.DW	FNTAN		; TAN()
-	.DW	ATAN		; ATAN()
-	.DW	PEEK		; PEEK - ($E5)
+	DEFW	FNSGN		; SGN() - ($D7)
+	DEFW	FNINT		; INT()
+	DEFW	FNABS		; ABS()
+	DEFW	FNFRE		; FRE
+	DEFW	FNINP		; INP
+	DEFW	FNPOS		; POS()
+	DEFW	FNSQR		; SQR()
+	DEFW	FNRND		; RND()
+	DEFW	FNLOG		; LOG()
+	DEFW	FNEXP		; EXP()
+	DEFW	FNCOS		; COS()
+	DEFW	FNSIN		; SIN()
+	DEFW	FNTAN		; TAN()
+	DEFW	ATAN		; ATAN()
+	DEFW	PEEK		; PEEK - ($E5)
 ;
 ; DISK IO FUNCTIONS (VECTORS) offset from base
-	.DW	DVCVI		; CVI - ($E6)
-	.DW	DVCVS		; CVS
-	.DW	DVCVD		; CVD
-	.DW	DVEOF		; EOF
-	.DW	DVLOC		; LOC
-	.DW	DVLOF		; LOF
-	.DW	DVMKI		; MKI
-	.DW	DVMKS		; MKS
-	.DW	DVMKD		; MKD - ($EE)
+	DEFW	DVCVI		; CVI - ($E6)
+	DEFW	DVCVS		; CVS
+	DEFW	DVCVD		; CVD
+	DEFW	DVEOF		; EOF
+	DEFW	DVLOC		; LOC
+	DEFW	DVLOF		; LOF
+	DEFW	DVMKI		; MKI
+	DEFW	DVMKS		; MKS
+	DEFW	DVMKD		; MKD - ($EE)
 ; END of DISK IO Functions
 ;
-	.DW	FRCINT		; CINT() - ($EF)
-	.DW	FRCSNG		; CSNG()
-	.DW	FRCDBL		; CDBL
-	.DW	FNFIX		; FIX
-	.DW	FNLEN		; LEN
-	.DW	FNSTR		; STR$
-	.DW	FNVAL		; VAL
-	.DW	FNASC		; ASC
-	.DW	FNCHR		; CHR$
-	.DW	FNLEFT		; LEFT$
-	.DW	FNRGT		; RIGHT$
-	.DW	FNMID		; MID$ - Disk Basic Token - ($FA)
+	DEFW	FRCINT		; CINT() - ($EF)
+	DEFW	FRCSNG		; CSNG()
+	DEFW	FRCDBL		; CDBL
+	DEFW	FNFIX		; FIX
+	DEFW	FNLEN		; LEN
+	DEFW	FNSTR		; STR$
+	DEFW	FNVAL		; VAL
+	DEFW	FNASC		; ASC
+	DEFW	FNCHR		; CHR$
+	DEFW	FNLEFT		; LEFT$
+	DEFW	FNRGT		; RIGHT$
+	DEFW	FNMID		; MID$ - Disk Basic Token - ($FA)
 ;
 ; ----------------------------------------------------------------------
 ; 1650-1821 - Reserved key word list (in token order)
@@ -5076,287 +5073,291 @@ FUNDSP:
 ;	* table is broken into statments, followed by functions
 ; ----------------------------------------------------------------------
 RESLST:
-	.DB	$C5,"ND"	; END   - $80
-	.DB	$C6,"OR"	; FOR   - $81
-	.DB	$D2,"ESET"	; RESET - $82
-	.DB	$D3,"ET"	; SET   - $83
-	.DB	$C3,"LS"	; CLS
-	.DB	$C3,"MD"	; CMD (disk) - $85
-	.DB	$D2,"ANDOM"	; RANDOM
-	.DB	$CE,"EXT"	; NEXT  - $87
-	.DB	$C4,"ATA"	; DATA  - $88
-	.DB	$C9,"NPUT"	; INPUT
-	.DB	$C4,"IM"	; DIM
-	.DB	$D2,"EAD"	; READ
-	.DB	$CC,"ET"	; LET
-	.DB	$C7,"OTO"	; GOTO  - $8D
-	.DB	$D2,"UN"	; RUN
-	.DB	$C9,"F"		; IF    - $8F
-	.DB	$D2,"ESTORE"	; RESTORE
-	.DB	$C7,"OSUB"	; GOSUB - $91
-	.DB	$D2,"ETURN"	; RETURN
-	.DB	$D2,"EM"	; REM   - $93
-	.DB	$D3,"TOP"	; STOP
-	.DB	$C5,"LSE"	; ELSE  - $95
-	.DB	$D4,"RON"	; TRON
-	.DB	$D4,"ROFF"	; TROFF
-	.DB	$C4,"EFSTR"	; DEFSTR
-	.DB	$C4,"EFINT"	; DEFINT
-	.DB	$C4,"EFSNG"	; DEFSNG
-	.DB	$C4,"EFDBL"	; DEFDBL
-	.DB	$CC,"INE"	; LINE (disk) - $9C
-	.DB	$C5,"DIT"	; EDIT
-	.DB	$C5,"RROR"	; ERROR  - $9E
-	.DB	$D2,"ESUME"	; RESUME - $9F
-	.DB	$CF,"UT"	; OUT
-	.DB	$CF,"N"		; ON     - $A1
-	.DB	$CF,"PEN"	; OPEN (disk) - $A2
-	.DB	$C6,"IELD"	; FIELD (disk)
-	.DB	$C7,"ET"	; GET (disk)
-	.DB	$D0,"UT"	; PUT (disk)
-	.DB	$C3,"LOSE"	; CLOSE (disk)
-	.DB	$CC,"OAD"	; LOAD (disk)
-	.DB	$CD,"ERGE"	; MERGE (disk)
-	.DB	$CE,"AME"	; NAME (disk)
-	.DB	$CB,"ILL"	; KILL (disk)
-	.DB	$CC,"SET"	; LSET (disk)
-	.DB	$D2,"SET"	; RSET (disk)
-	.DB	$D3,"AVE"	; SAVE (disk) - $AD
-	.DB	$D3,"YSTEM"	; SYSTEM
-	.DB	$CC,"PRINT"	; LPRINT
-	.DB	$C4,"EF"	; DEF (disk) - $B0
-	.DB	$D0,"OKE"	; POKE
-	.DB	$D0,"RINT"	; PRINT - $B2
-	.DB	$C3,"ONT"	; CONT
-	.DB	$CC,"IST"	; LIST
-	.DB	$CC,"LIST"	; LLIST
-	.DB	$C4,"ELETE"	; DELETE
-	.DB	$C1,"UTO"	; AUTO
-	.DB	$C3,"LEAR"	; CLEAR
-	.DB	$C3,"LOAD"	; CLOAD
-	.DB	$C3,"SAVE"	; CSAVE
-	.DB	$CE,"EW"	; NEW   - $BB
+	DEFB	$C5,"ND"	; END   - $80
+	DEFB	$C6,"OR"	; FOR   - $81
+	DEFB	$D2,"ESET"	; RESET - $82
+	DEFB	$D3,"ET"	; SET   - $83
+	DEFB	$C3,"LS"	; CLS
+	DEFB	$C3,"MD"	; CMD (disk) - $85
+	DEFB	$D2,"ANDOM"	; RANDOM
+	DEFB	$CE,"EXT"	; NEXT  - $87
+	DEFB	$C4,"ATA"	; DATA  - $88
+	DEFB	$C9,"NPUT"	; INPUT
+	DEFB	$C4,"IM"	; DIM
+	DEFB	$D2,"EAD"	; READ
+	DEFB	$CC,"ET"	; LET
+	DEFB	$C7,"OTO"	; GOTO  - $8D
+	DEFB	$D2,"UN"	; RUN
+	DEFB	$C9,"F"		; IF    - $8F
+	DEFB	$D2,"ESTORE"	; RESTORE
+	DEFB	$C7,"OSUB"	; GOSUB - $91
+	DEFB	$D2,"ETURN"	; RETURN
+	DEFB	$D2,"EM"	; REM   - $93
+	DEFB	$D3,"TOP"	; STOP
+	DEFB	$C5,"LSE"	; ELSE  - $95
+	DEFB	$D4,"RON"	; TRON
+	DEFB	$D4,"ROFF"	; TROFF
+	DEFB	$C4,"EFSTR"	; DEFSTR
+	DEFB	$C4,"EFINT"	; DEFINT
+	DEFB	$C4,"EFSNG"	; DEFSNG
+	DEFB	$C4,"EFDBL"	; DEFDBL
+	DEFB	$CC,"INE"	; LINE (disk) - $9C
+	DEFB	$C5,"DIT"	; EDIT
+	DEFB	$C5,"RROR"	; ERROR  - $9E
+	DEFB	$D2,"ESUME"	; RESUME - $9F
+	DEFB	$CF,"UT"	; OUT
+	DEFB	$CF,"N"		; ON     - $A1
+	DEFB	$CF,"PEN"	; OPEN (disk) - $A2
+	DEFB	$C6,"IELD"	; FIELD (disk)
+	DEFB	$C7,"ET"	; GET (disk)
+	DEFB	$D0,"UT"	; PUT (disk)
+	DEFB	$C3,"LOSE"	; CLOSE (disk)
+	DEFB	$CC,"OAD"	; LOAD (disk)
+	DEFB	$CD,"ERGE"	; MERGE (disk)
+	DEFB	$CE,"AME"	; NAME (disk)
+	DEFB	$CB,"ILL"	; KILL (disk)
+	DEFB	$CC,"SET"	; LSET (disk)
+	DEFB	$D2,"SET"	; RSET (disk)
+	DEFB	$D3,"AVE"	; SAVE (disk) - $AD
+	DEFB	$D3,"YSTEM"	; SYSTEM
+	DEFB	$CC,"PRINT"	; LPRINT
+	DEFB	$C4,"EF"	; DEF (disk) - $B0
+	DEFB	$D0,"OKE"	; POKE
+	DEFB	$D0,"RINT"	; PRINT - $B2
+	DEFB	$C3,"ONT"	; CONT
+	DEFB	$CC,"IST"	; LIST
+	DEFB	$CC,"LIST"	; LLIST
+	DEFB	$C4,"ELETE"	; DELETE
+	DEFB	$C1,"UTO"	; AUTO
+	DEFB	$C3,"LEAR"	; CLEAR
+	DEFB	$C3,"LOAD"	; CLOAD
+	DEFB	$C3,"SAVE"	; CSAVE
+	DEFB	$CE,"EW"	; NEW   - $BB
 	;
 	; The following are Functions
 	;
-	.DB	$D4,"AB("	; TAB()     - $BC
-	.DB	$D4,"O"		; TO        - $BD
-	.DB	$C6,"N"		; FN (disk) - $BE
-	.DB	$D5,"SING"	; USING     - $BF
-	.DB	$D6,"ARPTR"	; VARPTR
-	.DB	$D5,"SR"	; USR
-	.DB	$C5,"RL"	; ERL
-	.DB	$C5,"RR"	; ERR
-	.DB	$D3,"TRING$"	; STRING$
-	.DB	$C9,"NSTR"	; INSTR
-	.DB	$D0,"OINT"	; POINT
-	.DB	$D4,"IME$"	; TIME$ (disk) - $C7
-	.DB	$CD,"EM"	; MEM
-	.DB	$C9,"NKEY$"	; INKEY$
-	.DB	$D4,"HEN"	; THEN
-	.DB	$CE,"OT"	; NOT  - $CB
-	.DB	$D3,"TEP"	; STEP - $CC
+	DEFB	$D4,"AB("	; TAB()     - $BC
+	DEFB	$D4,"O"		; TO        - $BD
+	DEFB	$C6,"N"		; FN (disk) - $BE
+	DEFB	$D5,"SING"	; USING     - $BF
+	DEFB	$D6,"ARPTR"	; VARPTR
+	DEFB	$D5,"SR"	; USR
+	DEFB	$C5,"RL"	; ERL
+	DEFB	$C5,"RR"	; ERR
+	DEFB	$D3,"TRING$"	; STRING$
+	DEFB	$C9,"NSTR"	; INSTR
+	DEFB	$D0,"OINT"	; POINT
+	DEFB	$D4,"IME$"	; TIME$ (disk) - $C7
+	DEFB	$CD,"EM"	; MEM
+	DEFB	$C9,"NKEY$"	; INKEY$
+	DEFB	$D4,"HEN"	; THEN
+	DEFB	$CE,"OT"	; NOT  - $CB
+	DEFB	$D3,"TEP"	; STEP - $CC
 ;
-	.DB	$AB		; + ($CD)
-	.DB	$AD		; - ($CE)
-	.DB	$AA		; *
-	.DB	$AF		; /
-	.DB	$DB		; [ - (up arrow)
+	DEFB	$AB		; + ($CD)
+	DEFB	$AD		; - ($CE)
+	DEFB	$AA		; *
+	DEFB	$AF		; /
+	DEFB	$DB		; [ - (up arrow)
 ;
-	.DB	$C1,"ND"	; AND - $D2
-	.DB	$CF,"R"		; OR  - $D3
+	DEFB	$C1,"ND"	; AND - $D2
+	DEFB	$CF,"R"		; OR  - $D3
 ;
-	.DB	$BE		; > ($D4)
-	.DB	$BD		; =
-	.DB	$BC		; < ($D6)
+	DEFB	$BE		; > ($D4)
+	DEFB	$BD		; =
+	DEFB	$BC		; < ($D6)
 ;
-	.DB	$D3,"GN"	; SGN - $D7
-	.DB	$C9,"NT"	; INT - $D8
-	.DB	$C1,"BS"	; ABS
-	.DB	$C6,"RE"	; FRE
-	.DB	$C9,"NP"	; INP
-	.DB	$D0,"OS"	; POS
-	.DB	$D3,"QR"	; SQR
-	.DB	$D2,"ND"	; RND
-	.DB	$CC,"OG"	; LOG
-	.DB	$C5,"XP"	; EXP
-	.DB	$C3,"OS"	; COS
-	.DB	$D3,"IN"	; SIN
-	.DB	$D4,"AN"	; TAN
-	.DB	$C1,"TN"	; ATN
-	.DB	$D0,"EEK"	; PEEK
-	.DB	$C3,"VI"	; CVI (disk) - $E6
-	.DB	$C3,"VS"	; CVS (disk)
-	.DB	$C3,"VD"	; CVD (disk)
-	.DB	$C5,"OF"	; EOF (disk)
-	.DB	$CC,"OC"	; LOC (disk)
-	.DB	$CC,"OF"	; LOF (disk)
-	.DB	$CD,"KI$"	; MKI$ (disk)
-	.DB	$CD,"KS$"	; MKS$ (disk)
-	.DB	$CD,"KD$"	; MKD$ (disk) - $ED
-	.DB	$C3,"INT"	; CINT
-	.DB	$C3,"SNG"	; CSNG
-	.DB	$C3,"DBL"	; CDBL
-	.DB	$C6,"IX"	; FIX
-	.DB	$CC,"EN"	; LEN
-	.DB	$D3,"TR$"	; STR$
-	.DB	$D6,"AL"	; VAL
-	.DB	$C1,"SC"	; ASC
-	.DB	$C3,"HR$"	; CHR$
-	.DB	$CC,"EFT$"	; LEFT$  - $F8
-	.DB	$D2,"IGHT$"	; RIGHT$ - $F9
-	.DB	$CD,"ID$"	; MID$   - $FA
+	DEFB	$D3,"GN"	; SGN - $D7
+	DEFB	$C9,"NT"	; INT - $D8
+	DEFB	$C1,"BS"	; ABS
+	DEFB	$C6,"RE"	; FRE
+	DEFB	$C9,"NP"	; INP
+	DEFB	$D0,"OS"	; POS
+	DEFB	$D3,"QR"	; SQR
+	DEFB	$D2,"ND"	; RND
+	DEFB	$CC,"OG"	; LOG
+	DEFB	$C5,"XP"	; EXP
+	DEFB	$C3,"OS"	; COS
+	DEFB	$D3,"IN"	; SIN
+	DEFB	$D4,"AN"	; TAN
+	DEFB	$C1,"TN"	; ATN
+	DEFB	$D0,"EEK"	; PEEK
+	DEFB	$C3,"VI"	; CVI (disk) - $E6
+	DEFB	$C3,"VS"	; CVS (disk)
+	DEFB	$C3,"VD"	; CVD (disk)
+	DEFB	$C5,"OF"	; EOF (disk)
+	DEFB	$CC,"OC"	; LOC (disk)
+	DEFB	$CC,"OF"	; LOF (disk)
+	DEFB	$CD,"KI$"	; MKI$ (disk)
+	DEFB	$CD,"KS$"	; MKS$ (disk)
+	DEFB	$CD,"KD$"	; MKD$ (disk) - $ED
+	DEFB	$C3,"INT"	; CINT
+	DEFB	$C3,"SNG"	; CSNG
+	DEFB	$C3,"DBL"	; CDBL
+	DEFB	$C6,"IX"	; FIX
+	DEFB	$CC,"EN"	; LEN
+	DEFB	$D3,"TR$"	; STR$
+	DEFB	$D6,"AL"	; VAL
+	DEFB	$C1,"SC"	; ASC
+	DEFB	$C3,"HR$"	; CHR$
+	DEFB	$CC,"EFT$"	; LEFT$  - $F8
+	DEFB	$D2,"IGHT$"	; RIGHT$ - $F9
+	DEFB	$CD,"ID$"	; MID$   - $FA
 ;
-	.DB	$A7		; ' (REM)- $FB
+	DEFB	$A7		; ' (REM)- $FB
 ;
-	.DB	80h		; TERMINATOR.
+	DEFB	80h		; TERMINATOR.
 ;
 ; ----------------------------------------------------------------------
 ; 1822-1898 - Statement Dispatch Table (command addresses)
 ;           - in token order staring at token $80 - ending at $BB
 ; ----------------------------------------------------------------------
 STMDSP:
-	.DW	END		; END - ID = $80
-	.DW	FOR		; FOR
-	.DW	RESET		; RESET
-	.DW	SET		; SET
-	.DW	CLS		; CLS
-	.DW	DVCMD		; CMD ( Command Vector )
-	.DW	RANDOM		; RANDOM
-	.DW	NEXT		; NEXT
-	.DW	DATA		; DATA
-	.DW	INPUT		; INPUT
-	.DW	DIM		; DIM
-	.DW	READ		; READ
-	.DW	LET		; LET
-	.DW	GOTO		; GOTO
-	.DW	RUN		; RUN
-	.DW	IF		; IF
-	.DW	RESTORE		; RESTORE
-	.DW	GOSUB		; GOSUB
-	.DW	RETURN		; RETURN
-	.DW	REM		; REM
-	.DW	STOP		; STOP
-	.DW	REM		; ELSE (ELSE is not a standalone command)
-	.DW	TRON		; TRON
-	.DW	TROFF		; TROFF
-	.DW	DEFSTR		; DEFSTR
-	.DW	DEFINT		; DEFINT
-	.DW	DEFREA		; DEFSNG
-	.DW	DEFDBL		; DEFDBL
-	.DW	DVLINE		; LINE ( Command Vector )
-	.DW	EDIT		; EDIT
-	.DW	ERRORS		; ERRORS
-	.DW	RESUME		; RESUME
-	.DW	FNOUT		; FNOUT
-	.DW	ONGOTO		; ON
-	.DW	DVOPEN		; OPEN ( Command Vector )
-	.DW	DVFIEL		; FIELD ( Command Vector )
-	.DW	DVGET		; GET ( Command Vector )
-	.DW	DVPUT		; PUT ( Command Vector )
-	.DW	DVCLOS		; CLOSE ( Command Vector )
-	.DW	DVLOAD		; LOAD ( Command Vector )
-	.DW	DVMERG		; MERGE ( Command Vector )
-	.DW	DVNAME		; NAME ( Command Vector )
-	.DW	DVKILL		; KILL ( Command Vector )
-	.DW	DVLSET		; LSET ( Command Vector )
-	.DW	DVREST		; RSET ( Command Vector )
-	.DW	DVSAVE		; SAVE ( Command Vector )
-	.DW	SYSTEM		; SYSTEM
-	.DW	LPRINT		; LPRINT
-	.DW	DVDEF		; DEF ( Command Vector )
-	.DW	POKE		; POKE
-	.DW	PRINT		; PRINT
-	.DW	CONT		; CONT
-	.DW	LIST		; LIST
-	.DW	LLIST		; LLIST
-	.DW	DELETE		; DELETE
-	.DW	AUTO		; AUTO
-	.DW	CLEAR		; CLEAR
-	.DW	SNERR		; CLOAD - no longer supported (1.4)
-	.DW	SNERR		; CSAVE - no longer supported (1.4)
-	.DW	SCRATH		; NEW - ID = $BB
+	DEFW	END		; END - ID = $80
+	DEFW	FOR		; FOR
+	DEFW	RESET		; RESET
+	DEFW	SET		; SET
+	DEFW	CLS		; CLS
+	DEFW	DVCMD		; CMD ( Command Vector )
+	DEFW	RANDOM		; RANDOM
+	DEFW	NEXT		; NEXT
+	DEFW	DATA		; DATA
+	DEFW	INPUT		; INPUT
+	DEFW	DIM		; DIM
+	DEFW	READ		; READ
+	DEFW	LET		; LET
+	DEFW	GOTO		; GOTO
+	DEFW	RUN		; RUN
+	DEFW	IF		; IF
+	DEFW	RESTORE		; RESTORE
+	DEFW	GOSUB		; GOSUB
+	DEFW	RETURN		; RETURN
+	DEFW	REM		; REM
+	DEFW	STOP		; STOP
+	DEFW	REM		; ELSE (ELSE is not a standalone command)
+	DEFW	TRON		; TRON
+	DEFW	TROFF		; TROFF
+	DEFW	DEFSTR		; DEFSTR
+	DEFW	DEFINT		; DEFINT
+	DEFW	DEFREA		; DEFSNG
+	DEFW	DEFDBL		; DEFDBL
+	DEFW	DVLINE		; LINE ( Command Vector )
+	DEFW	EDIT		; EDIT
+	DEFW	ERRORS		; ERRORS
+	DEFW	RESUME		; RESUME
+	DEFW	FNOUT		; FNOUT
+	DEFW	ONGOTO		; ON
+	DEFW	DVOPEN		; OPEN ( Command Vector )
+	DEFW	DVFIEL		; FIELD ( Command Vector )
+	DEFW	DVGET		; GET ( Command Vector )
+	DEFW	DVPUT		; PUT ( Command Vector )
+	DEFW	DVCLOS		; CLOSE ( Command Vector )
+	DEFW	DVLOAD		; LOAD ( Command Vector )
+	DEFW	DVMERG		; MERGE ( Command Vector )
+	DEFW	DVNAME		; NAME ( Command Vector )
+	DEFW	DVKILL		; KILL ( Command Vector )
+	DEFW	DVLSET		; LSET ( Command Vector )
+	DEFW	DVREST		; RSET ( Command Vector )
+	DEFW	DVSAVE		; SAVE ( Command Vector )
+	DEFW	SYSTEM		; SYSTEM
+	DEFW	LPRINT		; LPRINT
+	DEFW	DVDEF		; DEF ( Command Vector )
+	DEFW	POKE		; POKE
+	DEFW	PRINT		; PRINT
+	DEFW	CONT		; CONT
+	DEFW	LIST		; LIST
+	DEFW	LLIST		; LLIST
+	DEFW	DELETE		; DELETE
+	DEFW	AUTO		; AUTO
+	DEFW	CLEAR		; CLEAR
+	DEFW	SNERR		; CLOAD
+	DEFW	SNERR		; CSAVE
+	DEFW	SCRATH		; NEW - ID = $BB
 ;
 ; ----------------------------------------------------------------------
 ; 189A-18A0 - Operation Precedent Table
 ; ----------------------------------------------------------------------
 OPTAB:
-	.DB	$79		; -
-	.DB	$79		; +
-	.DB	$7C		; /
-	.DB	$7C		; *
-	.DB	$7F		; EXPONENT (up arrow)
-	.DB	$50		; AND
-	.DB	$46		; OR
+	DEFB	$79		; -
+	DEFB	$79		; +
+	DEFB	$7C		; /
+	DEFB	$7C		; *
+	DEFB	$7F		; EXPONENT (up arrow)
+	DEFB	$50		; AND
+	DEFB	$46		; OR
 ;
 ; ----------------------------------------------------------------------
 ; 18A1-18AA - Conversion functions
 ; ----------------------------------------------------------------------
 FRCTBL:
-	.DW	FRCDBL		; double conversion
-	.DW	0
-	.DW	FRCINT		; integer conversion
-	.DW	CHKSTR		; string conversion
-	.DW	FRCSNG		; single precision
+	DEFW	FRCDBL		; double conversion
+	DEFW	0
+	DEFW	FRCINT		; integer conversion
+	DEFW	CHKSTR		; string conversion
+	DEFW	FRCSNG		; single precision
 ;
 ; ----------------------------------------------------------------------
 ; 18AB-18B4 - Double precision math
 ; ----------------------------------------------------------------------
 DBLDSP:
-	.DW	DADD		; dp additiion
-	.DW	DSUB		; dp sutraction
-	.DW	DMULT		; dp multiplication
-	.DW	DDIV		; dp division
-	.DW	DCOMP		; dp compare
+	DEFW	DADD		; dp additiion
+	DEFW	DSUB		; dp sutraction
+	DEFW	DMULT		; dp multiplication
+	DEFW	DDIV		; dp division
+	DEFW	DCOMP		; dp compare
 ;
 ; ----------------------------------------------------------------------
 ; 18B5-18BE - Single precision math
 ; ----------------------------------------------------------------------
 SNGDSP:
-	.DW	FADD		; sp addition
-	.DW	FSUB		; sp sutraction
-	.DW	FMULT		; sp multiplication
-	.DW	FDIV		; sp division
-	.DW	FCOMP		; sp compare
+	DEFW	FADD		; sp addition
+	DEFW	FSUB		; sp sutraction
+	DEFW	FMULT		; sp multiplication
+	DEFW	FDIV		; sp division
+	DEFW	FCOMP		; sp compare
 ;
 ; ----------------------------------------------------------------------
 ; 18BF-18C8 - Integer math
 ; ----------------------------------------------------------------------
 INTDSP:
-	.DW	IADD		; int addition
-	.DW	ISUB		; int sutraction
-	.DW	IMULT		; int multiplication
-	.DW	INTDIV		; int division
-	.DW	ICOMP		; int compare
+	DEFW	IADD		; int addition
+	DEFW	ISUB		; int sutraction
+	DEFW	IMULT		; int multiplication
+	DEFW	INTDIV		; int division
+	DEFW	ICOMP		; int compare
 ;
 ; ----------------------------------------------------------------------
 ; 18C9-18F6 – STORAGE LOCATION FOR LEVEL II BASIC ERROR MESSAGES – "ERRTAB"
 ; table of error strings (2 char each)
 ; ----------------------------------------------------------------------
 ERRTAB:
-	.DB	"NF"		; NEXT without FOR 	(00H)
-	.DB	"SN"		; Syntax Error 		(02H)
-	.DB	"RG"		; RETURN without GOSUB 	(04H)
-	.DB	"OD"		; Out of DATA 		(06H)
-	.DB	"FC"		; Illegal Function Call (08H)
-	.DB	"OV"		; Overflow 		(0AH)
-	.DB	"OM"		; Out of Memory 	(0CH)
-	.DB	"UL"		; Underfined Line Number (0EH)
-	.DB	"BS"		; Subscript out of Range (10H)
-	.DB	"DD"		; Redimensioned Array 	(12H)
-	.DB	"/0"		; Division by Zero 	(14H)
-	.DB	"ID"		; Illegal Direct Operation (16H)
-	.DB	"TM"		; Type Mismatch 	(18H)
-	.DB	"OS"		; Out of String Message (1AH)
-	.DB	"LS"		; Out of Memory 	(1CH)
-	.DB	"ST"		; String Too Long 	(1EH)
-	.DB	"CN"		; Can’t Continue 	(20H)
-	.DB	"NR"		; No RESUME 		(22H)
-	.DB	"RW"		; RESUME Without Error 	(24H)
-	.DB	"UE"		; Unprintable Error 	(26H)
-	.DB	"MO"		; Missing Operand 	(28H)
-	.DB	"FD"		; Bad file Data 	(2AH)
-	.DB	"L3"		; Disk BASIC Command 	(2CH)
+	DEFB	"NF"		; NEXT without FOR 	(00H)
+	DEFB	"SN"		; Syntax Error 		(02H)
+	DEFB	"RG"		; RETURN without GOSUB 	(04H)
+	DEFB	"OD"		; Out of DATA 		(06H)
+	DEFB	"FC"		; Illegal Function Call (08H)
+	DEFB	"OV"		; Overflow 		(0AH)
+	DEFB	"OM"		; Out of Memory 	(0CH)
+	DEFB	"UL"		; Underfined Line Number (0EH)
+	DEFB	"BS"		; Subscript out of Range (10H)
+	DEFB	"DD"		; Redimensioned Array 	(12H)
+	DEFB	"/0"		; Division by Zero 	(14H)
+	DEFB	"ID"		; Illegal Direct Operation (16H)
+	DEFB	"TM"		; Type Mismatch 	(18H)
+	DEFB	"OS"		; Out of String Message (1AH)
+	DEFB	"LS"		; Out of Memory 	(1CH)
+	DEFB	"ST"		; String Too Long 	(1EH)
+	DEFB	"CN"		; Can’t Continue 	(20H)
+	DEFB	"NR"		; No RESUME 		(22H)
+	DEFB	"RW"		; RESUME Without Error 	(24H)
+	DEFB	"UE"		; Unprintable Error 	(26H)
+	DEFB	"MO"		; Missing Operand 	(28H)
+	DEFB	"FD"		; Bad file Data 	(2AH)
+#IFDEF	EACA80
+	DEFB	"SN"		; Disk BASIC Command 	(2CH) - On Dick Smith System-80
+#ELSE
+	DEFB	"L3"		; Disk BASIC Command 	(2CH)
+#ENDIF
 ;
 ; ----------------------------------------------------------------------
 ; 18F7-1904 – STORAGE LOCATION FOR THE SINGLE PRECISION DIVISION ROUTINE
@@ -5374,45 +5375,45 @@ CONSTR:	sub	$00		;4080 (FDIVC) - Note Argument is set into working RAM
 	ld	a,$00		;408B (FDIVG) - Note Argument is set into working RAM
 	ret			;408D
 ;
-	.DW	FCERR		;408E (USRTAB) - Vector for to USR(0) routine
-	.DB	$40, $E6, $4D	;4090 (MULTR) - Random number seed
+	DEFW	FCERR		;408E (USRTAB) - Vector for to USR(0) routine
+	DEFB	$40, $E6, $4D	;4090 (MULTR) - Random number seed
 ;
 	in	a,($00)		;4093 (STAINP) - Input Port Routine. Arg Set in RAM
 	ret			;4095
 	out	($00),a		;4096 (OUTWRD) - Output port routine. Arg Set in RAM
 	ret			;4098
 ;
-	.DB	0		;4099 (CHARC) - Inkey $ Storage
-	.DB	0		;409A (ERRFLG) - current error flag
-	.DB	0		;409B (LPTPOS) - current tab position
-	.DB	DEV0VID		;409C (PRTFLG) - device output flag
-	.DB	64		;409D (LINLEN) - max chars on video disp line
-	.DB	48		;409E (CLMLST) - Size of print line
-	.DB	0		;409F - RESERVED
-	.DW	MEMEND+$14C	;40A0 (STKTOP) - String Storage Area (434C)
-	.DW	$FFFE		;40A2 (CURLIN) - Current BASIC Line Number
-	.DW	MEMEND+$E9	;40A4 (TXTTAB) - BASIC Program Statement Table Pointer
+	DEFB	0		;4099 (CHARC) - Inkey $ Storage
+	DEFB	0		;409A (ERRFLG) - current error flag
+	DEFB	0		;409B (LPTPOS) - current tab position
+	DEFB	DEV0VID		;409C (PRTFLG) - device output flag
+	DEFB	64		;409D (LINLEN) - max chars on video disp line
+	DEFB	48		;409E (CLMLST) - Size of print line
+	DEFB	0		;409F - RESERVED
+	DEFW	MEMEND+$14C	;40A0 (STKTOP) - String Storage Area (434C)
+	DEFW	$FFFE		;40A2 (CURLIN) - Current BASIC Line Number
+	DEFW	MEMEND+$E9	;40A4 (TXTTAB) - BASIC Program Statement Table Pointer
 ;
 CONSTR2:
 ;
 ; ----------------------------------------------------------------------
 ; 191D-1923 – MESSAGE STORAGE LOCATION – "ERR"
 ; ----------------------------------------------------------------------
-m_ERR:	.DB	" Error"
-	.DB	0
+m_ERR:	DEFB	" Error"
+	DEFB	0
 ;
 ; Message IN
-m_INTX:	.DB	" in "
-	.DB	0
+m_INTX:	DEFB	" in "
+	DEFB	0
 ;
 ; 1929-192F – MESSAGE STORAGE LOCATION – "REDDY"
-m_REDDY: .DB	"READY"
-	.DB	ENTER
-	.DB	0
+m_REDDY: DEFB	"READY"
+	DEFB	ENTER
+	DEFB	0
 ;
 ; 1930-1935 – MESSAGE STORAGE LOCATION – "BRKTXT"
-BNKTXT:	.DB	"Break"
-	.DB	0
+BNKTXT:	DEFB	"Break"
+	DEFB	0
 ;
 ; ----------------------------------------------------------------------
 ; 1936-1954 – SCAN STACK ROUTINE – “FNDFOR”
@@ -5476,7 +5477,7 @@ GETSTK:	push	hl		;1963
 	add	hl,bc		;1969
 	add	hl,bc		;196a
 ;
-	.DB	LDANN		;196b - Z80 Trick - LD A,nn - skip next 1 byte instruction
+	DEFB	LDANN		;196b - Z80 Trick - LD A,nn - skip next 1 byte instruction
 ;
 REASON:	push	hl		;196c
 	ld	a,$C6		;196d
@@ -5519,19 +5520,19 @@ SNERR:	ld	e,ERRSN		;1997 - ?SN ERROR
 ; ----------------------------------------------------------------------
 ; 1999A – ?D0 ERROR ENTRY POINT – “DV0ERR”
 ; ----------------------------------------------------------------------
-	.DB	LDBCNN		;1999 Z80 Trick LD BC,nnnn - skips the next 2 byte instruction
+	DEFB	LDBCNN		;1999 Z80 Trick LD BC,nnnn - skips the next 2 byte instruction
 DV0ERR:	ld	e,ERRD0		;199A - ?/0 ERROR
 ;
 ; ----------------------------------------------------------------------
 ; 199DH – ?NF ERROR ENTRY POINT – “NFERR”
 ; ----------------------------------------------------------------------
-	.DB	LDBCNN		;199c  Z80 Trick LD BC,nnnn - skips the next 2 byte instruction
+	DEFB	LDBCNN		;199c  Z80 Trick LD BC,nnnn - skips the next 2 byte instruction
 NFERR:	ld	e,ERRNF		;199d - ?NF ERROR
 ;
 ; ----------------------------------------------------------------------
 ; 19A0H – ?OV ERROR ENTRY POINT – “REERR”
 ; ----------------------------------------------------------------------
-	.DB	LDBCNN		;199f  Z80 Trick LD BC,nnnn - skips the next 2 byte instruction
+	DEFB	LDBCNN		;199f  Z80 Trick LD BC,nnnn - skips the next 2 byte instruction
 REERR:	ld	e,ERRRW		;19A0 - ?RW ERROR
 ;
 ; ----------------------------------------------------------------------
@@ -5610,7 +5611,7 @@ ERRFIN:	call	STROUT		;1a06
 	inc	a		;1a13
 	call	nz,INPRT	;1a14
 ;
-	.DB	LDANN		; Z80 Trick - LD A,nn - skip next 1 byte instruction
+	DEFB	LDANN		; Z80 Trick - LD A,nn - skip next 1 byte instruction
 ;
 STPRDY:	pop	bc		;1a18
 ;
@@ -6334,7 +6335,7 @@ CONSTP:	ld	(SAVTXT),hl	;1db4
 	ld	hl,TEMPST	;1db7
 	ld	(TEMPPT),hl	;1dba
 ;
-	.DB	LDHLNN		;1dbd Z-80 Trick - LD HL,nnnn - next 2 instructions skipped
+	DEFB	LDHLNN		;1dbd Z-80 Trick - LD HL,nnnn - next 2 instructions skipped
 ;
 STPEND:	or	$FF		;1dbe A is NZ so as to force the printing of the BREAK message
 	pop	bc		;1dc0
@@ -6373,7 +6374,7 @@ CONT:	ld	hl,(OLDTXT)	;1de4
 ; ----------------------------------------------------------------------
 ; 1DF7-1DF8 - TRON ENTRY POINT - "TRON"
 ; ----------------------------------------------------------------------
-TRON:	.DB	LDANN		;1df7 - Z80 Trick LD A,nn where nn is the next XOR instruction byte
+TRON:	DEFB	LDANN		;1df7 - Z80 Trick LD A,nn where nn is the next XOR instruction byte
 ; which is nn zero, thus we store a non-ZERO, ON state
 ;
 ; ----------------------------------------------------------------------
@@ -6394,19 +6395,19 @@ POPAHT:	pop	af		;1dfd
 ; 1E00-1E02 - DEFSTR ENTRY POINT - "DEFSTR"
 ; ----------------------------------------------------------------------
 DEFSTR:	ld	e,VTSTR		;1e00
-	.DB	LDBCNN		;1e02 - Z80 Trick (LD BC,nnnn) skip next 2 byte instruction
+	DEFB	LDBCNN		;1e02 - Z80 Trick (LD BC,nnnn) skip next 2 byte instruction
 ;
 ; ----------------------------------------------------------------------
 ; 1E03-1E05 - DEFINT ENTRY POINT - "DEFINT"
 ; ----------------------------------------------------------------------
 DEFINT:	ld	e,VTINT		;1e03
-	.DB	LDBCNN		;1e05 - Z80 Trick (LD BC,nnnn) skip next 2 byte instruction
+	DEFB	LDBCNN		;1e05 - Z80 Trick (LD BC,nnnn) skip next 2 byte instruction
 ;
 ; ----------------------------------------------------------------------
 ; 1E06-1E08 - DEFSNG ENTRY POINT - "DEFREA" (DEFSNG)
 ; ----------------------------------------------------------------------
 DEFREA:	ld	e,VTSNG		;1e06
-	.DB	LDBCNN		;1e08 - Z80 Trick (LD BC,nnnn) skip next 2 byte instruction
+	DEFB	LDBCNN		;1e08 - Z80 Trick (LD BC,nnnn) skip next 2 byte instruction
 ;
 ; ----------------------------------------------------------------------
 ; 1E09-1E0A - DEFDBL ENTRY POINT - "DEFDBL"
@@ -6637,14 +6638,14 @@ RETURN:	ret	nz		;1ede
 GOBACK:	ld	hl,NEWSTT	;1eff
 	ex	(sp),hl		;1f02
 ;
-	.DB	LDANN		;1f03 - Z80 Trick LD A,nn - skp next instruction - load it into A
+	DEFB	LDANN		;1f03 - Z80 Trick LD A,nn - skp next instruction - load it into A
 ;
 DATAH:	pop	hl		;1f04
 ;
 ; ----------------------------------------------------------------------
 ; 1F05-1F20 - SCAN ROUTINE - "DATA"
 ; ----------------------------------------------------------------------
-DATA:	.DB	LDBCNN, $3A	;1f05 - Z80 Trick - LD BC,$nn3A - skip the next 1 byte - Then a NOP
+DATA:	DEFB	LDBCNN, $3A	;1f05 - Z80 Trick - LD BC,$nn3A - skip the next 1 byte - Then a NOP
 REM:	ld	c,$00		;1f07 - z80 Trick - noting second byte here is 0 which is a NOP
 	ld	b,$00		;1f09
 EXCHQT:	ld	a,c		;1f0b
@@ -6701,7 +6702,7 @@ INPCOM:	add	a,$03		;1f33
 	CPDEHL			;1f56
 	jr	nc,DNTCPY	;1f57
 ;
-	.DB	LDANN		;1f58 Z80 Trick - LD A,nn - skip next instruction
+	DEFB	LDANN		;1f58 Z80 Trick - LD A,nn - skip next instruction
 ;
 INBUFC:	pop	de		;1f5a
 	call	FRETMS		;1f5b
@@ -7059,13 +7060,13 @@ FINPRT:
 	call	FINDRT		;2174 - DOS Exit Point
 	ret			;2177
 ;
-	.FILL	$2178 - $	; UNUSED
+	DEFS	$2178 - $	; UNUSED
 ; ----------------------------------------------------------------------
 ; 2178-217E – MESSAGE STORAGE LOCATION FOR REDO MESSAGE – “TRYAGN”
 ; ----------------------------------------------------------------------
-TRYAGN:	.DB	"?REDO"
-	.DB	ENTER
-	.DB	0
+TRYAGN:	DEFB	"?REDO"
+	DEFB	ENTER
+	DEFB	0
 ; ----------------------------------------------------------------------
 ; 217F-2285 – INPUT AND READ ROUTINES– “TRMNOK”
 ;   This is a multi-purpose processing routine. We can wind up here because
@@ -7117,7 +7118,7 @@ INPUT:	call	ERRDIR		;219a - Check to see if there is an illegal direct
 ;	dec	hl		;21c6
 ;	jr	INPCN3		;21c7
 ; ----------------------------------------------------------------------
-	.FILL	$21C9 - $	; UNUSED (above cassette code)
+	DEFS	$21C9 - $	; UNUSED (above cassette code)
 ; ----------------------------------------------------------------------
 ;
 INTCAS:	ld	bc,NOTQTI	;21c9
@@ -7162,7 +7163,7 @@ INPCN3:	ld	(hl),','	;21eb
 READ:	push	hl		;21ef
 	ld	hl,(DATPTR)	;21f0
 ;
-	.DB	ORNN		;21f3 - Z80 Trick - OR nn - skip next 1 byte
+	DEFB	ORNN		;21f3 - Z80 Trick - OR nn - skip next 1 byte
 ;
 INPCON:	xor	a		;21f4
 	ld	(FLGINP),a	;21f5
@@ -7254,8 +7255,8 @@ TRMOK:	ex	(sp),hl		;2263
 ; ----------------------------------------------------------------------
 ; 2286-2295 – MESSAGE STORAGE LOCATION – “EXIGNT”
 ; ----------------------------------------------------------------------
-EXIGNT:	.DB	"?Extra ignored"
-	.DB	ENTER, $00
+EXIGNT:	DEFB	"?Extra ignored"
+	DEFB	ENTER, $00
 ; ----------------------------------------------------------------------
 ; 2296-22B5 – FIND THE NEXT DATA STATEMENT ROUTINE – “DATLOP”
 ;   The original ROM source notes that the search is mad by uising
@@ -7480,7 +7481,7 @@ PUSDVR:	ld	c,(hl)		;23ba
 	ld	b,(hl)		;23c1
 	push	bc		;23c2
 ;
-	.DB	LDBNN		;23c3 - Z80 Trick - LD B,nn - Skip next 1 byte instrution
+	DEFB	LDBNN		;23c3 - Z80 Trick - LD B,nn - Skip next 1 byte instrution
 ;
 VPSHD1:	pop	af		;23c4
 VPUSHD:	add	a,$03		;23c5
@@ -7966,7 +7967,7 @@ DIMCON:	dec	hl		;2603
 DIM:	ld	bc,DIMCON	;2608
 	push	bc		;260b
 ;
-	.DB	ORNN		;260c - Z80 Trick - OR nn - causes NZ flag - skip next instruction
+	DEFB	ORNN		;260c - Z80 Trick - OR nn - causes NZ flag - skip next instruction
 ;
 ; ----------------------------------------------------------------------
 ; 260D – LOCATE OR CREATE A BASIC VARIABLE
@@ -8050,7 +8051,7 @@ LOPFND:	ex	de,hl		;266d
 	cp	b		;2681
 	jp	z,FINPTR	;2682
 ;
-	.DB	LDANN		;2685 - Z80 Trick - LD a,nn - and skip next byte
+	DEFB	LDANN		;2685 - Z80 Trick - LD a,nn - and skip next byte
 ;
 NOTIT1:	inc	de		;2686
 	inc	de		;2687
@@ -8158,7 +8159,7 @@ INDLOP:	push	de		;26ef
 	push	de		;270a
 	ld	hl,(ARYTAB)	;270b
 ;
-	.DB	LDANN		;270d - Z80 Trick - LD A,nn - skipping next byte
+	DEFB	LDANN		;270d - Z80 Trick - LD A,nn - skipping next byte
 ;
 LOPFDA:	add	hl,de		;270f
 	ex	de,hl		;2710
@@ -8177,7 +8178,7 @@ LOPFDA:	add	hl,de		;270f
 	ld	a,(hl)		;2724
 	cp	b		;2725
 ;
-	.DB	LDANN		;2726 - Z80 Trick - LD A,nn - skipping next byte
+	DEFB	LDANN		;2726 - Z80 Trick - LD A,nn - skipping next byte
 ;
 NMARY2:	inc	hl		;2727
 NMARY1:	inc	hl		;2728
@@ -8271,7 +8272,7 @@ GETDEF:	ld	b,a		;2795
 	ld	a,(hl)		;2797
 	inc	hl		;2798
 ;
-	.DB	LDDNN		;2799 - Z80 Trick - LD D,nn - skipping next byte
+	DEFB	LDDNN		;2799 - Z80 Trick - LD D,nn - skipping next byte
 ;
 INLPNM:	pop	hl		;279a
 	ld	e,(hl)		;279b
@@ -8475,7 +8476,7 @@ STRFIN:	cp	DQUOTE		;2878
 	call	STRAD2		;2881
 PUTNEW:	ld	de,DSCTMP	;2884
 ;
-       	.DB	LDANN		;2887 - Z80 Trick LD A,nn - skip next instruction - load it into A
+       	DEFB	LDANN		;2887 - Z80 Trick LD A,nn - skip next instruction - load it into A
 ;
 ; ----------------------------------------------------------------------
 ; PUTTMP - A JUMP point in DOS Basic to process a new string in the
@@ -8534,7 +8535,7 @@ STRPR2:	dec	d		;28b1
 ; ----------------------------------------------------------------------
 GETSPA:	or	a		;28bf
 ;
-	.DB	LDCNN		;28c0 - Z80 Trick - LD C,nn - skipping next byte
+	DEFB	LDCNN		;28c0 - Z80 Trick - LD C,nn - skipping next byte
 ;
 TRYGI2:	pop	af		;28c1
 	push	af		;28c2
@@ -8874,7 +8875,7 @@ FNLEFT:	call	PREAM		;2a61
 LEFT3:	ex	(sp),hl		;2a65
 	ld	c,a		;2a66
 ;
-	.DB	LDANN		;2a67 - Z80 Trick - LD A,nn - skip next byte
+	DEFB	LDANN		;2a67 - Z80 Trick - LD A,nn - skip next byte
 ;
 LEFTUS:	push	hl		;2a68
 LEFT2:	push	hl		;2a69
@@ -8883,7 +8884,7 @@ LEFT2:	push	hl		;2a69
 	jr	c,ALLSTR	;2a6c
 	ld	a,b		;2a6e
 ;
-	.DB	LDDENN		;2a6f - Z80 Trick - LD DE,nnnn - skip next 2 bytes
+	DEFB	LDDENN		;2a6f - Z80 Trick - LD DE,nnnn - skip next 2 bytes
 ;
 ALLSTR:	ld	c,$00		;2a70
 	push	bc		;2a72
@@ -9232,7 +9233,7 @@ MLOOP:	ld	a,(de)		;2be8
 	ret			;2bf4
 ;
 ; ======================================================================
-	.ECHO 	" ROM REGION - (2BF5 - 2CA4) - Cload Csave \n"
+	; .ECHO 	" ROM REGION - (2BF5 - 2CA4) - Cload Csave \n"
 ; ======================================================================
 ;
 ; ----------------------------------------------------------------------
@@ -9252,9 +9253,9 @@ HDBOOT:	call	CLS		;0069 - Clear Screen
         inir			;010e - bulk transfer
         jp	ROM_LOAD	;0110 - jump to loader in RAM
 ; ----------------------------------------------------------------------
-	.ECHO	"  * FREHDBT uses "
-	.ECHO	($ - HDBOOT)
-	.ECHO	" bytes \n"
+	; .ECHO	"  * FREHDBT uses "
+	; .ECHO	($ - HDBOOT)
+	; .ECHO	" bytes \n"
 #ENDIF
 ;
 ; ----------------------------------------------------------------------
@@ -9262,7 +9263,7 @@ HDBOOT:	call	CLS		;0069 - Clear Screen
 ; ----------------------------------------------------------------------
 #IFDEF KEYBOUNCE
 ;
-KEYBOU	push	bc		;011C Save Row Address in BC into the STACK
+KEYBOU:	push	bc		;011C Save Row Address in BC into the STACK
 	ld 	bc,$0500	;011D the debounce delay
 	call	DELAY		;0120 delay on delay count in BC (18.8 ms)
 	pop	bc		;0123 Restore the Row Address back to BC
@@ -9274,9 +9275,9 @@ KEYBOU	push	bc		;011C Save Row Address in BC into the STACK
 	rlca			;0129 This code previously existed at the calling site
 	jp	KYDRES		;012A Resume the keyboard driver routine
 ; ----------------------------------------------------------------------
-	.ECHO	"  * KEYBOUNCE uses "
-	.ECHO	($ - KEYBOU)
-	.ECHO	" bytes \n"
+	; .ECHO	"  * KEYBOUNCE uses "
+	; .ECHO	($ - KEYBOU)
+	; .ECHO	" bytes \n"
 #ENDIF
 ;
 ; ----------------------------------------------------------------------
@@ -9317,28 +9318,28 @@ NB_PRTLP:			; Print using OUT2D one character at a time
     	jr  	NB_PRTLP	; loop to next char
 ;
 DSKMSG:
-	.DB	CHOME, ELINE	; Cursor Home, Clear to EOL
-	.DB	"Diskette?",0	; diskette message
+	DEFB	CHOME, ELINE	; Cursor Home, Clear to EOL
+	DEFB	"Diskette?",0	; diskette message
 ;
 ; ----------------------------------------------------------------------
-	.ECHO	"  * NEWBOOT uses "
-	.ECHO	($ - NEWBOOTENTRY)
-	.ECHO	" bytes \n"
+	; .ECHO	"  * NEWBOOT uses "
+	; .ECHO	($ - NEWBOOTENTRY)
+	; .ECHO	" bytes \n"
 #ENDIF
 ;
 ; ======================================================================
-R3FREE:	.EQU 	($2CA5 - $)
-	.ECHO 	"  "
-	.ECHO	R3FREE
-	.ECHO   " of 176 bytes free \n"
-	.FILL	R3FREE
+	DEFC	R3FREE	= $2CA5 - $
+	; .ECHO 	"  "
+	; .ECHO	R3FREE
+	; .ECHO   " of 176 bytes free \n"
+	DEFS	$2CA5 - $
 ; ======================================================================
 ;
 ; ----------------------------------------------------------------------
 ; 2CA5-2CA9 – MESSAGE STORAGE LOCATION – “NOOKCS”
 ; ----------------------------------------------------------------------
-NOOKCS:	.DB	"BAD"		;2ca5
-	.DB	ENTER , $00	;2ca8
+NOOKCS:	DEFB	"BAD"		;2ca5
+	DEFB	ENTER , $00	;2ca8
 ;
 ; ----------------------------------------------------------------------
 ; 2CAA-2CB0 – LEVEL II BASIC PEEK ROUTINE – “PEEK”
@@ -9455,7 +9456,7 @@ NOTSPC:	ld	a,$20		;2d3e
 	dec	b		;2d42
 	inc	e		;2d43
 ;
-	.DB	CPNN		;2d44 - Z80 Trick - CP nn - skipping next instruction
+	DEFB	CPNN		;2d44 - Z80 Trick - CP nn - skipping next instruction
 ;
 DOLRNM:	xor	a		;2d45
 	add	a,$10		;2d46
@@ -9523,7 +9524,7 @@ FINNUM:	push	de		;2d7a
 	inc	d		;2d94
 	inc	hl		;2d95
 ;
-	.DB	JPZNN		;2d96 Z80 Trick - JP Z,nnnn - skipping next 2 instructions
+	DEFB	JPZNN		;2d96 Z80 Trick - JP Z,nnnn - skipping next 2 instructions
 ;
 NOTSCI:	ex	de,hl		;2d97
 	pop	de		;2d98
@@ -9617,7 +9618,7 @@ FLDFIN:	call	c,CRDO		;2e09
 ; ----------------------------------------------------------------------
 SMSTRF:	ld	c,$01		;2e14
 ;
-	.DB	LDANN		;2e16 Z80 Trick - LD A,nn - skipping next instruction
+	DEFB	LDANN		;2e16 Z80 Trick - LD A,nn - skipping next instruction
 ;
 ISSTRF:	pop	af		;2e17
 	dec	b		;2e18
@@ -9980,7 +9981,7 @@ QED:	pop	bc		;2ff6
 ;
 ; ----------------------------------------------------------------------
 ; 2FFB - 2FFF - UNUSED bytes - serves no purpose used for checksum
-	.DB	$DE, $C3, $C3, $44, $B2
+	DEFB	$DE, $C3, $C3, $44, $B2
 ;
 ; ======================================================================
 ; THE END OF THE LEVEL II BASIC ROMS
@@ -9996,226 +9997,226 @@ QED:	pop	bc		;2ff6
 #IFDEF EACA80
 ;
 ; On Disk Smith System 80 (EACA) there are additional Hardware IO ports
-prtport: .EQU	$FD		; Printer Port (replaces 37E8)
-;casport: .EQU	$FE		; Cassette Select Port (replaces 37E4)
+DEFC	prtport = $FD		; Printer Port (replaces 37E8)
+;DEFC	casport = $FE		; Cassette Select Port (replaces 37E4)
 ;
 #ENDIF
 ;
-vidcmt:	 .EQU	$FF		; VIDEO I/O Mode select and Cassette Port
+DEFC	vidcmt	 = $FF		; VIDEO I/O Mode select and Cassette Port
 ;
 ; ----------------------------------------------------------------------
 ;  Memory Mapped Hardware
 ; ----------------------------------------------------------------------
 ;
-dskselect:	.EQU $37E1	; Disk Drive Select Latch Address
-casselect:	.EQU $37E4	; Cassette Select Latch Address
-prtstat:	.EQU $37E8	; Printer Status (Read) & Data (Write)
-diskstat:	.EQU $37EC	; Disk controller status
-disktrk:	.EQU $37ED	; Disk track select
-disksect:	.EQU $37EE	; Disk sector select
-diskdata:	.EQU $37EF	; Disk data byte
+DEFC	dskselect	= $37E1	; Disk Drive Select Latch Address
+DEFC	casselect	= $37E4	; Cassette Select Latch Address
+DEFC	prtstat		= $37E8	; Printer Status (Read) & Data (Write)
+DEFC	diskstat	= $37EC	; Disk controller status
+DEFC	disktrk		= $37ED	; Disk track select
+DEFC	disksect	= $37EE	; Disk sector select
+DEFC	diskdata	= $37EF	; Disk data byte
 ;
-kbdmatrix:	.EQU $3800	; Keyboard matrix start (100H bytes)
-vidmem:		.EQU $3C00	; Video RAM start (400H bytes)
-vidlin:		.EQU 64 	; Video RAM line Size (64 characters)
+DEFC	kbdmatrix	= $3800	; Keyboard matrix start (100H bytes)
+DEFC	vidmem		= $3C00	; Video RAM start (400H bytes)
+DEFC	vidlin		= 64 	; Video RAM line Size (64 characters)
 ;
 ; ----------------------------------------------------------------------
 ;  Memory Map
 ; ----------------------------------------------------------------------
 ;
-mRST1:	.EQU	RAM+$00		; RST 08h (Syntax Check) Vector
-mRST2:	.EQU	RAM+$03		; RST 10h (Get Next Character) Vector.
-mRST3:	.EQU	RAM+$06		; RST 18h (Cp HL, DE) Vector.
-mRST4:	.EQU	RAM+$09		; RST 20h (Get Current Type) Vector.
-mRST5:	.EQU	RAM+$0C		; RST 28h (Break Key Vector) Vector.
-mRST6:	.EQU	RAM+$0F		; RST 30h (DOS DEBUG entry point) Vector.
-mRST7:	.EQU	RAM+$12		; RST 38h (Interrupt Service) Vector.
+DEFC	mRST1	= RAM+$00	; RST 08h (Syntax Check) Vector
+DEFC	mRST2	= RAM+$03	; RST 10h (Get Next Character) Vector.
+DEFC	mRST3	= RAM+$06	; RST 18h (Cp HL, DE) Vector.
+DEFC	mRST4	= RAM+$09	; RST 20h (Get Current Type) Vector.
+DEFC	mRST5	= RAM+$0C	; RST 28h (Break Key Vector) Vector.
+DEFC	mRST6	= RAM+$0F	; RST 30h (DOS DEBUG entry point) Vector.
+DEFC	mRST7	= RAM+$12	; RST 38h (Interrupt Service) Vector.
 ;
-mKDCB:	.EQU	RAM+$15		; Keyboard Device Block
+DEFC	mKDCB	= RAM+$15	; Keyboard Device Block
 ;
-mDDCB:	.EQU	RAM+$1D		; Video Device Block
-CURSOR:	.EQU	RAM+$20		; Video Device Block - CURSOR
+DEFC	mDDCB	= RAM+$1D	; Video Device Block
+DEFC	CURSOR	= RAM+$20	; Video Device Block - CURSOR
 ;
-mPDCB:	.EQU	RAM+$25		; Printer Device Block
+DEFC	mPDCB	= RAM+$25	; Printer Device Block
 ;
-CIOSS:	.EQU	RAM+$33		; call device driver ala dos - CIO$
-KYBTSS:	.EQU	RAM+$36		; Keyboard driver work area (to 403C) - KYB$
+DEFC	CIOSS	= RAM+$33	; call device driver ala dos - CIO$
+DEFC	KYBTSS	= RAM+$36	; Keyboard driver work area (to 403C) - KYB$
 				; Stores contents of keyboard rows to see if key just
 				; pressed or if it was pressed previously.
-CAST:	.EQU	RAM+$3D		; Video Display Control Attributes (shadow IO Port $FF)
+DEFC	CAST	= RAM+$3D	; Video Display Control Attributes (shadow IO Port $FF)
 ;
-CAST32	.EQU	$08		; Cassette 32 Character Mode Bit
+DEFC	CAST32= $08		; Cassette 32 Character Mode Bit
 ;
-TMPSTK:	.EQU	RAM+$7D		; Stack pointer for initial DISK, bootstrap.
+DEFC	TMPSTK	= RAM+$7D	; Stack pointer for initial DISK, bootstrap.
 ;
-FDIVC:	.EQU	RAM+$80		; Subtraction routine used by division code...
-FDIVB:	.EQU	RAM+$84		; These offests are used to set argumnets...
-FDIVA:	.EQU	RAM+$88		; into the routine before calling it...
-FDIVG:	.EQU	RAM+$8B		; hence why the code is copied into RAM.
+DEFC	FDIVC	= RAM+$80	; Subtraction routine used by division code...
+DEFC	FDIVB	= RAM+$84	; These offests are used to set argumnets...
+DEFC	FDIVA	= RAM+$88	; into the routine before calling it...
+DEFC	FDIVG	= RAM+$8B	; hence why the code is copied into RAM.
 ;
-USRTAB:	.EQU	RAM+$8E		; Contains address of user subroutine
+DEFC	USRTAB	= RAM+$8E	; Contains address of user subroutine
 ;
-MULTR:	.EQU	RAM+$90		; Random number seed
-STAINP:	.EQU	RAM+$93		; Input  port routine IN  A,(00)
-OUTWRD:	.EQU	RAM+$96		; Output port routine OUT A,(00)
-CHARC:	.EQU	RAM+$99		; Last key pressed on the keyboard
-ERRFLG:	.EQU	RAM+$9A		; Current Error Code. See ERR function
-LPTPOS:	.EQU	RAM+$9B		; No. Of chars. In current print line
-PRTFLG:	.EQU	RAM+$9C		; Current output device flag. -VE=CAS, 0=vid, 1=print
-LINLEN:	.EQU	RAM+$9D		; Number of chars on video display line.
-CLMLST:	.EQU	RAM+$9E		; Number of chars on printed line.
-PARQTD:	.EQU	RAM+$9F		; String Parser: "Quoted" (Bit 0), REM (Bit 2), or DATA (Bit 1).
+DEFC	MULTR	= RAM+$90	; Random number seed
+DEFC	STAINP	= RAM+$93	; Input  port routine IN  A,(00)
+DEFC	OUTWRD	= RAM+$96	; Output port routine OUT A,(00)
+DEFC	CHARC	= RAM+$99	; Last key pressed on the keyboard
+DEFC	ERRFLG	= RAM+$9A	; Current Error Code. See ERR function
+DEFC	LPTPOS	= RAM+$9B	; No. Of chars. In current print line
+DEFC	PRTFLG	= RAM+$9C	; Current output device flag. -VE=CAS, 0=vid, 1=print
+DEFC	LINLEN	= RAM+$9D	; Number of chars on video display line.
+DEFC	CLMLST	= RAM+$9E	; Number of chars on printed line.
+DEFC	PARQTD	= RAM+$9F	; String Parser: "Quoted" (Bit 0), REM (Bit 2), or DATA (Bit 1).
 ;
-STKTOP:	.EQU	RAM+$A0		; Start of String Storage Area (Stack). initial MEMSIZE-32
-CURLIN:	.EQU	RAM+$A2		; Current Line Number in a BASIC Program
-TXTTAB:	.EQU	RAM+$A4		; Start of Basic Program Storage. Pointer
-TTYPOS:	.EQU	RAM+$A6		; Cursor pos on VDU line. See POS function.
-BUFPNT:	.EQU	RAM+$A7		; Keyboard Input buffer. Pointer typically to
-CASFLG:	.EQU	RAM+$A9		; contains 00H if INPUT from cassette
-RNDX:	.EQU	RAM+$AA		; Random number seed
-DIMFLG:	.EQU	RAM+$AE		; locate or create variable routine flag
-VALTYP:	.EQU	RAM+$AF		; Work Register Value Type flag
+DEFC	STKTOP	= RAM+$A0	; Start of String Storage Area (Stack). initial MEMSIZE-32
+DEFC	CURLIN	= RAM+$A2	; Current Line Number in a BASIC Program
+DEFC	TXTTAB	= RAM+$A4	; Start of Basic Program Storage. Pointer
+DEFC	TTYPOS	= RAM+$A6	; Cursor pos on VDU line. See POS function.
+DEFC	BUFPNT	= RAM+$A7	; Keyboard Input buffer. Pointer typically to
+DEFC	CASFLG	= RAM+$A9	; contains 00H if INPUT from cassette
+DEFC	RNDX	= RAM+$AA	; Random number seed
+DEFC	DIMFLG	= RAM+$AE	; locate or create variable routine flag
+DEFC	VALTYP	= RAM+$AF	; Work Register Value Type flag
 ;
 ; bitmask $08 in (??) which indicates 32bit mode
-VTINT:	.EQU	$02		; Integer - Value Types stored in VALTYP
-VTSTR	.EQU	$03		; String - These numbers indicate the number
-VTSNG	.EQU	$04		; Single Precision - of bytes used to store value
-VTDBL	.EQU	$08		; Double Precision
+DEFC	VTINT	= $02		; Integer - Value Types stored in VALTYP
+DEFC	VTSTR	= $03		; String - These numbers indicate the number
+DEFC	VTSNG	= $04		; Single Precision - of bytes used to store value
+DEFC	VTDBL	= $08		; Double Precision
 ;
-DORES:	.EQU	RAM+$B0		; Intermediate value during expression eval
-MEMSIZ:	.EQU	RAM+$B1		; Top of memory pointer
-TEMPPT:	.EQU	RAM+$B3		; next location for three-byte string variable
-TEMPST:	.EQU	RAM+$B5		; String variable VARPTR storage area
+DEFC	DORES	= RAM+$B0	; Intermediate value during expression eval
+DEFC	MEMSIZ	= RAM+$B1	; Top of memory pointer
+DEFC	TEMPPT	= RAM+$B3	; next location for three-byte string variable
+DEFC	TEMPST	= RAM+$B5	; String variable VARPTR storage area
 ;
-DSCTMP:	.EQU	RAM+$D3		; VARPTR storage area for string being created
-DSCPTR:	.EQU	RAM+$D4		; 2byte address to buffer where ASCII decimal written.
-FRETOP:	.EQU	RAM+$D6		; Pointer to next free byte in string storage area
-TEMP3:	.EQU	RAM+$D8		; temporary storage location by multiple routines
-DATLIN:	.EQU	RAM+$DA		; Line number of last DATA item read
-SUBFLG:	.EQU	RAM+$DC		; If 64 a FOR-NEXT loop is being processed
-BFKLFL:	.EQU	RAM+$DD		; Flag indicates whether inputing text
-FLGINP:	.EQU	RAM+$DE		; Flags whether READ or INPUT, and PRINT USING
-TEMP:	.EQU	RAM+$DF		; temporary storage location
+DEFC	DSCTMP	= RAM+$D3	; VARPTR storage area for string being created
+DEFC	DSCPTR	= RAM+$D4	; 2byte address to buffer where ASCII decimal written.
+DEFC	FRETOP	= RAM+$D6	; Pointer to next free byte in string storage area
+DEFC	TEMP3	= RAM+$D8	; temporary storage location by multiple routines
+DEFC	DATLIN	= RAM+$DA	; Line number of last DATA item read
+DEFC	SUBFLG	= RAM+$DC	; If 64 a FOR-NEXT loop is being processed
+DEFC	BFKLFL	= RAM+$DD	; Flag indicates whether inputing text
+DEFC	FLGINP	= RAM+$DE	; Flags whether READ or INPUT, and PRINT USING
+DEFC	TEMP	= RAM+$DF	; temporary storage location
 ;
-AUTFLG:	.EQU	RAM+$E1		; AUTO on or off flag. 0=AUTO is off.
-AUTLIN:	.EQU	RAM+$E2		; Current line number for the AUTO command.
-AUTINC:	.EQU	RAM+$E4		; AUTO command increment value
-SAVTXT:	.EQU	RAM+$E6		; During input: addr of code string for current statement
-SAVSTK:	.EQU	RAM+$E8		; During execution: holds stack pointer value when statement execution begins
-ERRLIN:	.EQU	RAM+$EA		; Line no. In which error occurred
-DOT:	.EQU	RAM+$EC		; Stores the current line number.
-ERRTXT:	.EQU	RAM+$EE		; Pointer to last byte executed when error occured. Used by RESUME command.
+DEFC	AUTFLG	= RAM+$E1	; AUTO on or off flag. 0=AUTO is off.
+DEFC	AUTLIN	= RAM+$E2	; Current line number for the AUTO command.
+DEFC	AUTINC	= RAM+$E4	; AUTO command increment value
+DEFC	SAVTXT	= RAM+$E6	; During input: addr of code string for current statement
+DEFC	SAVSTK	= RAM+$E8	; During execution: holds stack pointer value when statement execution begins
+DEFC	ERRLIN	= RAM+$EA	; Line no. In which error occurred
+DEFC	DOT	= RAM+$EC	; Stores the current line number.
+DEFC	ERRTXT	= RAM+$EE	; Pointer to last byte executed when error occured. Used by RESUME command.
 ;
-ONELIN:	.EQU	RAM+$F0		; Line Number: ON ERROR location for ON ERROR GOTO
-ONEFLG:	.EQU	RAM+$F2		; Flag to indicate whether an error has occured
-TEMP2:	.EQU	RAM+$F3		; Addr of decimal point in pbuff
-OLDLIN:	.EQU	RAM+$F5		; Last line number executed prior to execution of STOP or END
-OLDTXT:	.EQU	RAM+$F7		; Pointer to end of last statement executed. Used by CONT command.
-VARTAB:	.EQU	RAM+$F9		; Starting address of the simple variables list table
-ARYTAB:	.EQU	RAM+$FB		; Starting address of the ARRAY VARIABLE TABLE
-STREND:	.EQU	RAM+$FD		; Pointer to the END of array variables, start of free memory
-DATPTR:	.EQU	RAM+$FF		; ‘DATA’ Pointer (2 Byte Address; LSB, MSB).
+DEFC	ONELIN	= RAM+$F0	; Line Number: ON ERROR location for ON ERROR GOTO
+DEFC	ONEFLG	= RAM+$F2	; Flag to indicate whether an error has occured
+DEFC	TEMP2	= RAM+$F3	; Addr of decimal point in pbuff
+DEFC	OLDLIN	= RAM+$F5	; Last line number executed prior to execution of STOP or END
+DEFC	OLDTXT	= RAM+$F7	; Pointer to end of last statement executed. Used by CONT command.
+DEFC	VARTAB	= RAM+$F9	; Starting address of the simple variables list table
+DEFC	ARYTAB	= RAM+$FB	; Starting address of the ARRAY VARIABLE TABLE
+DEFC	STREND	= RAM+$FD	; Pointer to the END of array variables, start of free memory
+DEFC	DATPTR	= RAM+$FF	; ‘DATA’ Pointer (2 Byte Address; LSB, MSB).
 ;
-DEFTBL:	.EQU	RAM+$101	; Variable declaration list. 1 entry for each letter A-Z (4101-411A)
+DEFC	DEFTBL	= RAM+$101	; Variable declaration list. 1 entry for each letter A-Z (4101-411A)
 ;
-TRCFLG:	.EQU	RAM+$11B	; Trace flag: 0=off (TROFF), non-zero=on (TRON)
+DEFC	TRCFLG	= RAM+$11B	; Trace flag: 0=off (TROFF), non-zero=on (TRON)
 ;
-DFACLO:	.EQU	RAM+$11D	; REG 1  - Double Precision (Reg 1 411D-4124)
-FACLO:	.EQU	RAM+$121	; REG 1  - Single Precision
-FAC:	.EQU	RAM+$124	; REG 1  - Exponent
-FACSGN:	.EQU	RAM+$125	; Result - Sign  of result for math ops (FAC+1)
-FACFLG:	.EQU	RAM+$126	; Result - Flags of result for math ops (FAC+2)
-ARGLO:	.EQU	RAM+$127	; REG 2  - Double Precision (Reg 2 4127-412E)
-ARG:	.EQU	RAM+$12E	; REG 2  - Exponent
+DEFC	DFACLO	= RAM+$11D	; REG 1  - Double Precision (Reg 1 411D-4124)
+DEFC	FACLO	= RAM+$121	; REG 1  - Single Precision
+DEFC	FAC	= RAM+$124	; REG 1  - Exponent
+DEFC	FACSGN	= RAM+$125	; Result - Sign  of result for math ops (FAC+1)
+DEFC	FACFLG	= RAM+$126	; Result - Flags of result for math ops (FAC+2)
+DEFC	ARGLO	= RAM+$127	; REG 2  - Double Precision (Reg 2 4127-412E)
+DEFC	ARG	= RAM+$12E	; REG 2  - Exponent
 ;
-FBUFFR:	.EQU	RAM+$130	; Print buffer used for print processing  (4130-4149)
-FMLTT0:	.EQU	RAM+$14A	; Workspace For Double Precision Division (414A-4151)
-FMLTT1:	.EQU	RAM+$14F	; continued.
-FMLTT2:	.EQU	RAM+$150	; continued.
+DEFC	FBUFFR	= RAM+$130	; Print buffer used for print processing  (4130-4149)
+DEFC	FMLTT0	= RAM+$14A	; Workspace For Double Precision Division (414A-4151)
+DEFC	FMLTT1	= RAM+$14F	; continued.
+DEFC	FMLTT2	= RAM+$150	; continued.
 ;
 ; Disk BASIC Function Exits - Basic Functions (4152-41A5)
 ; initially these are all populated with JP L3ERR statements by code at (008E)
-ERCALL:	.EQU	RAM+$152	; Base Address for Disk Basic Functions
-DVCVI:	.EQU	ERCALL+0	; CVI - $4152
-DVFN:	.EQU	ERCALL+3	; FN  - $4155
-DVCVS:	.EQU	ERCALL+6	; CVS - $4158
-DVDEF:	.EQU	ERCALL+9	; DEF - $415B
-DVCVD:	.EQU	ERCALL+12	; CVD - $415E
-DVEOF:	.EQU	ERCALL+15	; EOF - $4161
-DVLOC:	.EQU	ERCALL+18	; LOC - $4164
-DVLOF:	.EQU	ERCALL+21	; LOF - $4167
-DVMKI:	.EQU	ERCALL+24	; MKI - $416A
-DVMKS:	.EQU	ERCALL+27	; MKS - $417D
-DVMKD:	.EQU	ERCALL+30	; MKD - $4170
-DVCMD:	.EQU	ERCALL+33	; CMD . $4173
-DVTIME:	.EQU	ERCALL+36	; TIME$ $4176
-DVOPEN:	.EQU	ERCALL+39	; OPEN  $4179
-DVFIEL:	.EQU	ERCALL+42	; FIELD $417C
-DVGET:	.EQU	ERCALL+45	; GET - $417F
-DVPUT:	.EQU	ERCALL+48	; PUT - $4182
-DVCLOS:	.EQU	ERCALL+51	; CLOSE $4185
-DVLOAD:	.EQU	ERCALL+54	; LOAD  $4188
-DVMERG:	.EQU	ERCALL+57	; MERGE $418B
-DVNAME:	.EQU	ERCALL+60	; NAME  $418E
-DVKILL:	.EQU	ERCALL+63	; KILL  $4191
-DVAND:	.EQU	ERCALL+66	; &   - $4194
-DVLSET:	.EQU	ERCALL+69	; LSET  $4197
-DVREST:	.EQU	ERCALL+72	; RSET  $419A
-DVINST:	.EQU	ERCALL+75	; INSTR $419D
-DVSAVE:	.EQU	ERCALL+78	; SAVE  $41A0
-DVLINE:	.EQU	ERCALL+81	; LINE  $41A3
+DEFC	ERCALL	= RAM+$152	; Base Address for Disk Basic Functions
+DEFC	DVCVI	= ERCALL+0	; CVI - $4152
+DEFC	DVFN	= ERCALL+3	; FN  - $4155
+DEFC	DVCVS	= ERCALL+6	; CVS - $4158
+DEFC	DVDEF	= ERCALL+9	; DEF - $415B
+DEFC	DVCVD	= ERCALL+12	; CVD - $415E
+DEFC	DVEOF	= ERCALL+15	; EOF - $4161
+DEFC	DVLOC	= ERCALL+18	; LOC - $4164
+DEFC	DVLOF	= ERCALL+21	; LOF - $4167
+DEFC	DVMKI	= ERCALL+24	; MKI - $416A
+DEFC	DVMKS	= ERCALL+27	; MKS - $417D
+DEFC	DVMKD	= ERCALL+30	; MKD - $4170
+DEFC	DVCMD	= ERCALL+33	; CMD . $4173
+DEFC	DVTIME	= ERCALL+36	; TIME$ $4176
+DEFC	DVOPEN	= ERCALL+39	; OPEN  $4179
+DEFC	DVFIEL	= ERCALL+42	; FIELD $417C
+DEFC	DVGET	= ERCALL+45	; GET - $417F
+DEFC	DVPUT	= ERCALL+48	; PUT - $4182
+DEFC	DVCLOS	= ERCALL+51	; CLOSE $4185
+DEFC	DVLOAD	= ERCALL+54	; LOAD  $4188
+DEFC	DVMERG	= ERCALL+57	; MERGE $418B
+DEFC	DVNAME	= ERCALL+60	; NAME  $418E
+DEFC	DVKILL	= ERCALL+63	; KILL  $4191
+DEFC	DVAND	= ERCALL+66	; &   - $4194
+DEFC	DVLSET	= ERCALL+69	; LSET  $4197
+DEFC	DVREST	= ERCALL+72	; RSET  $419A
+DEFC	DVINST	= ERCALL+75	; INSTR $419D
+DEFC	DVSAVE	= ERCALL+78	; SAVE  $41A0
+DEFC	DVLINE	= ERCALL+81	; LINE  $41A3
 ;
 ; DOS Exits, Pass control between Level II BASIC and Disk BASIC (41A6-41E2)
 ; initially these are all populated with RET statements by code at (009F)
-DEXT:	.EQU	RAM+$1A6	; Base Address for DOS Exits
-EXDSKR:	.EQU	DEXT+0		; (19EC) Disk Basic ERROR handling (41A6)
-USROUT:	.EQU	DEXT+3		; (27FE) USR N - to expand function to provide up to ten USR calls (41A9)
-PRGFIN:	.EQU	DEXT+6		; (1A1C) BASIC start up. Just before BASIC's 'READY' message (41AC)
-INLINE:	.EQU	DEXT+9		; (0368) At start of keyboard input (41AF)
-DIRDO:	.EQU	DEXT+12		; (1AA1) Input scanner after tokenizing current statement (41B2)
-EXFIND:	.EQU	DEXT+15		; (1AEC) Input scanner after updating program statement table (41B5)
-EXFIN2:	.EQU	DEXT+18		; (1AF2) Input scanner after reinitializing BASIC. (41B8)
-CLSALL:	.EQU	DEXT+21		; (1D**) Initializing BASIC for new routine. During END processing (41BB)
-FINDRT:	.EQU	DEXT+24		; (2174) During initializing of system output device (41BE)
-EXOUTC:	.EQU	DEXT+27		; (032C) During writing to system output device. (41C1)
-EXINC:	.EQU	DEXT+30		; (0358) When scanning keyboard. (41C4)
-LRUN:	.EQU	DEXT+33		; (1EA6) At start of RUN NNN processing. (41C7)
-FILGET:	.EQU	DEXT+36		; (206F) At beginning of PRINT processing. (41CA)
-EXDSKL:	.EQU	DEXT+39		; (20C6) During PRINT # or PRINT item processing. (41CD)
-EXDSCR:	.EQU	DEXT+42		; (2103) When skipping to next line on video during a output op (41D0)
-EXPDOS:	.EQU	DEXT+45		; (21**) At start of PRINT on cassette and during PRINT TAB. (41D3)
-EXUNKN:	.EQU	DEXT+48		; (219E) At beginning of INPUT processing (41D6)
-DLHSMD:	.EQU	DEXT+51		; (2AEC) MID$ function DOS EXIT (41D9)
-FILIND:	.EQU	DEXT+54		; (222D) During READ processing when a variable has been read. (41DC)
-EXCHDS:	.EQU	DEXT+57		; (2***) From List, At end of READ processing (41DF)
-SYSOUT:	.EQU	DEXT+60		; (02B2) During SYSTEM command operation (41E2)
+DEFC	DEXT	= RAM+$1A6	; Base Address for DOS Exits
+DEFC	EXDSKR	= DEXT+0	; (19EC) Disk Basic ERROR handling (41A6)
+DEFC	USROUT	= DEXT+3	; (27FE) USR N - to expand function to provide up to ten USR calls (41A9)
+DEFC	PRGFIN	= DEXT+6	; (1A1C) BASIC start up. Just before BASIC's 'READY' message (41AC)
+DEFC	INLINE	= DEXT+9	; (0368) At start of keyboard input (41AF)
+DEFC	DIRDO	= DEXT+12	; (1AA1) Input scanner after tokenizing current statement (41B2)
+DEFC	EXFIND	= DEXT+15	; (1AEC) Input scanner after updating program statement table (41B5)
+DEFC	EXFIN2	= DEXT+18	; (1AF2) Input scanner after reinitializing BASIC. (41B8)
+DEFC	CLSALL	= DEXT+21	; (1D**) Initializing BASIC for new routine. During END processing (41BB)
+DEFC	FINDRT	= DEXT+24	; (2174) During initializing of system output device (41BE)
+DEFC	EXOUTC	= DEXT+27	; (032C) During writing to system output device. (41C1)
+DEFC	EXINC	= DEXT+30	; (0358) When scanning keyboard. (41C4)
+DEFC	LRUN	= DEXT+33	; (1EA6) At start of RUN NNN processing. (41C7)
+DEFC	FILGET	= DEXT+36	; (206F) At beginning of PRINT processing. (41CA)
+DEFC	EXDSKL	= DEXT+39	; (20C6) During PRINT # or PRINT item processing. (41CD)
+DEFC	EXDSCR	= DEXT+42	; (2103) When skipping to next line on video during a output op (41D0)
+DEFC	EXPDOS	= DEXT+45	; (21**) At start of PRINT on cassette and during PRINT TAB. (41D3)
+DEFC	EXUNKN	= DEXT+48	; (219E) At beginning of INPUT processing (41D6)
+DEFC	DLHSMD	= DEXT+51	; (2AEC) MID$ function DOS EXIT (41D9)
+DEFC	FILIND	= DEXT+54	; (222D) During READ processing when a variable has been read. (41DC)
+DEFC	EXCHDS	= DEXT+57	; (2***) From List, At end of READ processing (41DF)
+DEFC	SYSOUT	= DEXT+60	; (02B2) During SYSTEM command operation (41E2)
 ;
-BUFINI:	.EQU	RAM+$1E5	; String Buffer initialised with -> colon null comma (M1)
-SMPSTK:	.EQU	RAM+$1F8	; Initial Stack address (M1)
+DEFC	BUFINI	= RAM+$1E5	; String Buffer initialised with -> colon null comma (M1)
+DEFC	SMPSTK	= RAM+$1F8	; Initial Stack address (M1)
 ;
-MEMEND:	.EQU	RAM+$200	; End of Reserved RAM Communications area
+DEFC	MEMEND	= RAM+$200	; End of Reserved RAM Communications area
 ;
-SYSSTK:	.EQU	MEMEND+$88	; Stack address usd by SYSTEM command
+DEFC	SYSSTK	= MEMEND+$88	; Stack address usd by SYSTEM command
 ;
 ; ======================================================================
 ; Report Free Memory
-	.ECHO 	" "
-	.ECHO	R1FREE + R2FREE + R3FREE
-	.ECHO   " TOTAL bytes free \n"
+	; .ECHO 	" "
+	; .ECHO	R1FREE + R2FREE + R3FREE
+	; .ECHO   " TOTAL bytes free \n"
 ; ======================================================================
 ;
 ; PADDING to create 16KB ROM Image, to allow append multiple
 ; versions into a larger (modern) paged ROM file.
 ;
 #IFDEF	SIZE16K
-	.FILL	$4000 - $
+	DEFS	(4000h - $),$FF
 #ENDIF
 ; ======================================================================
 ;
 ; If this file is being #Included from another assembly file
 ; we may want to disable the END directive
 ;
-#IFNDEF DONTEND
-	.END
-#ENDIF
+;#IFNDEF DONTEND
+;	.END
+;#ENDIF
 ; ======================================================================
