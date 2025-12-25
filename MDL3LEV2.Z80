@@ -31,7 +31,6 @@
 ;
 ; Build Features
 ; #DEFINE SIZE16K ; Uncomment to build a $FF padded 16K Image for banked ROM
-; #DEFINE DONTEND ; Uncomment to Disable END directive, use if #include
 ;
 ; ======================================================================
 ;     INFORMATION
@@ -112,6 +111,11 @@
 ;   • MOD III ROM COMMENTED - 1981 - Soft Sector Marketing
 ;
 ; ======================================================================
+;
+#IFDEF FREHDBT
+	DEFC 	FREHDBT_ENABLED = 1
+	PUBLIC 	FREHDBT_ENABLED
+#ENDIF
 ;
 ; ----------------------------------------------------------------------
 ;   BASIC TOKENS IDS
@@ -281,8 +285,12 @@ DEFC	ROM_LOAD	= $5000	; where the extra "rom is loaded
 ; For Europe it should be 25 for 50 hz Mains Frequency
 #IFDEF VIDEO50
 DEFC	CLKFREQ		= 25
+	DEFC 	VIDEO50_ENABLED = 1
+	PUBLIC 	VIDEO50_ENABLED
 #ELSE
 DEFC	CLKFREQ		= 30
+	DEFC 	VIDEO60_ENABLED = 1
+	PUBLIC 	VIDEO60_ENABLED
 #ENDIF
 ;
 ; ======================================================================
@@ -1220,6 +1228,8 @@ DSPPOS:
 	; This CODE fixes BUG in Original Model 3 ROMS
 	ld 	a,(SHADEC)	;0348 - shadow copy of port EC
 	and 	SHADM32		;04ef - check for 32 char mode
+	DEFC 	BUGFIX30_ENABLED = 1
+	PUBLIC 	BUGFIX30_ENABLED
 #ELSE
 	; This is a CODE BUG since it only works in Model 1
 	ld	a,($403D)	;0348 - get shadow copy of cassette port
@@ -1819,6 +1829,8 @@ PRTSTA_BROKEN:
 	; Correctly read the printer status byte from Line Printer Port
 	nop
 	in 	a,(lineprt)	;05d1 - get printer status byte
+	DEFC 	BUGFIX40_ENABLED = 1
+	PUBLIC 	BUGFIX40_ENABLED
 #ELSE
 	; Rumor has it that this is a malicious destruction of the
 	; "printer ready" function was used to hide the name "RON"
@@ -2064,6 +2076,8 @@ RESETR:				; The 06CC BASIC Entry Point
 	ld	bc,STPRDY	;06cc - Address of
 	jp	ERESET		;06cf - Jumps to 19AE
 UNTOKEN5B:
+	DEFC 	BUGFIX27_ENABLED = 1
+	PUBLIC 	BUGFIX27_ENABLED
 #ELSE
 	cp 	'E'		;06c9 - Test for an E
 	ret 	nz		;06cb - no then Skip
@@ -2987,6 +3001,8 @@ FRCINT:	TSTDAT			;0a7f - check the value of the current number type
 ;
 #IFDEF BUGFIX5
 	NOP3
+	DEFC 	BUGFIX5_ENABLED = 1
+	PUBLIC 	BUGFIX5_ENABLED
 #ELSE
 ; If double-precision (NC flag set based on type), call the subroutine at 0AB9H
 ; (a sign/compare or CSNG entry point), which converts double to single-precision
@@ -4210,6 +4226,8 @@ FOUTZS:	ld	hl,FBUFFR	;0ff5
 ;
 #IFDEF BUGFIX8
 	NOP
+	DEFC 	BUGFIX8_ENABLED = 1
+	PUBLIC 	BUGFIX8_ENABLED
 #ELSE
 ; The ROM's formatting routine incorrectly applies the asterisk
 ; fill character to the trailing position for positive numbers,
@@ -12113,6 +12131,8 @@ DEFC	MEMEND	= RAM+$300	; End of Reserved RAM Communications area
 ;
 #IFDEF BUGFIX28
 DEFC	SYSSTK	= MEMEND+$88	; Stack address used by SYSTEM command
+	DEFC 	BUGFIX28_ENABLED = 1
+	PUBLIC 	BUGFIX28_ENABLED
 #ELSE
 DEFC	SYSSTK	= RAM+$288	; Stack address used by SYSTEM command
 #ENDIF

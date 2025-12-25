@@ -75,7 +75,6 @@ The base ROM can also be customised to hardware.
 Some additional defines, which are build options rather than features
 * `#DEFINE SIZE16K` - (OPTIONAL) Will pad the end of the rom with $FF to 16KB size. useful if want to append multiple ROM
   images for used in large 16K paged rom
-* `#DEFINE DONTEND` - (OPTIONAL) Disable `.END` directive if `#INCLUDE`ing the source inside another file.
 
 ## Bug Fixes
 

@@ -95,12 +95,33 @@
 #ENDIF
 ;
 #IFDEF FREHDBT
+    #IFDEF VER12
+        !!! ERROR VER12 IS NOT COMPATIBLE WITH FREHD !!!
+    #ENDIF
     #IFNDEF VER13
         #DEFINE VER13 	; VER13 must be used if FreHD is defined
     #ENDIF
     #IFNDEF NMIHARD
 	#DEFINE NMIHARD	; NMIHARD must be used if FreHD is defined
     #ENDIF
+
+	DEFC 	FREHDBT_ENABLED = 1
+	PUBLIC 	FREHDBT_ENABLED
+#ENDIF
+
+#IFDEF EACA80
+	DEFC 	EACA80_ENABLED = 1
+	PUBLIC 	EACA80_ENABLED
+#ENDIF
+;
+#IFDEF VER12
+	DEFC 	VER12_ENABLED = 1
+	PUBLIC 	VER12_ENABLED
+#ENDIF
+;
+#IFDEF VER13
+	DEFC 	VER13_ENABLED = 1
+	PUBLIC 	VER13_ENABLED
 #ENDIF
 ;
 ; ----------------------------------------------------------------------
@@ -514,6 +535,9 @@ DELAY:	dec	bc		;0060
 #IFDEF NMIHARD
 ;
 NMI:	jp	_START		;0066 - wrong Stack Pointer.
+;
+	DEFC 	NMIHARD_ENABLED = 1
+	PUBLIC 	NMIHARD_ENABLED
 ;
 #IFDEF FREHDBT
 ;				;If Fre HD we use this space for improved hdboot routine
@@ -1467,6 +1491,8 @@ DSPGRP:	ld	a,c		;0467 - convert and display the charater
 	jr	nc,DSPGRC	;046f - display graphic
 #IFDEF LOWCASE
 	jr	DSPCHR		;0471 - Disable all Alpha CHR translation
+	DEFC 	LOWCASE_ENABLED = 1
+	PUBLIC 	LOWCASE_ENABLED
 	DEFS	$047D - $	;UNUSED Fill Deleted code bock (ELSE) with NOP's
 #ELSE
 	cp	$40		;0471 - is it number or symbol ASCII 20h - 40h
@@ -2924,6 +2950,8 @@ FRCINT:	TSTDAT			;0a7f - check the value of the current number type
 ;
 #IFDEF BUGFIX5
 	NOP3
+	DEFC 	BUGFIX5_ENABLED = 1
+	PUBLIC 	BUGFIX5_ENABLED
 #ELSE
 ; If double-precision (NC flag set based on type), call the subroutine at 0AB9H
 ; (a sign/compare or CSNG entry point), which converts double to single-precision
@@ -4147,6 +4175,8 @@ FOUTZS:	ld	hl,FBUFFR	;0ff5
 ;
 #IFDEF BUGFIX8
 	NOP
+	DEFC 	BUGFIX8_ENABLED = 1
+	PUBLIC 	BUGFIX8_ENABLED
 #ELSE
 ; The ROM's formatting routine incorrectly applies the asterisk
 ; fill character to the trailing position for positive numbers,

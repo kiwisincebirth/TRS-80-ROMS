@@ -34,7 +34,6 @@
 ;
 ; Build Features
 ; #DEFINE SIZE16K ; Uncomment to build a $FF padded 16K Image for banked ROM
-; #DEFINE DONTEND ; Uncomment to Disable END directive, use if #include
 ;
 ; ======================================================================
 ;     INFORMATION
@@ -80,16 +79,10 @@
 ; ======================================================================
 ;
 #IFDEF EACA80
-	; .ECHO	" EACA80 - EACA hardware support enabled \n"
+	DEFC 	EACA80_ENABLED = 1
+	PUBLIC 	EACA80_ENABLED
 #ENDIF
 
-#IFDEF FREHDBT
-	; .ECHO	" FREHDBT - FreHD autoboot support enabled \n"
-#ENDIF
-
-#IFDEF NEWBOOT
-	; .ECHO	" NEWBOOT - Diskette? prompt support enabled \n"
-#ENDIF
 ;
 ; ----------------------------------------------------------------------
 ;   BASIC TOKENS IDS
@@ -499,7 +492,8 @@ DELAY:	dec	bc		;0060
 ;
 NMI:	jp	_START		;0066 - wrong Stack Pointer.
 ;
-	; .ECHO	" NMIHARD - NMI full system reset enabled \n"
+	DEFC 	NMIHARD_ENABLED = 1
+	PUBLIC 	NMIHARD_ENABLED
 	DEFS	$0072 - $	;UNUSED fill the space to next routine with ZERO's
 ;
 #ELSE
@@ -810,7 +804,7 @@ CWRTON: call	CTON		;0284
 ; ----------------------------------------------------------------------
 ;
 ; ======================================================================
-	; .ECHO 	" ROM REGION - (01E9 - 02B1) - Cassette \n"
+; ROM REGION 1 - (01E9 - 02B1) - Cassette
 ; ======================================================================
 ;
 ; ----------------------------------------------------------------------
@@ -830,16 +824,15 @@ DSPLINLTH1:
 	ret
 ;
 ; ----------------------------------------------------------------------
-	; .ECHO	"  * BUGFIX1 uses "
-	; .ECHO	($ - DSPLINLTH)
-	; .ECHO	" bytes \n"
+	DEFC 	BUGFIX1_ENABLED = 1
+	PUBLIC 	BUGFIX1_ENABLED
+	DEFC 	BUGFIX1_BYTES = $ - DSPLINLTH
+	PUBLIC 	BUGFIX1_BYTES
 #ENDIF
 ;
 ; ======================================================================
 	DEFC	R1FREE	= $02B2 - $
-	; .ECHO	"  "
-	; .ECHO	R1FREE
-	; .ECHO	" of 201 bytes free \n"
+	PUBLIC	R1FREE
 	DEFS	$02B2 - $
 ; ======================================================================
 ;
@@ -869,14 +862,13 @@ GODO:	GETCHR			;0322 - rst 10h
 	jp	(hl)		;0329 - jump to execution address
 ;
 ; ======================================================================
-	; .ECHO 	" ROM REGION - (02D7 - 0329) - System \n"
+; ROM REGION 2 - (02D7 - 0329) - System
 ; ======================================================================
+;
 ;
 ; ======================================================================
 	DEFC	R2FREE	= $032A - $
-	; .ECHO 	"  "
-	; .ECHO	R2FREE
-	; .ECHO   " of 83 bytes free \n"
+	PUBLIC	R2FREE
 	DEFS	$032A - $
 ; ======================================================================
 ;
@@ -1182,8 +1174,8 @@ DSPGRP:	ld	a,c		;0467 - convert and display the charater
 	jr	nc,DSPGRC	;046f - display graphic
 #IFDEF LOWCASE
 	jr	DSPCHR		;0471 - Disable all Alpha CHR translation
-;
-	; .ECHO	" LOWCASE - Lowercase support enabled \n"
+	DEFC 	LOWCASE_ENABLED = 1
+	PUBLIC 	LOWCASE_ENABLED
 	DEFS	$047D - $	;UNUSED Fill Deleted code bock (ELSE) with NOP's
 #ELSE
 	cp	$40		;0471 - is it number or symbol ASCII 20h - 40h
@@ -1330,7 +1322,6 @@ DSPETB:
 	or	CAST32		;04f9 - Set the 32 Char mode bit
 	ld	(CAST),a	;04fb - save shadow copy of cassette port
 #IFDEF BUGFIX1
-	; .ECHO	" BUGFIX1 - 32 Character Mode Line Length fixed \n"
 	jp	DSPLINLTH	;BUGFIX - Set vidcmt and update line length
 #ELSE
 	out	(vidcmt),a	;04fd - output setting the HW register
@@ -2659,9 +2650,9 @@ FRCINT:	TSTDAT			;0a7f - check the value of the current number type
 	jp	z,TMERR		;0a84 - If a STRING, Display a ?TM ERROR
 ;
 #IFDEF BUGFIX5
-;
-	; .ECHO	" BUGFIX5 - ROM Error 5 Patched \n"
 	NOP3
+	DEFC 	BUGFIX5_ENABLED = 1
+	PUBLIC 	BUGFIX5_ENABLED
 #ELSE
 ; If double-precision (NC flag set based on type), call the subroutine at 0AB9H
 ; (a sign/compare or CSNG entry point), which converts double to single-precision
@@ -3884,8 +3875,9 @@ FOUTZS:	ld	hl,FBUFFR	;0ff5
 	jr	nz,FOTZS1	;1007
 ;
 #IFDEF BUGFIX8
-	; .ECHO	" BUGFIX8 - ROM Error 8 Patched \n"
 	NOP
+	DEFC 	BUGFIX8_ENABLED = 1
+	PUBLIC 	BUGFIX8_ENABLED
 #ELSE
 ; The ROM's formatting routine incorrectly applies the asterisk
 ; fill character to the trailing position for positive numbers,
@@ -9233,7 +9225,7 @@ MLOOP:	ld	a,(de)		;2be8
 	ret			;2bf4
 ;
 ; ======================================================================
-	; .ECHO 	" ROM REGION - (2BF5 - 2CA4) - Cload Csave \n"
+; ROM REGION 3 - (2BF5 - 2CA4) - Cload Csave
 ; ======================================================================
 ;
 ; ----------------------------------------------------------------------
@@ -9253,9 +9245,10 @@ HDBOOT:	call	CLS		;0069 - Clear Screen
         inir			;010e - bulk transfer
         jp	ROM_LOAD	;0110 - jump to loader in RAM
 ; ----------------------------------------------------------------------
-	; .ECHO	"  * FREHDBT uses "
-	; .ECHO	($ - HDBOOT)
-	; .ECHO	" bytes \n"
+	DEFC 	FREHDBT_ENABLED = 1
+	PUBLIC 	FREHDBT_ENABLED
+	DEFC 	FREHDBT_BYTES = $ - HDBOOT
+	PUBLIC 	FREHDBT_BYTES
 #ENDIF
 ;
 ; ----------------------------------------------------------------------
@@ -9275,9 +9268,10 @@ KEYBOU:	push	bc		;011C Save Row Address in BC into the STACK
 	rlca			;0129 This code previously existed at the calling site
 	jp	KYDRES		;012A Resume the keyboard driver routine
 ; ----------------------------------------------------------------------
-	; .ECHO	"  * KEYBOUNCE uses "
-	; .ECHO	($ - KEYBOU)
-	; .ECHO	" bytes \n"
+	DEFC 	KEYBOUNCE_ENABLED = 1
+	PUBLIC 	KEYBOUNCE_ENABLED
+	DEFC 	KEYBOUNCE_BYTES = $ - KEYBOU
+	PUBLIC 	KEYBOUNCE_BYTES
 #ENDIF
 ;
 ; ----------------------------------------------------------------------
@@ -9322,16 +9316,15 @@ DSKMSG:
 	DEFB	"Diskette?",0	; diskette message
 ;
 ; ----------------------------------------------------------------------
-	; .ECHO	"  * NEWBOOT uses "
-	; .ECHO	($ - NEWBOOTENTRY)
-	; .ECHO	" bytes \n"
+	DEFC 	NEWBOOT_ENABLED = 1
+	PUBLIC 	NEWBOOT_ENABLED
+	DEFC 	NEWBOOT_BYTES = $ - NEWBOOTENTRY
+	PUBLIC 	NEWBOOT_BYTES
 #ENDIF
 ;
 ; ======================================================================
 	DEFC	R3FREE	= $2CA5 - $
-	; .ECHO 	"  "
-	; .ECHO	R3FREE
-	; .ECHO   " of 176 bytes free \n"
+	PUBLIC	R3FREE
 	DEFS	$2CA5 - $
 ; ======================================================================
 ;
@@ -9998,7 +9991,7 @@ QED:	pop	bc		;2ff6
 ;
 ; On Disk Smith System 80 (EACA) there are additional Hardware IO ports
 DEFC	prtport = $FD		; Printer Port (replaces 37E8)
-;DEFC	casport = $FE		; Cassette Select Port (replaces 37E4)
+DEFC	casport = $FE		; Cassette Select Port (replaces 37E4)
 ;
 #ENDIF
 ;
@@ -10199,17 +10192,10 @@ DEFC	MEMEND	= RAM+$200	; End of Reserved RAM Communications area
 DEFC	SYSSTK	= MEMEND+$88	; Stack address usd by SYSTEM command
 ;
 ; ======================================================================
+
 ; Report Free Memory
-	; .ECHO 	" "
-	; .ECHO	R1FREE + R2FREE + R3FREE
-	; .ECHO   " TOTAL bytes free \n"
 	DEFC	TOTFREE = R1FREE + R2FREE + R3FREE
-	PUBLIC	R1FREE
-	PUBLIC	R2FREE
-	PUBLIC	R3FREE
 	PUBLIC	TOTFREE
-
-
 ; ======================================================================
 ;
 ; PADDING to create 16KB ROM Image, to allow append multiple
@@ -10218,12 +10204,4 @@ DEFC	SYSSTK	= MEMEND+$88	; Stack address usd by SYSTEM command
 #IFDEF	SIZE16K
 	DEFS	(4000h - $),$FF
 #ENDIF
-; ======================================================================
-;
-; If this file is being #Included from another assembly file
-; we may want to disable the END directive
-;
-;#IFNDEF DONTEND
-;	.END
-;#ENDIF
 ; ======================================================================

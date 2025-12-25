@@ -42,7 +42,6 @@ Bug Fixes can be applied
 Some additional defines, which are build options rather than features
 * `#DEFINE SIZE16K` - Will pad the end of the rom with $FF to 16KB size. useful if want to append multiple ROM
   images for used in large 16K paged rom
-* `#DEFINE DONTEND` - Disable `.END` directive if `#INCLUDE`ing the source inside another file.
 
 ## Bug Fixes
 
