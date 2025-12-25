@@ -65,15 +65,15 @@ listing of the assembled code. See the docs for
 
 Can be built by make
 
-| target  | What is built         | File         |
-|---------|-----------------------|--------------|
-| model3  | Model 3               | MDL3LEV2.bin |
-| model14 | Model 1 Revision 1.4  | MDL1REV4.bin |
-| model13 | Model 1 Revision 1.3  | MDL1LEV2.bin |
-| model12 | Model 1 Revision 1.2  | MDL1REV2.bin |
-| model1  | All Model 1 ROM's     |              |
-| all     | All ROM's (default)   |              |
-| clean   | (deletes built files) |              |
+| target  | What is built           | File         |
+|---------|-------------------------|--------------|
+| model3  | Model 3                 | MDL3LEV2.bin |
+| model14 | Model 1 Revision 1.4    | MDL1REV4.bin |
+| model13 | Model 1 Revision 1.3    | MDL1LEV2.bin |
+| model12 | Model 1 Revision 1.2    | MDL1REV2.bin |
+| model1  | All Model 1 ROM's       |              |
+| all     | All ROM's (*default*)   |              |
+| clean   | (*deletes built files*) |              |
 
-The default command of `make`
+
 

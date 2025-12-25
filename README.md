@@ -49,7 +49,7 @@ See The following for details of source code including Build Options:
 
 This source code is assembled with Z88DK. Please the seperate [Build Guide](BUILDING.md)
 
-* *Previously assembly was with Telemark Assembler / UZ80AS* *
+*Previously assembly was with Telemark Assembler / UZ80AS*
 
 ## Extensions
 
