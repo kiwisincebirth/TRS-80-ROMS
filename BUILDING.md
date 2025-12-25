@@ -59,13 +59,15 @@ z88dk-z80asm -b -l MDL1REV4.Z80
 ```
 
 This will generate a `*.bin` the rom image, and a `*.lis` file which contains a
-listing of the assembled code. See the docs for 
+listing of the assembled code. See the docs for more information
+
+[Z88DK Wiki - z80asm Command Line](https://github.com/z88dk/z88dk/wiki/Tool---z80asm---command-line)
 
 ### Make Targets
 
-Can be built by make
+Can be built by `make`
 
-| target  | What is built           | File         |
+| Target  | What is built           | File         |
 |---------|-------------------------|--------------|
 | model3  | Model 3                 | MDL3LEV2.bin |
 | model14 | Model 1 Revision 1.4    | MDL1REV4.bin |
