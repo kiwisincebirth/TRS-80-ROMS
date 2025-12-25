@@ -3,7 +3,8 @@
 
 The software is built using the Z88DK Z80 assembler. 
 
-[Z88DK Wiki - An Introduction to Z88DK](https://github.com/z88dk/z88dk/wiki)
+* [Z88DK Wiki - An Introduction to Z88DK](https://github.com/z88dk/z88dk/wiki)
+* [Z88DK Wiki - Z80ASM Tool](https://github.com/z88dk/z88dk/wiki/Tool---z80asm)
 
 ## Installation
 
