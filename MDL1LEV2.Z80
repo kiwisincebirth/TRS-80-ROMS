@@ -483,11 +483,11 @@ KEYTAB:	DEFB	ENTER,	ENTER	; ENTER
 	DEFB	CLRKEY,	CLRKEY	; CLEAR
 	DEFB	BREAK,	BREAK	; BREAK
 	DEFB	UPARRW,	ARUP	; ↑ Up Arrow
-#IFDEF VER13
+#IFDEF VER12
+	DEFB	LINEF,	ARDOWN	; LF, ↓ Down Arrow
+#ELSE
 	DEFB	LINEF,	$00	; ↓ Down Arrow
 				; to permit Shift-Down-Arrow to act as a control key
-#ELSE
-	DEFB	LINEF,	ARDOWN	; LF, ↓ Down Arrow
 #ENDIF
 	DEFB	BACKS,	ARLEFT	; BS, ← Left arrow
 	DEFB	TAB,	ARIGHT	; Tab, -> right arrow
@@ -4599,12 +4599,12 @@ FOUNDVV: pop	af		;1243
 	call	FOUNVC		;1248
 FOUNDV3: pop	af		;124b
 ;
-#IFDEF VER13
-	pop	de		;124d
+#IFDEF VER12
 	or	a		;124c
+	pop	de		;124d
 #ELSE
-	or	a		;124c
 	pop	de		;124d
+	or	a		;124c
 #ENDIF
 ;
 	ret			;124e
@@ -6578,7 +6578,7 @@ RESFIN:	ld	(DATPTR),hl	;1d96
 ISCNTN:	call	ISCHAR		;1d9b
 	or	a		;1d9e
 	ret	z		;1d9f
-CNTCCN:	cp	$60		;1da0
+CNTCCN:	cp	BQUOTE		;1da0 - Is key pressed a SHIFT + @.
 	call	z,INCHR		;1da2
 	ld	(CHARC),a	;1da5
 	dec	a		;1da8
@@ -7170,7 +7170,46 @@ LPRIN1:	jp	NEWCHR		;206c * * *
 ; 206F-2177 – LEVEL II BASIC PRINT@ ROUTINE – FOR v1.0 ONLY – “PRINT”
 ; ----------------------------------------------------------------------
 ;
-#IFDEF VER13
+#IFDEF VER12
+;
+PRINT:	call	FILGET		;206f
+	cp	'@'		;2072 - IS it a PRINT@
+	jr	nz,PNOTAT	;2074 - Jump if not PRINT@, otherwise continue
+	call	GETINT		;2076 - Evaluate and get Integer into DE
+	cp	$04		;2079
+	jp	nc,FCERR	;207b
+	push	hl		;207e
+	ld	hl,vidmem	;207f
+	add	hl,de		;2082
+	ld	(CURSOR),hl	;2083
+	ld	a,e		;2086
+	and	$3F		;2087
+	ld	(TTYPOS),a	;2089
+	pop	hl		;208c
+	SYNTAX	(',')		;208d - rst 08h
+PNOTAT:	cp	'#'		;208f - Is it PRINT#
+	jr	nz,NEWCHR	;2091 - Jump if not PRINT#
+	call	CWRTON		;2093
+	ld	a,DEVTAPE	;2096 - Set A to 80H (the write to cassette flag)
+	ld	(PRTFLG),a	;2098 - save current output device flag
+NEWCHR:	dec	hl		;209b
+	GETCHR			;209c - rst 10h
+	call	z,CRDO		;209d
+PRINTC:	jp	z,FINPRT	;20a0
+	cp	TKUSNG		;20a3 - using token
+	jp	z,PRINUS	;20a5
+	cp	TKTAB		;20a8 - tab token
+	jp	z,TABER		;20aa
+	push	hl		;20ad
+	cp	','		;20ae
+	jp	z,COMPRT	;20b0
+	cp	SEMICO		;20b3 - compare with semicolin ';'
+	jp	z,NOTABR	;20b5
+	pop	bc		;20b8
+	call	FRMEVL		;20b9
+	push	hl		;20bc
+;
+#ELSE
 ;
 PRINT:	call	FILGET		;206f
 	cp	'#'		;2072 Check for Cassette
@@ -7211,44 +7250,6 @@ PRINTD:	ld	a,(hl)		;20A5 Reload next element from code string
 	call	FRMEVL		;20B9 Evaluate next item to be printed
  	ex	(sp),hl		;20BC Save current code string addr HL = addr of current item
 ;
-#ELSE
-;
-PRINT:	call	FILGET		;206f
-	cp	'@'		;2072 - IS it a PRINT@
-	jr	nz,PNOTAT	;2074 - Jump if not PRINT@, otherwise continue
-	call	GETINT		;2076 - Evaluate and get Integer into DE
-	cp	$04		;2079
-	jp	nc,FCERR	;207b
-	push	hl		;207e
-	ld	hl,vidmem	;207f
-	add	hl,de		;2082
-	ld	(CURSOR),hl	;2083
-	ld	a,e		;2086
-	and	$3F		;2087
-	ld	(TTYPOS),a	;2089
-	pop	hl		;208c
-	SYNTAX	(',')		;208d - rst 08h
-PNOTAT:	cp	'#'		;208f - Is it PRINT#
-	jr	nz,NEWCHR	;2091 - Jump if not PRINT#
-	call	CWRTON		;2093
-	ld	a,DEVTAPE	;2096 - Set A to 80H (the write to cassette flag)
-	ld	(PRTFLG),a	;2098 - save current output device flag
-NEWCHR:	dec	hl		;209b
-	GETCHR			;209c - rst 10h
-	call	z,CRDO		;209d
-PRINTC:	jp	z,FINPRT	;20a0
-	cp	TKUSNG		;20a3 - using token
-	jp	z,PRINUS	;20a5
-	cp	TKTAB		;20a8 - tab token
-	jp	z,TABER		;20aa
-	push	hl		;20ad
-	cp	','		;20ae
-	jp	z,COMPRT	;20b0
-	cp	SEMICO		;20b3 - compare with semicolin ';'
-	jp	z,NOTABR	;20b5
-	pop	bc		;20b8
-	call	FRMEVL		;20b9
-	push	hl		;20bc
 #ENDIF
 ;
 	TSTDAT			;20bd
@@ -7329,10 +7330,10 @@ MORCOM:	sub	$10		;2130
 ; ----------------------------------------------------------------------
 TABER:	call	GTBYTC		;2137 - evaluate the tab number, and return with the result in A
 ;
-#IFDEF VER13
-	and	$7F		;213a - Result in A-reg. Do not let it exceed 127
-#ELSE
+#IFDEF VER12
 	and	$3F		;213a - Do not let it exceed 63
+#ELSE
+	and	$7F		;213a - Result in A-reg. Do not let it exceed 127
 #ENDIF
 ;
 	ld	e,a		;213c

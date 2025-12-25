@@ -1,6 +1,6 @@
 .PHONY: all clean
 
-all: MDL1LEV2 MDL1REV4
+all: MDL1LEV2 MDL1REV4 MDL3LEV2
 
 Z80ASM=z88dk-z80asm -b -l -g
 

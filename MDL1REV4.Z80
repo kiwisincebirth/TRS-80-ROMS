@@ -169,7 +169,7 @@ DEFC	ERRL3	= 2CH	; Disk BASIC Command
 ; ----------------------------------------------------------------------
 DEFC	DEV0VID	= $00	; 0 - VIDEO DEVICE (Z Flag) - uses XOR A to set
 DEFC	DEV1PRT	= $01	; 1 - PRINTER DEVICE (NZ Flag - positive number)
-;DEFC	DEVTAPE	= $80	; $80 - TAPE DEVICE (M Flag - negative number)
+DEFC	DEVTAPE	= $80	; $80 - TAPE DEVICE (M Flag - negative number)
 ;
 ; ----------------------------------------------------------------------
 ;   Z-80 TRICKS - these are 1 byte opcode for multibyte instructions
