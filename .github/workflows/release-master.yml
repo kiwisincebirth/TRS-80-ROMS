@@ -35,11 +35,12 @@ jobs:
 
       # https://github.com/marketplace/actions/automatic-releases
       - name: Attach Package Archive
-        uses: marvinpinto/action-automatic-releases@latest
+        uses: wwarthen/actions/packages/automatic-releases@built-packages
         with:
           repo_token: "${{secrets.GITHUB_TOKEN}}"
-          automatic_release_tag: "latest"
+          draft: true
           prerelease: true
+          automatic_release_tag: "latest"
           title: "Development Build"
           files: |
             *.txt
