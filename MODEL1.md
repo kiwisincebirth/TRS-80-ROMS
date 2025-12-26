@@ -24,8 +24,9 @@ The base ROM version can be defined.
 * `#DEFINE VER13` - this is the default if VER12 is not defined, and doesnt need to be uncommented
 * `#DEFINE EACA80` - uncomment to enable Dick Smith System-80 (EACA) hardware support.
   NOTE: While not mandatory you should also define `VER12` since the System-80 ROM was based on V1.2.
-  V1.3 has not been formally tested, but assume should work, and opens ability to also specify `FREHDBT`
-
+  V1.3 has not been formally tested, but assume should work, and opens ability to also specify `FREHDBT`.
+  This only targets the core 12kb ROM, and does not include the latter Rom extensions
+ 
 There are several optional features.
 * `#DEFINE FREHDBT` - Enables the FreHD auto boot feature, i.e. the Auto boot ROM. This requires version 1.3
   ROM as a base, please do NOT define `VER12` as it is not compatible (it will be ignored anyway)
@@ -44,7 +45,6 @@ Bug Fixes can be applied
 Some additional defines, which are build options rather than features
 * `#DEFINE SIZE16K` - Will pad the end of the rom with $FF to 16KB size. useful if want to append multiple ROM
   images for used in large 16K paged rom
-* `#DEFINE DONTEND` - Disable `.END` directive if `#INCLUDE`ing the source inside another file.
 
 VERY Experimental - use at your own risk
 * `#DEFINE _EMBED` - Strip all HW, and IO routines leaving just BASIC language as standalone code

@@ -19,7 +19,7 @@ This source code is based on the following ROM revisions
 |-----|----------|-----------|-------------------|
 | A   | 9639     | 8041364   | Standard ROM A    |
 | B   | 407C     | 8040332   | Standard ROM B    |
-| C   | 2EF8     | 8040316B  | v2 - Rev B - 1980 |
+| C   | 2EF8     | 8040316B  | V3 - Rev C - 1981 |
 
 ## Build Options
 
@@ -42,7 +42,6 @@ Bug Fixes can be applied
 Some additional defines, which are build options rather than features
 * `#DEFINE SIZE16K` - Will pad the end of the rom with $FF to 16KB size. useful if want to append multiple ROM
   images for used in large 16K paged rom
-* `#DEFINE DONTEND` - Disable `.END` directive if `#INCLUDE`ing the source inside another file.
 
 ## Bug Fixes
 

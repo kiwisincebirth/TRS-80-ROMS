@@ -47,9 +47,9 @@ See The following for details of source code including Build Options:
 
 ### Compiling
 
-This source code has been compiled with Telemark Assembler, and tested using a DIFF tool to ensure binary
-compatibility of the generated output. If you have issues compiling it with a different assembler
-please let me know how the code can be fixed
+This source code is assembled with Z88DK. Please the seperate [Build Guide](BUILDING.md)
+
+*Previously assembly was with Telemark Assembler / UZ80AS*
 
 ## Extensions
 
