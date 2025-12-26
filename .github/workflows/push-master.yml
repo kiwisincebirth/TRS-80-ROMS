@@ -1,23 +1,24 @@
-name: Release Workflow
+name: Build Main Workflow
 
 # Controls when the workflow will run
 on:
   # Triggers the workflow on push or pull request events but only for the "main" branch
-  push:
-    tags:
-      - '**'
+    push:
+      branches: [ "main" ]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-
-  pre-release:
-    name: "Pre Release"
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
+        with:
+        - fetch-depth: 0 # Required for tag analysis
 
       # Runs a set of commands using the runners shell
       - name: Install z88dk and Assemble Code
@@ -26,18 +27,10 @@ jobs:
           sudo snap alias z88dk.z88dk-z80asm z88dk-z80asm
           make
 
-      - name: Create Package Archive
-        run: |
-          tar cvf TRS-80-${{github.ref_name}}-ROM-Images.tar *.txt *.bin *.md
-
-      # https://github.com/marketplace/actions/automatic-releases
-      - name: Attach Package Archive
-        uses: wwarthen/actions/packages/automatic-releases@built-packages
-        with:
-          repo_token: "${{secrets.GITHUB_TOKEN}}"
-          draft: true
-          prerelease: true
-          automatic_release_tag: "latest"
-          title: "Build-${{github.ref_name}}"
-          files: |
-            *.tar
+      - name: Minor version for each master merge
+        uses: anothrNick/github-tag-action@1.64.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.BUNDLE_GIT_TOKEN }}
+          TAG_PREFIX: "v"
+          DRY_RUN: false
+          DEFAULT_BUMP: minor
