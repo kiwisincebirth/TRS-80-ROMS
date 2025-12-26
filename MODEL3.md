@@ -19,7 +19,7 @@ This source code is based on the following ROM revisions
 |-----|----------|-----------|-------------------|
 | A   | 9639     | 8041364   | Standard ROM A    |
 | B   | 407C     | 8040332   | Standard ROM B    |
-| C   | 2EF8     | 8040316B  | v2 - Rev B - 1980 |
+| C   | 2EF8     | 8040316B  | V3 - Rev C - 1981 |
 
 ## Build Options
 

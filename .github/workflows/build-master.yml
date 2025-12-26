@@ -1,6 +1,4 @@
-# This is a basic workflow to help you get started with Actions
-
-name: CI
+name: Build Workflow
 
 # Controls when the workflow will run
 on:
@@ -52,5 +50,5 @@ jobs:
         with:
           name: binary-artifacts
           path: |
-            *.md
+            *.txt
             *.bin

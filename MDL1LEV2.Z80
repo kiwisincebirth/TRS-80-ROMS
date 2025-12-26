@@ -33,6 +33,16 @@
 ; Build Features
 ; #DEFINE SIZE16K ; Uncomment to build a $FF padded 16K Image for banked ROM
 ;
+#IFDEF PATCH
+  ; USED BY AUTOMATED BUILD
+  ; TO DEFINE PATCH FEATURES
+  #DEFINE BUGFIX5
+  #DEFINE BUGFIX8
+  #DEFINE NMIHARD
+  #DEFINE LOWCASE
+  ; But Not FreHD, added manually
+#ENDIF
+;
 ; ======================================================================
 ;     INFORMATION
 ; ----------------------------------------------------------------------

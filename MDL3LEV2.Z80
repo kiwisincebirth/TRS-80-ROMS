@@ -32,6 +32,17 @@
 ; Build Features
 ; #DEFINE SIZE16K ; Uncomment to build a $FF padded 16K Image for banked ROM
 ;
+#IFDEF PATCH
+  ; USED BY AUTOMATED BUILD
+  ; TO DEFINE PATCH FEATURES
+  #DEFINE BUGFIX5
+  #DEFINE BUGFIX8
+  #DEFINE BUGFIX27
+  #DEFINE BUGFIX28
+  #DEFINE BUGFIX30
+  #DEFINE BUGFIX40
+#ENDIF
+;
 ; ======================================================================
 ;     INFORMATION
 ; ----------------------------------------------------------------------
@@ -11697,7 +11708,11 @@ SERDCB:
 	DEFW	SLOWRITE_V	;420C (TAPEWR) - 2 byte Vector for Tape WRITE 1500/500
 	DEFW	SLOWREAD_V	;420E (TAPERD) - 2 byte Vector for Tape READ  1500/500
 ;
+#IFDEF FREHDBT
+	DEFB	$38		;4210 (SHADEC) - FreHD - Extra Bit 4 - Enable IO Port
+#ELSE
 	DEFB	$28		;4210 (SHADEC) - Shadow of General Values Port EC
+#ENDIF
 ;
 	DEFB	$03		;4211 (TAPEBD) - Cass Baud Rate Select (0 = 500 baud, Not 0 = 1500 baud)
 	DEFB	$3C		;4212 (TPBLIN) - Cass Blinker Counter.

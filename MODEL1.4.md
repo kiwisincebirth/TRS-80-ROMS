@@ -25,26 +25,6 @@ Main Features
 Breaking Features
 * Cassette Support has been removed, in favour of newer features
 
-## Cassette Support
-
-The following has been changed
-* CLOAD - loadig program from cassette will cause `SN Error`
-* CSAVE - saving program to cassette will cause `SN Error`
-* SYSTEM - binary file loading will cause `SN Error`, only `/nnnnn` is supported
-* PRINT #-1 - writing to cassette will silently fail, it will be skipped.
-* INPUT #-1 - reading from cassette will cause `FD Error`
-
-Machine language programs that use any cassette routines will fail
-and potentially cause a system crash.
-
-It is unknown how disk basic will treat these changes.
-
-## Free Space
-
-The build output has a listing of the available free space in the ROMS.
-
-__TBD__
-
 ## Build Options
 
 There are several `DEFINE`'s that can be set in the code (very start) to enable certain features.
@@ -71,6 +51,7 @@ Bug Fixes Applied
 
 The base ROM can also be customised to hardware.
 * `#DEFINE EACA80` - (OPTIONAL) uncomment to enable Dick Smith System-80 (EACA) hardware support.
+  This only targets the core 12kb ROM, and does not include the latter Rom extensions
 
 Some additional defines, which are build options rather than features
 * `#DEFINE SIZE16K` - (OPTIONAL) Will pad the end of the rom with $FF to 16KB size. useful if want to append multiple ROM
@@ -79,4 +60,26 @@ Some additional defines, which are build options rather than features
 ## Bug Fixes
 
 See - [TRS-80 ROM Errors - Vernon Hester](https://www.trs-80.com/sub-rom-bugs.htm)
+
+## Cassette Support
+
+Cassette support ahs been removed to make way for new features
+
+The following has been changed / removed
+* CLOAD - loadig program from cassette will cause `SN Error`
+* CSAVE - saving program to cassette will cause `SN Error`
+* SYSTEM - binary file loading will cause `SN Error`, only `/nnnnn` is supported
+* PRINT #-1 - writing to cassette will silently fail, it will be skipped.
+* INPUT #-1 - reading from cassette will cause `FD Error`
+
+Machine language programs that use any cassette routines will fail
+and potentially cause a system crash.
+
+These changes have been tested on TRS-DOS disk basic without issue
+
+## Free Space
+
+The build output has a listing of the available free space in the ROMS.
+
+__TBD__
 
