@@ -30,7 +30,7 @@ jobs:
       - name: Minor version for each master merge
         uses: anothrNick/github-tag-action@1.64.0
         env:
-          GITHUB_TOKEN: ${{ secrets.BUNDLE_GIT_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_PREFIX: "v"
           DRY_RUN: false
           DEFAULT_BUMP: minor
