@@ -68,15 +68,17 @@ listing of the assembled code. See the docs for more information
 
 Can be built by `make`
 
-| Target  | What is built           | File         |
-|---------|-------------------------|--------------|
-| model3  | Model 3                 | MDL3LEV2.bin |
-| model14 | Model 1 Revision 1.4    | MDL1REV4.bin |
-| model13 | Model 1 Revision 1.3    | MDL1LEV2.bin |
-| model12 | Model 1 Revision 1.2    | MDL1REV2.bin |
-| model1  | All Model 1 ROM's       |              |
-| all     | All ROM's (*default*)   |              |
-| clean   | (*deletes built files*) |              |
+To make a specific target below are some high level targets. For specific targets see
+the [List of ROM Targets](./_INCLUED-FILES.txt)
+
+| Target     | What is built            |
+|------------|--------------------------|
+| all        | All ROM's (*default*)    |
+| model1all  | All Model 1 ROM's        |
+| eaca80all  | All EACA ROM's           |
+| model14all | All Enhanced Rev4 ROM's  | 
+| model3all  | All Model 3 ROM's        | 
+| clean      | (*deletes built files*)  |
 
 
 
