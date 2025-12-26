@@ -41,7 +41,7 @@ jobs:
           draft: true
           prerelease: true
           automatic_release_tag: "latest"
-          title: "Development Build"
+          title: "DevBuild"
           files: |
             *.txt
             *.tar
