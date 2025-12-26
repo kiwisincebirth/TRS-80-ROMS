@@ -20,12 +20,12 @@ jobs:
         with:
         - fetch-depth: 0 # Required for tag analysis
 
-      # Runs a set of commands using the runners shell
-      - name: Install z88dk and Assemble Code
-        run: |
-          sudo snap install z88dk --beta
-          sudo snap alias z88dk.z88dk-z80asm z88dk-z80asm
-          make
+#      # Runs a set of commands using the runners shell
+#      - name: Install z88dk and Assemble Code
+#        run: |
+#          sudo snap install z88dk --beta
+#          sudo snap alias z88dk.z88dk-z80asm z88dk-z80asm
+#          make
 
       - name: Minor version for each master merge
         uses: anothrNick/github-tag-action@1.64.0
