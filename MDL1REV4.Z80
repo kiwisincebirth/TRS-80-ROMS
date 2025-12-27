@@ -21,6 +21,7 @@
 ; Rom Bug Fixes
 #DEFINE BUGFIX1 ; Fix Error 1 - 04F6H - 32 Character Mode Line Length
 #DEFINE BUGFIX5 ; Fix Error 5 - 08A7H - INT(DoubleValue) rounding
+#DEFINE BUGFIX7 ; Fix Error 7 - 0EF2H - Space after Type declaration Tag
 #DEFINE BUGFIX8 ; Fix Error 8 - 1009H - PRINT USING, - sign at end of field
 ;
 ; Rom Additional Features
@@ -55,6 +56,31 @@
 ; to single-precision first, then performs the INT function. e.g.
 ;
 ; PRINT INT(2.9999999) -> produces 3 instead of 2.
+;
+; Error 7 - Space after Type declaration Tag
+;
+; When processing a statement with a type declaration tag after a number and a space before :
+; * 7A - An add or subtract -> the operator is applied as a unary operator for next argument
+; * 7B - A multiply or divide -> Syntax error.
+;
+; Test Program -> Should consistently display a single result - regardless of the spaces
+;  5 N=3
+; 10 PRINT 2#+N
+; 11 PRINT 2# +N
+; 12 PRINT 2#+ N
+; 20 PRINT 2# + N
+; 30 PRINT 2#*N
+; 31 PRINT 2# *N
+; 32 PRINT 2#* N
+; 40 PRINT 2# * N
+; 50 PRINT 2#-N
+; 51 PRINT 2# -N
+; 52 PRINT 2#- N
+; 60 PRINT 2# - N
+; 70 PRINT 2#/N
+; 71 PRINT 2# /N
+; 72 PRINT 2#/ N
+; 80 PRINT 2# / N
 ;
 ; Error 8 - 1099 - PRINT USING, sign at end of field
 ;
@@ -509,6 +535,7 @@ NMI:	ld	sp,$0600	;0066 - wrong Stack Pointer. Replaced latter
 ; ----------------------------------------------------------------------
 ; Alternative entry point to BASIC. See 06CCH or 1A19 for more details
 ; ----------------------------------------------------------------------
+	ASSERT	$ == $0072, "Segment: Alternate BASIC Entry Point Should start at $0072"
 	jp	RESETR		;0072 - NO - jump to Level II BASIC READY routine
 ;
 ; ----------------------------------------------------------------------
@@ -828,6 +855,25 @@ DSPLINLTH1:
 	PUBLIC 	BUGFIX1_ENABLED
 	DEFC 	BUGFIX1_BYTES = $ - DSPLINLTH
 	PUBLIC 	BUGFIX1_BYTES
+#ENDIF
+
+; ----------------------------------------------------------------------
+; BUGFIX7 - Space after Type declaration Tag
+; ----------------------------------------------------------------------
+;
+#IFDEF BUGFIX7
+;
+INFINEFIX:
+	inc	hl		; next program byte
+	ld	a,(hl)		; get program byte
+	cp	SPACE		; Is it a space
+	jp 	nz,FINE		; NOT - Continue (return)
+	jr	INFINEFIX	; loop around
+; ----------------------------------------------------------------------
+	DEFC 	BUGFIX7_ENABLED = 1
+	PUBLIC 	BUGFIX7_ENABLED
+	DEFC 	BUGFIX7_BYTES = $ - INFINEFIX
+	PUBLIC 	BUGFIX7_BYTES
 #ENDIF
 ;
 ; ======================================================================
@@ -1739,6 +1785,7 @@ BOOTRD:	ld	a,(de)		;06c4 - load byte from disk data register
 ;  This is an alternative re-entry point into BASIC.
 ;  A JP 6CCH is often better than a jump to 1A19H.
 ; ----------------------------------------------------------------------
+	ASSERT	$ == $06CC, "Segment: BASIC Entry Point Should start at $06CC"
 RESETR:	ld	bc,STPRDY	;06cc - Address of
 	jp	ERESET		;06cf - Jumps to 19AE
 ; ----------------------------------------------------------------------
@@ -1793,6 +1840,8 @@ INITR:
 ; ======================================================================
 ; MATH ROUTINES
 ; ======================================================================
+;
+	ASSERT $ == $0708, "Segment: Math Routines Should start at $0708"
 ;
 ; ----------------------------------------------------------------------
 ; 0708H-070FH – SINGLE PRECISION ADDITION,
@@ -3629,8 +3678,18 @@ FINDP:	TSTDAT			;0ee4
 ; ----------------------------------------------------------------------
 FININT:	TSTDAT			;0eee
 	jp	p,SNERR		;0eef
+;
+#IFDEF BUGFIX7
+;
+INFINE:	JP	INFINEFIX	; Fixes Bug - Replaces Code Below
+;
+#ELSE
+;
 INFINE:	inc	hl		;0ef2
 	jr	FINE		;0ef3
+;
+#ENDIF
+;
 FINDBF:	or	a		;0ef5
 FINSNF:	call	FINFRC		;0ef6
 	jr	INFINE		;0ef9
@@ -5010,7 +5069,7 @@ ATNCON:	DEFB	$09		; number constants which follows
 ;  of these reserved words. Some reserved words are contained in other
 ;  reserved words, which will cause a problem.
 ; ----------------------------------------------------------------------
-;
+	ASSERT $ == $1608, "Segment: Function Dispatch Table Should start at $1608"
 ; ----------------------------------------------------------------------
 ; 1608-164F - Function Dispatch Table
 ;           - for functions stating at token $D7 (SGN) to $FA (MID$)
@@ -5615,6 +5674,7 @@ STPRDY:	pop	bc		;1a18
 ;  Often 06CCH or 0072H are used as alternatives, but these dont work on M3
 ;  See 19AE which also provides a good entry point and works on M1 and M3
 ; ======================================================================
+	ASSERT	$ == $1A19, "Segment: READY Entry Point Should start at $1A19"
 READY:	call	FINLPT		;1a19 - set the current output device to the video display
 	call	PRGFIN		;1a1c - dos exit for BASIC startup
 ;

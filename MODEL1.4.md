@@ -47,6 +47,7 @@ There are several enhanced features:
 Bug Fixes Applied
 * `#DEFINE BUGFIX1` - Fix Error 1 - 04F6H - 32 Character Mode Line Length
 * `#DEFINE BUGFIX5` - Fix Error 5 - 08A7H - INT(DoubleValue) rounding
+* `#DEFINE BUGFIX7` - Fix Error 7 - 0EF2H - Space after type declaration tag
 * `#DEFINE BUGFIX8` - Fix Error 8 - 1009H - PRINT USING, - sign at end of field
 
 The base ROM can also be customised to hardware.
