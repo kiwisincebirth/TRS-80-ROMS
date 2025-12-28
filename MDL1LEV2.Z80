@@ -162,7 +162,7 @@ rst00:	di			;0000
 	jp	INIT		;0002
 ;
 ; The BDOS (Basic Disk Operating System) entry point address in most CP/M systems
-; Having this here may be coincidental, and may be UNUSED
+; Having this here may be coincidental, or this may never called
 	jp	mRST1		;0005
 ;
 ; ======================================================================
@@ -331,9 +331,9 @@ _PRT:	ld	de,mPDCB	;003b
 ; ----------------------------------------------------------------------
 KBLINE:
 _KEYIN:	jp	KEYIN		;0040
-	ret			;0043 - UNUSED
-	nop			;0044 - UNUSED
-	nop			;0045 - UNUSED
+	ret			;0043 - unsure of the purpose of these instructions
+	nop			;0044
+	nop			;0045
 ;
 ; ----------------------------------------------------------------------
 ; 0046H-0048H – DRIVER ENTRY ROUTINE – Part 2 – "CIOJ"
@@ -419,6 +419,7 @@ NMI:	ld	sp,$0600	;0066 - wrong Stack Pointer. Replaced latter
 ; ----------------------------------------------------------------------
 ; Alternative entry point to BASIC. See 06CCH or 1A19 for more details
 ; ----------------------------------------------------------------------
+	ASSERT	$ == $0072, "Segment: Alternate BASIC Entry Point Should start at $0072"
 	jp	RESETR		;0072 - NO - jump to Level II BASIC READY routine
 ;
 ; ----------------------------------------------------------------------
@@ -1884,7 +1885,7 @@ BOOTDL:	bit	0,(hl)		;06b2 - is the diskette controller is busy
 BOOTLP:	bit	1,(hl)		;06c0 - check to see if there is data available
 	jr	z,BOOTLP	;06c2 - loop indefinitely until data ready
 ;
-	ld	a,(de)		;06c4 - load byte from disk data register
+BOOTRD:	ld	a,(de)		;06c4 - load byte from disk data register
 	ld	(bc),a		;06c5 - write byte to ram.
 	inc	c		;06c6 - next mem address
 	jr	nz,BOOTLP	;06c7 - Loop until whole 256 byte sector has been read
@@ -1896,6 +1897,7 @@ BOOTLP:	bit	1,(hl)		;06c0 - check to see if there is data available
 ;  This is an alternative re-entry point into BASIC.
 ;  A JP 6CCH is often better than a jump to 1A19H.
 ; ----------------------------------------------------------------------
+	ASSERT	$ == $06CC, "Segment: BASIC Entry Point Should start at $06CC"
 RESETR:	ld	bc,STPRDY	;06cc - Address of
 	jp	ERESET		;06cf - Jumps to 19AE
 ; ----------------------------------------------------------------------
@@ -1950,6 +1952,8 @@ INITR:
 ; ======================================================================
 ; MATH ROUTINES
 ; ======================================================================
+;
+	ASSERT $ == $0708, "Segment: Math Routines Should start at $0708"
 ;
 ; ----------------------------------------------------------------------
 ; 0708H-070FH – SINGLE PRECISION ADDITION,
@@ -7100,7 +7104,7 @@ PRINTC:	jp	z,FINPRT	;20a0
 ;
 #ELSE
 ;
-PRINT:	call	FILGET		;206f
+PRINT:	call	FILGET		;206f DOS exit for PRINT processing.
 	cp	'#'		;2072 Check for Cassette
 	jr	nz,PNOTAT	;2074
 	call	CWRTON		;2076 Write header on cassette file
@@ -7281,7 +7285,7 @@ TRMNOK:	ld	a,(FLGINP)	;217f
 	jp	nz,DATSNE	;2183
 	ld	a,(CASFLG)	;2186 - test the cassette flag
 	or	a		;2189
-	ld	e,ERRFD		;218a - ?FD ERROR
+	ld	e,ERRFD		;218a - ?FD ERROR - bad data file error
 	jp	z,ERROR		;218c - If input device is cassette
 	pop	bc		;218f
 	ld	hl,TRYAGN	;2190
@@ -7292,13 +7296,13 @@ TRMNOK:	ld	a,(FLGINP)	;217f
 ; ----------------------------------------------------------------------
 ; 219A-21EE – LEVEL II BASIC INPUT ROUTINE – “INPUT”
 ; ----------------------------------------------------------------------
-INPUT:	call	ERRDIR		;219a
-	ld	a,(hl)		;219d
-	call	EXUNKN		;219e
-	sub	'#'		;21a1 - compare with #
-	ld	(CASFLG),a	;21a3 - set the cassette flag
-	ld	a,(hl)		;21a6
-	jr	nz,INTCAS	;21a7
+INPUT:	call	ERRDIR		;219a - Check to see if there is an illegal direct
+	ld	a,(hl)		;219d - char in basic program
+	call	EXUNKN		;219e - Pass Control to a DOS exit.
+	sub	'#'		;21a1 - compare with # indicating from Cassette
+	ld	(CASFLG),a	;21a3 - store value in cassette flag
+	ld	a,(hl)		;21a6 - get the character again
+	jr	nz,INTCAS	;21a7 - Jump if Not "#" input from casssette
 	call	CSRDON		;21a9
 	push	hl		;21ac
 	ld	b,250		;21ad - Max characters which can be read

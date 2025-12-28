@@ -1087,18 +1087,16 @@ OUT2D:	push	de		;033a
 ; 0348H-0357H – VIDEO ROUTINE – “DSPPOS”
 ;   Works out horizontal cursor position based on (CURSOR) vid ram pointer
 ; ----------------------------------------------------------------------
-DSPPOS:
-;
 #IFDEF BUGFIX30
 	; This CODE fixes BUG in Original Model 3 ROMS
-	ld 	a,(SHADEC)	;0348 - shadow copy of port EC
+DSPPOS:	ld 	a,(SHADEC)	;0348 - shadow copy of port EC
 	and 	SHADM32		;04ef - check for 32 char mode
 	DEFC 	BUGFIX30_ENABLED = 1
 	PUBLIC 	BUGFIX30_ENABLED
 #ELSE
 	; This is a CODE BUG since it only works in Model 1
-	ld	a,($403D)	;0348 - get shadow copy of cassette port
-	and	$08		;034b - mask of the 32 char mode bit
+DSPPOS:	ld	a,(CAST)	;0348 - get shadow copy of cassette port
+	and	CAST32		;034b - mask of the 32 char mode bit
 #ENDIF
 	ld	a,(CURSOR)	;034d - LSB of the current cursor position
 	jr	z,NT32PS	;0350 - 64 characters per line mode?
@@ -1157,7 +1155,7 @@ INCHR:	call	ISCHAR		;0384
 ; ----------------------------------------------------------------------
 ; 038BH-039BH – PRINTER ROUTINE – “FINLPT”
 ; ----------------------------------------------------------------------
-FINLPT:	xor	a		;038b
+FINLPT:	xor	a		;038b - DEV0VID
 	ld	(PRTFLG),a	;038c - set current output device VIDEO
 	ld	a,(LPTPOS)	;038f
 	or	a		;0392
@@ -1609,7 +1607,7 @@ DSPOT2:
 	push 	hl		;0587
 ;
 ; ----------------------------------------------------------------------
-; 0554 – Part of the Display routine – “DSPROL”
+; 0588 – Part of the Display routine – “DSPROL”
 ;   Scroll the screen upward by one line
 ; ----------------------------------------------------------------------
 DSPROL:
@@ -1667,7 +1665,7 @@ DSPEOL:
 	jr 	DSPERA		;05c3 - blank to address in DE, and return
 ;
 ; ----------------------------------------------------------------------
-; 057CH – Part of the Display routine – “DSPEOF”
+; 05C5H – Part of the Display routine – “DSPEOF”
 ;   Erase to the end of the frame. clear the video screen from (including)
 ;   position N – where N is an integer between 0 and 1023 (decimal),
 ;   inclusive, to the end of the display, Load the HL Register with the
@@ -7111,8 +7109,7 @@ LPRIN1:	jp	NEWCHR		;206c * * *
 ; ----------------------------------------------------------------------
 ; 206F-2177 – LEVEL II BASIC PRINT@ ROUTINE – FOR v1.0 ONLY – “PRINT”
 ; ----------------------------------------------------------------------
-;
-PRINT:	call	FILGET		;206f
+PRINT:	call	FILGET		;206f DOS exit for PRINT processing.
 	cp	'#'		;2072 Check for Cassette
 	jr	nz,PNOTAT	;2074
 	call	CWRTON		;2076 Write header on cassette file
@@ -7150,7 +7147,6 @@ PRINTD:	ld	a,(hl)		;20A5 Reload next element from code string
 	jr	z,NTCAS0	;20B7 Go get next item if semi-colon
 	call	FRMEVL		;20B9 Evaluate next item to be printed
  	ex	(sp),hl		;20BC Save current code string addr HL = addr of current item
-;
 	TSTDAT			;20bd
 	jr	z,STRDON	;20be
 	call	FOUT		;20c0
@@ -7285,7 +7281,7 @@ TRMNOK:	ld	a,(FLGINP)	;217f
 	jp	nz,DATSNE	;2183
 	ld	a,(CASFLG)	;2186 - test the cassette flag
 	or	a		;2189
-	ld	e,ERRFD		;218a - ?FD ERROR
+	ld	e,ERRFD		;218a - ?FD ERROR - bad data file error
 	jp	z,ERROR		;218c - If input device is cassette
 	pop	bc		;218f
 	ld	hl,TRYAGN	;2190
@@ -7296,13 +7292,13 @@ TRMNOK:	ld	a,(FLGINP)	;217f
 ; ----------------------------------------------------------------------
 ; 219A-21EE – LEVEL II BASIC INPUT ROUTINE – “INPUT”
 ; ----------------------------------------------------------------------
-INPUT:	call	ERRDIR		;219a
-	ld	a,(hl)		;219d
-	call	EXUNKN		;219e
-	sub	'#'		;21a1 - compare with #
-	ld	(CASFLG),a	;21a3 - set the cassette flag
-	ld	a,(hl)		;21a6
-	jr	nz,INTCAS	;21a7
+INPUT:	call	ERRDIR		;219a - Check to see if there is an illegal direct
+	ld	a,(hl)		;219d - char in basic program
+	call	EXUNKN		;219e - Pass Control to a DOS exit.
+	sub	'#'		;21a1 - compare with # indicating from Cassette
+	ld	(CASFLG),a	;21a3 - store value in cassette flag
+	ld	a,(hl)		;21a6 - get the character again
+	jr	nz,INTCAS	;21a7 - Jump if Not "#" input from casssette
 	call	CSRDON		;21a9
 	push	hl		;21ac
 	ld	b,250		;21ad - Max characters which can be read
@@ -9354,7 +9350,7 @@ BUFLIN:	push	hl		;2b7e
 	ld	c,l		;2b83
 	pop	hl		;2b84
 	jp 	BUFLIN2		;2b85 ; Jump to routine which continues at PLOOP3
-	nop			;2b88 ; UNUSED
+	nop			;2b88 ; filler byte to allign next instuction M1 compatibility
 PLOOP:	inc	bc		;2b89
 	dec	d		;2b8a
 	ret	z		;2b8b

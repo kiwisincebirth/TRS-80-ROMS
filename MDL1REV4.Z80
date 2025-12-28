@@ -116,15 +116,12 @@ DEFC	CURCHR	= $5F	; _ cursor character
 ;
 DEFC	BUFINI	= RAM+$1E5	; String Buffer initialised with -> colon null comma (M1)
 DEFC	SMPSTK	= RAM+$1F8	; Initial Stack address (M1)
-;
 DEFC	MEMEND	= RAM+$200	; End of Reserved RAM Communications area
-;
 DEFC	SYSSTK	= RAM+$288	; Stack address usd by SYSTEM command
 ;
 ; ======================================================================
 ;   START OF PROGRAM CODE
 ; ======================================================================
-;
 ;
 	ORG	$0000	; Start of ROM Code Base
 ;
@@ -137,7 +134,7 @@ rst00:	di			;0000
 	jp	INIT		;0002
 ;
 ; The BDOS (Basic Disk Operating System) entry point address in most CP/M systems
-; Having this here may be coincidental, and may be UNUSED
+; Having this here may be coincidental, or this may never called
 	jp	mRST1		;0005
 ;
 ; ======================================================================
@@ -306,9 +303,9 @@ _PRT:	ld	de,mPDCB	;003b
 ; ----------------------------------------------------------------------
 KBLINE:
 _KEYIN:	jp	KEYIN		;0040
-	ret			;0043 - UNUSED
-	nop			;0044 - UNUSED
-	nop			;0045 - UNUSED
+	ret			;0043 - unsure of the purpose of these instructions
+	nop			;0044
+	nop			;0045
 ;
 ; ----------------------------------------------------------------------
 ; 0046H-0048H – DRIVER ENTRY ROUTINE – Part 2 – "CIOJ"
@@ -778,10 +775,8 @@ OUTDO:	push	bc		;032a
 	or	a		;0332 - set the flags
 	ld	a,c		;0333 - get the character back into A
 	pop	bc		;0334
-;
 	ret	m		; If cassette skip the write return immediately
 	NOP2
-;	jp	m,CASOUT	;0335 - if is It Cassette
 	jr	nz,OUTLPT	;0338 - if it is Printer
 ; ----------------------------------------------------------------------
 ; 033AH-0347H – OUTPUT ROUTINE – “OUT2D”
@@ -6211,7 +6206,7 @@ RESFIN:	ld	(DATPTR),hl	;1d96
 ISCNTN:	call	ISCHAR		;1d9b
 	or	a		;1d9e
 	ret	z		;1d9f
-CNTCCN:	cp	$60		;1da0
+CNTCCN:	cp	BQUOTE		;1da0 - Is key pressed a SHIFT + @.
 	call	z,INCHR		;1da2
 	ld	(CHARC),a	;1da5
 	dec	a		;1da8
@@ -6918,7 +6913,6 @@ MORCOM:	sub	$10		;2130
 ; ----------------------------------------------------------------------
 TABER:	call	GTBYTC		;2137 - evaluate the tab number, and return with the result in A
 	and	$7F		;213a - Result in A-reg. Do not let it exceed 127
-	; and	$3F		;213a - Do not let it exceed 63 (V1.2)
 	ld	e,a		;213c
 	SYNTAX	(')')		;213d - rst 08h
 	dec	hl		;213f
@@ -6993,7 +6987,7 @@ INPUT:	call	ERRDIR		;219a - Check to see if there is an illegal direct
 	ld	a,(hl)		;219d - char in basic program
 	call	EXUNKN		;219e - Pass Control to a DOS exit.
 	sub	'#'		;21a1 - compare with # indicating from Cassette
-	ld	(CASFLG),a	;21a3 - store value in Flag
+	ld	(CASFLG),a	;21a3 - store value in cassette flag
 	ld	a,(hl)		;21a6 - get the character again
 	jr	nz,INTCAS	;21a7 - Jump if Not "#" input from casssette
 ;
