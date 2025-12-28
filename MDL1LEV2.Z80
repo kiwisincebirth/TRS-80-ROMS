@@ -5327,6 +5327,9 @@ RESLST:
 	DEFB	$BD		; =
 	DEFB	$BC		; < ($D6)
 ;
+; The following are Functions
+; Invoked via function dispatch table (FUNDSP)
+;
 	DEFB	$D3,"GN"	; SGN - $D7
 	DEFB	$C9,"NT"	; INT - $D8
 	DEFB	$C1,"BS"	; ABS
@@ -6131,60 +6134,72 @@ KLOOP:	ld	a,(hl)		;1bcc
 	ld	a,(hl)		;1be0
 	jp	nz,STUFFH	;1be1
 	cp	'?'		;1be4 - Check to see if is a ? (PRINT statement)
-	ld	a,TKPRNT	;1be6
-	jp	z,STUFFH	;1be8
-	ld	a,(hl)		;1beb
+	ld	a,TKPRNT	;1be6 - Token PRINT for next line
+	jp	z,STUFFH	;1be8 - If we have a ? then make believe it is a "PRINT"
+	ld	a,(hl)		;1beb - Re-fetch the current char (from input buffer)
 	cp	'0'		;1bec - if less than a zero character (alpha numeric)
 	jr	c,MUSTCR	;1bee - meaning it is not a digit or letter
 	cp	'<'		;1bf0 - is less than < character (if it is 0–9, :, ;, <)
 	jp	c,STUFFH	;1bf2 - char is 0–9, :, ;, <, constant or special character
-MUSTCR:	push	de		;1bf5
+MUSTCR:	push	de		;1bf5 - Save the value of the input buffer pointer
 	ld	de,RESLST-1	;1bf6 - reserved words list (first instruction in the LOPSKP is to INC)
-	push	bc		;1bf9
-	ld	bc,NOTRES	;1bfa
-	push	bc		;1bfd
-	ld	b,$7F		;1bfe
-	ld	a,(hl)		;1c00
-	cp	'a'		;1c01 - if the character is lower-case
-	jr	c,TRYAGA	;1c03
+	push	bc		;1bf9 - Save the character count
+	ld	bc,NOTRES	;1bfa - return address after matching the reserved word list
+	push	bc		;1bfd - save RET address
+	ld	b,$7F		;1bfe - initialize the reserved words counter
+	ld	a,(hl)		;1c00 - character at the location of the input buffer
+	cp	'a'		;1c01 - lower-case chaeck
+	jr	c,TRYAGA	;1c03 - if the character in Register A isn't lowercase
 	cp	'z'+1		;1c05 - is within the lower-case range
-	jr	nc,TRYAGA	;1c07
+	jr	nc,TRYAGA	;1c07 - if the character in Register A isn't lowercase
 	and	$5F		;1c09 - Covert the lowercase to upper-case
-	ld	(hl),a		;1c0b
-TRYAGA:	ld	c,(hl)		;1c0c
-	ex	de,hl		;1c0d
-LOPSKP:	inc	hl		;1c0e
-	or	(hl)		;1c0f
-	jp	p,LOPSKP	;1c10
-	inc	b		;1c13
-	ld	a,(hl)		;1c14
-	and	$7F		;1c15
-	ret	z		;1c17
-	cp	c		;1c18
-	jr	nz,LOPSKP	;1c19
-	ex	de,hl		;1c1b
-	push	hl		;1c1c
-LOPPSI:	inc	de		;1c1d
-	ld	a,(de)		;1c1e
-	or	a		;1c1f
-	jp	m,FOUND		;1c20
-	ld	c,a		;1c23
-	ld	a,b		;1c24
-	cp	TKGOTO		;1c25 - Check to see if the current reserved word is GOTO
-	jr	nz,NTGOTO	;1c27
+	ld	(hl),a		;1c0b - Replace the character in the input buffer with upper case
+TRYAGA:	ld	c,(hl)		;1c0c - character at the location of the input buffer
+	ex	de,hl		;1c0d - DE -> input buffer pointer; HL -> reserved words list pointer
+LOPSKP:	inc	hl		;1c0e - Bump the reserved words list pointer
+	or	(hl)		;1c0f - find the start of a reserved word. Bit7 = 1
+	jp	p,LOPSKP	;1c10 - LOOP until we find start of a reserved work
+	inc	b		;1c13 - Bump the reserved words counter
+	ld	a,(hl)		;1c14 - character at the location of the reserved words list
+	and	$7F		;1c15 - Reset the MSB Bit 7 of the character from reserved word list
+	ret	z		;1c17 - EXIT if we are at the end of ther reserved word list
+	cp	c		;1c18 - compare with character from input buffer
+	jr	nz,LOPSKP	;1c19 - if characters DONT match, loop, keep looking
+	ex	de,hl		;1c1b - DE -> reserved words list pointer; HL -> input buffer pointer
+	push	hl		;1c1c - save the input buffer pointer
+LOPPSI:	inc	de		;1c1d - Bump the value of the reserved words list pointer
+	ld	a,(de)		;1c1e - next char of reserved word
+	or	a		;1c1f - set flags
+	jp	m,FOUND		;1c20 - If Bit 7 was set, new reserved word, Found a match, so jump
+; ----------------------------------------------------------------------
+; If we are here then we are in the middle of checking against the reserved word list,
+; and we are still in the middle of a reserved word that might be a potential match.
+; ----------------------------------------------------------------------
+	ld	c,a		;1c23 - the current reserved word list character
+	ld	a,b		;1c24 - reserved words counter
+; ----------------------------------------------------------------------
+; The GOTO reserved word is the only one which allows for spaces to be inside it,
+; so . if we find that we have GO so far, we will call the RST 10H to strip out
+; any intevening spaces before continuing.
+; ----------------------------------------------------------------------
+	cp	TKGOTO		;1c25 - compare - reserved word is GOTO
+	jr	nz,NTGOTO	;1c27 - skip if NOT a GOTO
 	GETCHR			;1c29 - rst 10h
-	dec	hl		;1c2a
-NTGOTO:	inc	hl		;1c2b
-	ld	a,(hl)		;1c2c
-	cp	$61		;1c2d
-	jr	c,NOTLW1	;1c2f
-	and	$5F		;1c31
-NOTLW1:	cp	c		;1c33
-	jr	z,LOPPSI	;1c34
-	pop	hl		;1c36
-	jr	TRYAGA		;1c37
-FOUND:	ld	c,b		;1c39
-	pop	af		;1c3a
+	dec	hl		;1c2a - DEC input buffer pointer to offset next instruction
+NTGOTO:	inc	hl		;1c2b - Bump input buffer pointer to the next character
+	ld	a,(hl)		;1c2c - next character in input buffer
+	cp	'a'		;1c2d - Check to see if the character is lower-case
+	jr	c,NOTLW1	;1c2f - jump forward if uppercase
+	and	$5F		;1c31 - Make character uppercase
+NOTLW1:	cp	c		;1c33 - compare with next char from reserved word list
+	jr	z,LOPPSI	;1c34 - If a match, loop back, keep checking reserved word
+; ----------------------------------------------------------------------
+; If we are here, then the matching process failed
+; ----------------------------------------------------------------------
+	pop	hl		;1c36 - get back original input buffer pointer
+	jr	TRYAGA		;1c37 - move on to the next reserved word
+FOUND:	ld	c,b		;1c39 - value of the reserved words counter
+	pop	af		;1c3a -
 	ex	de,hl		;1c3b
 	ret			;1c3c
 ; ----------------------------------------------------------------------

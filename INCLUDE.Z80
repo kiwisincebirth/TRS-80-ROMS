@@ -44,7 +44,9 @@ DEFC	CPNN	= $FE	; CP nn - skip next bytye
 ;   BASIC TOKENS IDS
 ;   (note: this is not complete, just constants used in code)
 ; ----------------------------------------------------------------------
+;
 DEFC	TKOFF	= $80	; Offset - The first Token, Token Offset.
+;
 DEFC	TKEND	= $80	; END
 DEFC	TKFOR	= $81	; FOR
 DEFC	TKNEXT	= $87	; NEXT
@@ -78,8 +80,10 @@ DEFC	TKMNUS	= $CE	; -
 DEFC	TKGT	= $D4	; >
 DEFC	TKEQL	= $D5	; =
 DEFC	TKLT	= $D6	; <
+;
+DEFC	ONEFUN	= $D7	; Denotes the Start of Range of Tokens Starting at SGN
+;
 DEFC	TKSGN	= $D7	; SGN
-DEFC	ONEFUN	= $D7	; SGN - Called ONEFUN in TRS-80.COM disassembly.
 DEFC	TKSQR	= $DD	; SQR
 DEFC	TKATN	= $E4	; ATN
 DEFC	TKMID	= $FA	; MID
