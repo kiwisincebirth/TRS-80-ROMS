@@ -68,24 +68,6 @@
 ;      https://www.trs-80.com/sub-rom-bugs.htm
 ; ----------------------------------------------------------------------
 ;
-; Error 5 - 08A7 - INT(DoubleValue) rounding issue
-;
-; EXPECTATION: INT(value) should produce a result equal to or less than value.
-; However, if the value is double-precision (by definition), the ROM rounds value
-; to single-precision first, then performs the INT function. e.g.
-;
-; PRINT INT(2.9999999) -> produces 3 instead of 2.
-;
-; Error 8 - 1099 - PRINT USING, sign at end of field
-;
-; RULE: A PRINT USING statement with a negative sign at the end of the field prints
-; a negative sign after negative numbers and prints a space for positive numbers.
-; However, if the field specifiers in the string also has two asterisks at the
-; beginning of the field, the ROM prints an asterisk instead of a space after a
-; positive number.
-;
-; PRINT USING "**####-";1234 -> produces '**1234*' instead of '**1234-'
-;
 ; ======================================================================
 ;      REFERENCES
 ; ----------------------------------------------------------------------

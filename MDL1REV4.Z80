@@ -49,49 +49,6 @@
 ;      https://www.trs-80.com/sub-rom-bugs.htm
 ; ----------------------------------------------------------------------
 ;
-; Error 5 - 08A7 - INT(DoubleValue) rounding issue
-;
-; EXPECTATION: INT(value) should produce a result equal to or less than value.
-; However, if the value is double-precision (by definition), the ROM rounds value
-; to single-precision first, then performs the INT function. e.g.
-;
-; PRINT INT(2.9999999) -> produces 3 instead of 2.
-;
-; Error 7 - Space after Type declaration Tag
-;
-; When processing a statement with a type declaration tag after a number and a space before :
-; * 7A - An add or subtract -> the operator is applied as a unary operator for next argument
-; * 7B - A multiply or divide -> Syntax error.
-;
-; Test Program -> Should consistently display a single result - regardless of the spaces
-;  5 N=3
-; 10 PRINT 2#+N
-; 11 PRINT 2# +N
-; 12 PRINT 2#+ N
-; 20 PRINT 2# + N
-; 30 PRINT 2#*N
-; 31 PRINT 2# *N
-; 32 PRINT 2#* N
-; 40 PRINT 2# * N
-; 50 PRINT 2#-N
-; 51 PRINT 2# -N
-; 52 PRINT 2#- N
-; 60 PRINT 2# - N
-; 70 PRINT 2#/N
-; 71 PRINT 2# /N
-; 72 PRINT 2#/ N
-; 80 PRINT 2# / N
-;
-; Error 8 - 1099 - PRINT USING, sign at end of field
-;
-; RULE: A PRINT USING statement with a negative sign at the end of the field prints
-; a negative sign after negative numbers and prints a space for positive numbers.
-; However, if the field specifiers in the string also has two asterisks at the
-; beginning of the field, the ROM prints an asterisk instead of a space after a
-; positive number.
-;
-; PRINT USING "**####-";1234 -> produces '**1234*' instead of '**1234-'
-;
 ; ======================================================================
 ;      REFERENCES
 ; ----------------------------------------------------------------------

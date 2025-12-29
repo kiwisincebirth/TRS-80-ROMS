@@ -1,4 +1,15 @@
 
+# TRS-80 Level II Basic Roms
+
+The following distribution contains customised ROM's for the
+* Tandy TRS-80 Model 1
+* Tandy TRS-80 Model 3
+* EACA Model 1 Clones (e.g Dick Smith System-80)
+
+
+
+## Description
+
 ## Binary Distribution Files
 
 The following files are included.
@@ -11,16 +22,21 @@ https://github.com/kiwisincebirth/TRS-80/blob/main/MODEL1.md
 
 | File          | Description                        | Make Target | Assembler Defines |
 |---------------|------------------------------------|-------------|-------------------|
+| MDL1REV2.bin  | Model 1 Rev 1.2 (Official)         | model12     | VER12             |
 | MDL1REV3.bin  | Model 1 Rev 1.3 (Official)         | model13     |                   |
 | MDL1REV3F.bin | Model 1 Rev 1.3 - FreHD Patched    | model13f    | FREHDBT PATCH     |
 | MDL1REV3P.bin | Model 1 Rev 1.3 - Patched          | model13p    | PATCH             |
-| MDL1REV2.bin  | Model 1 Rev 1.2 (Official)         | model12     | VER12             |
 
-Patched Refers to all the optional fixes and improvements.
+Patches Included Are:
+* Lower Case Support with no character translation
+* NMI Reset (button) forces full reset.
+* Bug Fixes 5,8
 
 ### Dick Smith System 80
 
-Including all EACA Inc. clones. See the following for further details
+Including all EACA Inc. clones. These ROM only include the standard 12K
+ROM, the extended ROM provided on latat EACA model is not included.
+See the following for further details
 
 https://github.com/kiwisincebirth/TRS-80/blob/main/MODEL1.md
 
@@ -30,17 +46,23 @@ https://github.com/kiwisincebirth/TRS-80/blob/main/MODEL1.md
 | EACA80F.bin    | Dick Smith System 80 FreHd Patched | eaca80f     | EACA80 FREHDBT PATCH |
 | EACA80P.bin    | Dick Smith System 80 Patched       | eaca80p     | EACA80 PATCH         |
 
-Patched Refers to all the optional fixes and improvements, which Includes V1.3 features
-e.g. Keyboard debounce.
+Patches Included Are:
+* Lower Case Support with no character translation
+* NMI Reset (button) forces full reset.
+* Bug Fixes 5,8
+* Model 1 V1.3 improvements e.g. Keyboard debounce.
 
 ### Enhanced Model 1 Level 2
 
 This is modernised Level 2 Basic ROM for the Model 1, and Dick Smith System-80
 It is based of the Tandy 1.3 ROMS with many enhancements and fixes applied.
-Unlike other ROM's All features are enabled by default
+Unlike other ROM's All features are enabled by default:
+* New "Diskette?" boot capability, simialr to Model 3
+* Lower Case Support with no character translation
+* NMI Reset (button) forces full reset.
+* Bug Fixes 1, 5, 7, 7C, 8
 
 This should be considered a modern successor to the L2 ROM's
-
 See the following for further details
 
 https://github.com/kiwisincebirth/TRS-80/blob/main/MODEL1.4.md
@@ -65,5 +87,7 @@ https://github.com/kiwisincebirth/TRS-80/blob/main/MODEL3.md
 | MDL3P5.bin | Model 3 - Patched 50Hz       | model3p50   | PATCH VIDEO50         |
 | MDL3F5.bin | Model 3 - FreHd Patched 50Hz | model3f50   | FREHDBT PATCH VIDEO50 |
 
-Patched Refers to all the bugfixes (there were many problems in Model 3 ROM)
-and improvements.
+Patches Included Are:
+* Lower Case Support with no character translation
+* Bug Fixes 5,8
+* Bug Fixes 27, 28, 29, 30, 31, 40 (specific to Model 3)

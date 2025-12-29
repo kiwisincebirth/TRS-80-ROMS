@@ -57,61 +57,6 @@
 ;      https://www.trs-80.com/sub-rom-bugs.htm
 ; ----------------------------------------------------------------------
 ;
-; Error 5 - 08A7 - INT(DoubleValue) rounding issue
-
-; EXPECTATION: INT(value) should produce a result equal to or less than value.
-; However, if the value is double-precision (by definition), the ROM rounds value
-; to single-precision first, then performs the INT function. e.g.
-;
-; PRINT INT(2.9999999) -> produces 3 instead of 2.
-;
-; Error 8 - 1099 - PRINT USING, sign at end of field
-;
-; RULE: A PRINT USING statement with a negative sign at the end of the field prints
-; a negative sign after negative numbers and prints a space for positive numbers.
-; However, if the field specifiers in the string also has two asterisks at the
-; beginning of the field, the ROM prints an asterisk instead of a space after a
-; positive number.
-;
-; PRINT USING "**####-";1234 -> produces '**1234*' instead of '**1234-'
-;
-; Error 27 - 06CC Basic Entry Point - Also Fixes Error's 29, 31
-;
-; Location 0072H: Instruction here is JP 06CCH. Location 06CCH on the
-; Model I contained the correct entry to BASIC from a machine language
-; routine that moved the stack pointer. On the Model III, 0072H still has
-; the instruction JP 06CCH; however, that is in the middle of the Model III's
-; modified list routine.
-; This is a bona fide screw up that was never fixed.
-
-; Error 28 - Stack Pointer Initialisation
-;
-; Instruction at 02B5H is LD SP,4288H. The instruction here should
-; be LD SP,4388H because the Model III moved up the start of BASIC by 100H.
-;
-; Error 30 - 32 Character Mode
-;
-; 0348H: Instruction here is LD A,(403DH). 403DH is the code that
-; is jumped to when port 0E0H has bit 3 reset (IOBUS interrupt).
-; 403DH was used in the Model I to hold an image of what was outputted
-; to port 0FFH. If bit 3 of port 0FFH is set then the Model I is in the
-; 32 characters per line video mode. Another screw up.
-; The Model III uses bit 2 of port 0ECH with image in 4210H.
-;
-; 034BH: Instruction here is AND 08H. Wrong bit is tested. The correct
-; instruction should be AND 04H. OP-ED: Once Radio Shack explained the
-; cursor movement when in the 32 characters per line video mode, Radio
-; Shack did not fix the code. And, Radio Shack made Logical Systems modify
-; TRSDOS 6 to behave the same way! However, with LSDOS 6.3, someone should
-; have had the guts to correct the code.
-;
-; Error 40 - Printer Status Routine
-;
-; 05D1H: The Printer Status Routine - carried from Model 1 is broken
-; Rumor has it that this is a malicious destruction of the
-; "printer ready" function was used to hide the name "RON"
-; See 044BH which has the correct implementation
-;
 ; ======================================================================
 ;      REFERENCES
 ; ----------------------------------------------------------------------
