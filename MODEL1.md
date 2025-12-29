@@ -52,5 +52,5 @@ VERY Experimental - use at your own risk
 
 ## Bug Fixes
 
-See - [TRS-80 ROM Errors - Vernon Hester](https://www.trs-80.com/sub-rom-bugs.htm)
+See [BugFixes](BUGFIX.md)
 

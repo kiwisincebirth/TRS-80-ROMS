@@ -45,18 +45,4 @@ Some additional defines, which are build options rather than features
 
 ## Bug Fixes
 
-See - [TRS-80 ROM Errors - Vernon Hester](https://www.trs-80.com/sub-rom-bugs.htm)
-
-### BugFix 27
-
-This actually Fixes a number of reported issues (27, 29, 31)
-which all relate to the 06CCh BASIC entry point being incorrectly 
-removed from the Model III. It may also improve compatibility 
-for third party software that expects this entry point
-
-To Implement this the Startup messages were truncated to:
-
-```
-Mem Size?
-R/S Model 3 Basic
-```
+See [BugFixes](BUGFIX.md)
