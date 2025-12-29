@@ -22,6 +22,7 @@
 #DEFINE BUGFIX1 ; Fix Error 1 - 04F6H - 32 Character Mode Line Length
 #DEFINE BUGFIX5 ; Fix Error 5 - 08A7H - INT(DoubleValue) rounding
 #DEFINE BUGFIX7 ; Fix Error 7 - 0EF2H - Space after Type declaration Tag
+#DEFINE BUGFIX7C ; Fix Error 7C - 213DH - ???
 #DEFINE BUGFIX8 ; Fix Error 8 - 1009H - PRINT USING, - sign at end of field
 ;
 ; Rom Additional Features
@@ -675,6 +676,22 @@ INFINEFIX:
 	PUBLIC 	BUGFIX7_ENABLED
 	DEFC 	BUGFIX7_BYTES = $ - INFINEFIX
 	PUBLIC 	BUGFIX7_BYTES
+#ENDIF
+;
+#IFDEF BUGFIX7C
+;
+TABERFIX:
+	GETCHR			; get next char
+	cp	')'		; if close bracket
+	jr	z, TABERFIX2:	; found closing bracket, continue normally
+	dec	hl		; not a closing bracket, so DONT consume it.
+TABERFIX2:
+	jp	TABERFIXCONTINUE
+; ----------------------------------------------------------------------
+	DEFC 	BUGFIX7C_ENABLED = 1
+	PUBLIC 	BUGFIX7C_ENABLED
+	DEFC 	BUGFIX7C_BYTES = $ - TABERFIX
+	PUBLIC 	BUGFIX7C_BYTES
 #ENDIF
 ;
 ; ======================================================================

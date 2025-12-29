@@ -8,6 +8,7 @@
 ;
 ; BUGFIX5 - No Dependancies
 ; BUGFIX7 - Dependancy on INFINEFIX (provided externally)
+; BUGFIX7C - Dependancy on TABERFIX (provided externally)
 ; BUGFIX8 - No Dependancies
 ;
 ; VER12 - Downgrade Model 1 from Rev 1.3 to Revision 1.2
@@ -3371,7 +3372,11 @@ RESLST:
 	;
 	; The following are Functions
 	;
+#IFDEF BUGFIX7C
+	DEFB	$D4,"AB"	; TAB - without the (
+ELSE
 	DEFB	$D4,"AB("	; TAB()     - $BC
+#ENDIF
 	DEFB	$D4,"O"		; TO        - $BD
 	DEFB	$C6,"N"		; FN (disk) - $BE
 	DEFB	$D5,"SING"	; USING     - $BF
@@ -3445,6 +3450,8 @@ RESLST:
 	DEFB	$A7		; ' (REM)- $FB
 ;
 	DEFB	80h		; TERMINATOR.
+;
+	DEFS	$1822 - $	; Padding to account for BUGFIX7C
 ;
 ; ----------------------------------------------------------------------
 ; 1822-1898 - Statement Dispatch Table (command addresses)
@@ -5336,9 +5343,14 @@ TABER:	call	GTBYTC		;2137 - evaluate the tab number, and return with the result 
 	and	$7F		;213a - Result in A-reg. Do not let it exceed 127
 #ENDIF
 ;
-	ld	e,a		;213c
+	ld	e,a		;213c - E - number of tabs <= 127
+#IFDEF BUGFIX7C
+	JP	TABERFIX	;Fixed routine to consume the )
+TABERFIXCONTINUE:
+#ELSE
 	SYNTAX	(')')		;213d - rst 08h
-	dec	hl		;213f
+	dec	hl		;213f - decrement back, will consume latter
+#ENDIF
 ; ----------------------------------------------------------------------
 	push	hl		;2140 - save the pointer to program
 	call	EXPDOS		;2141 - Dos Exit for Print TAB and Print #
