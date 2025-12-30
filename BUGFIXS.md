@@ -40,6 +40,7 @@ Address 08A7 change `CALL NC,CONSD` to `NOP`'s
 
 ### Error 7 - Space after Type declaration Tag
 
+In Basic spaces have no significance (except in messages to be printed).
 When processing a statement with a type declaration tag after a number and a space before :
 * 7A - An add or subtract -> the operator is applied as a unary operator for next argument
 * 7B - A multiply or divide -> Syntax error.
@@ -47,7 +48,6 @@ When processing a statement with a type declaration tag after a number and a spa
 #### Resolution
 
 **TODO** Need to write this up
-
 
 Test Program -> Should consistently display a single result - regardless of the spaces
 
@@ -71,13 +71,58 @@ Test Program -> Should consistently display a single result - regardless of the 
 80 PRINT 2# / N
 ```
 
-
-
 ### Error 7C - Space after TAB declaration
 
-**TODO** Need to write this up
+In Basic spaces have no significance (except in messages to be printed).
+When processing a statement with a type declaration tag after a number and a space before :
+* 7C - TAB( also suffers from the issue.
+
+i.e. `PRINT TAB( 63);"*";` will function correctly. However `PRINT TAB (63);"*";` 
+will print the 63rd element of an array named TAB.
 
 #### Resolution
+
+The Token used for TAB includes the `(` as part of the token. The token is actually `TAB(`.
+The parser is not capable of handling the extra space. 
+The interesting thing is no other functions include a `(` in their token. i.e. 
+the token for the function PEEK has no `(` and does not suffer from the same issue as TAB
+
+The solution then is to remove the additonal `(` leaving just `TAB`
+The interpreter will just parse the expression following the TAB keyword
+and if the expression is ` ( 63 )` - spacing not to important it will correctly 
+parse the number consuming both brackets. 
+
+Two changes are required
+* Remove the `(` character from the TAB token in the keyword list - $1752 
+* Add a padding byte at the end of the reserved keyword list. $1821
+* Code at $213D that consumes the trailing `)` needs to be commented.
+
+There is one issue:
+
+When an existing program is loaded (pre-tokenised) form there will be an issue
+with trailing `)`. Thus the program read would be interpreted as
+`_TAB_10_)_` when infact the previous intention it shoudl have been `_TAB(_10_)_`
+This is a result of the brackets not matching, ie the is an implicit `(` in the
+TAB token.
+
+Thus for backwards compatibility we need to consume a trailing `)` is it exists
+To do this the code 
+
+```
+    SYNTAX  (')')   ;213d - rst 08h
+    dec	hl	        ;213f - decrement back, will consume latter
+```
+
+needs to be replaced with a `CALL` to
+
+```
+TABERFIX:
+    GETCHR  ; get next char RST 10
+    cp	')' ; if close bracket
+    ret z   ; found closing bracket, continue normally
+    dec	hl  ; not a closing bracket, so DONT consume it.
+    ret
+```
 
 Test Program -> Should consistently display `Hello` tabbed by 10
 

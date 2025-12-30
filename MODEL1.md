@@ -52,5 +52,5 @@ VERY Experimental - use at your own risk
 
 ## Bug Fixes
 
-See [BugFixes](BUGFIX.md)
+See [BugFixes](BUGFIXS.md)
 

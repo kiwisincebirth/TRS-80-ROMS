@@ -45,4 +45,4 @@ Some additional defines, which are build options rather than features
 
 ## Bug Fixes
 
-See [BugFixes](BUGFIX.md)
+See [BugFixes](BUGFIXS.md)
