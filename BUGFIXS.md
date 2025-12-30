@@ -12,9 +12,42 @@ line. However, in the 32 character mode the rule is violated.
 
 #### Resolution
 
-**TODO**
+The issue is caused because the variable LINLEN (stored at $409D) - holds the number of 
+characters per line - is never updated when entering 32 character mode, it remains at 64, 
+so routines that use this variable, will be affected.
 
-This fix requires **todo** bytes 
+The fix requires this variable to be updated when entering ($04F6) and exiting ($04C0) 
+32 character mode. These routines will include the instruction  `out (vidcmt),a` which 
+is updating the hardware register (IO port $FF) that controls 32 character mode.
+
+Replacing the last two instructions 
+
+```
+out	(vidcmt),a
+ret
+```
+
+with a `JP DSPLINLTH` (below) fixes the issue.
+
+Noting for one of the routines ($04F6) the order of instructions has to be modified 
+so the last 2 instruction match those above. This was easy enough to do, since the 
+other instructions ($0500-$0504) being moved are independent 
+
+The new routine being jumped to is.
+
+```
+DSPLINLTH:
+	out	(vidcmt),a	; Continue from called code setting the HW register
+	and	CAST32		; check if 32 char mode
+	ld	a,64		; assume 64 line length
+	jr	z,DSPLINLTH1	; Jump if 64
+	ld	a,32		; set 32 line length
+DSPLINLTH1:
+	ld	(LINLEN),a	; update line length register
+	ret
+```
+
+This fix requires 14 bytes 
 
 Test Program -> Should display number without breaks
 
