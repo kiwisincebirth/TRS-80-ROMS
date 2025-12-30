@@ -80,7 +80,27 @@ When processing a statement with a type declaration tag after a number and a spa
 
 #### Resolution
 
-**TODO** Need to write this up
+Modify the ROM to skip spaces after consuming the suffix, advancing HL past them.
+Replacing the following code ($0EF2)
+
+```
+INFINE:	inc	hl
+		jr	FINE	
+```
+With
+```
+INFINE:	JP	INFINEFIX
+```
+And adding a new routine 
+```
+INFINEFIX:
+	inc	hl		; next program byte
+	ld	a,(hl)		; get program byte
+	cp	SPACE		; Is it a space
+	jp 	nz,FINE		; NO - Exit and Continue
+	jr	INFINEFIX	; loop around
+```
+This requires about 9 extra bytes
 
 Test Program -> Should consistently display a single result - regardless of the spaces
 
