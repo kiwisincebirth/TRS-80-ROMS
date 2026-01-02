@@ -224,28 +224,31 @@ The following are Specific to Model 3, typically related to issues porting code 
 
 ### Error 27 (29, 31) - Basic Entry Point
 
-Location 0072H: Instruction here is JP 06CCH. Location 06CCH on the
-Model I contained the correct entry to BASIC from a machine language
-routine that moved the stack pointer. On the Model III, 0072H still has
-the instruction JP 06CCH; however, that is in the middle of the Model III's
-modified list routine.
+On the Model 1 The routine located at 06CCH contains the correct entry 
+point to BASIC from a machine language routine that moved the stack pointer.
+The routine resets the stack pointer to the last CLEAR n address
 
-This is a bona fide screw up that was never fixed.
+```
+LD  BC,1A18H
+JP  19AEH
+```
+
+The Model 3 does not have this routine, 06CCH is in the middle of the 
+Model 3's modified list routine. This causes compatibility issues 
+and additionally code itself in the ROM is incorrect
+* Bug 27 - Location 0072H: Instruction here is an incorrect `JP 06CCH` 
+* Bug 29 - Location 02C3H: Instruction here is an incorrect `JP 06CCH` 
+
+In Model III BASIC, key SYSTEM ENTER then, at the *? prompt, press BREAK.
+If you do this, the system will crash and restart, and you will get the CASS prompt.
 
 #### Resolution
 
-This actually Fixes a number of reported issues (27, 29, 31)
-which all relate to the 06CCh BASIC entry point being incorrectly
-removed from the Model III. It may also improve compatibility
-for third party software that expects this entry point
+Re-implement (reinstate) the routine at 06CCH and code in this location 
+relocated. Currently this is moved to startup message **TODO* but this will change 
+in future, think this bug fix will move to Release 1.4
 
-To implement this the routines at $06CC were reinstated and code 
-in this location rellocated to startup messages, truncated to:
-
-```
-Mem Size?
-R/S Model 3 Basic
-```
+This fix requires 12 bytes
 
 ### Error 28 - Stack Pointer Initialisation
 
