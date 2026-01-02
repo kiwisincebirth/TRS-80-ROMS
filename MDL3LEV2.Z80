@@ -2242,6 +2242,8 @@ ASSERT $ == $2FFB, "Segment: Continuation at $2FFB"
 ;
 ; ======================================================================
 ;
+ASSERT $ == $3000, "Segment: Jump Table at $3000"
+;
 ; JUMP TABLE
 ;
 JT_SLOWWR:
@@ -2283,6 +2285,7 @@ JT_DATTIM:
 ;
 ; ----------------------------------------------------------------------
 ; 3039 - NMI HANDLER ENTRY POINT
+;   This Address is effectively the Last Entry in the Jump Table!
 ; ----------------------------------------------------------------------
 NMIENTRY:
 	in 	a,(nonmask)	;3039 - Read the Non-Maskable Interrupt Latch.
@@ -2315,6 +2318,8 @@ GETVERSION:
 ;
 ; NOTE: The use of this (and following) is dependant on positon
 ; Calculated from the First Table located at $3045 adding $20 byte offsets
+;
+ASSERT $ == KEYLKUP + $20, "Keyboard Row Loop Table Alignment with KEYLKUP"
 ; ----------------------------------------------------------------------
 	DEFB	"01234567"
 	DEFB	"89:;,-./"
@@ -2331,6 +2336,7 @@ RPTDLY15:
 ;
 ; ----------------------------------------------------------------------
 ; 3085 - Keyboard Rows 0-3, shifted, No Caps Lock
+ASSERT $ == KEYLKUP + $40, "Keyboard Row Loop Table Alignment with KEYLKUP"
 ; ----------------------------------------------------------------------
 	DEFB	BQUOTE, "ABCDEFG"
 	DEFB	"HIJKLMNO"
@@ -2350,6 +2356,7 @@ CAPSLOCK3:
 ;
 ; ----------------------------------------------------------------------
 ; 30A5 - Keyboard Rows 4-6, shifted, No Caps Lock.
+ASSERT $ == KEYLKUP + $60, "Keyboard Row Loop Table Alignment with KEYLKUP"
 ; ----------------------------------------------------------------------
 	DEFB	$00, "!", DQUOTE, "#$%&", SQUOTE
 	DEFB	"()*+<=>?"
@@ -2366,6 +2373,7 @@ CAPSLOCK:
 ;
 ; ----------------------------------------------------------------------
 ; 30C5 - Keyboard Rows 0-3, UN shifted, Caps Lock.
+ASSERT $ == KEYLKUP + $80, "Keyboard Row Loop Table Alignment with KEYLKUP"
 ; ----------------------------------------------------------------------
 	DEFB	"@ABCDEFG"
 	DEFB	"HIJKLMNO"
@@ -2382,6 +2390,7 @@ PRSCN_ALT:
 ;
 ; ----------------------------------------------------------------------
 ; 30E5 - Keyboard Rows 4-6, UNshifted, Caps Lock
+ASSERT $ == KEYLKUP + $A0, "Keyboard Row Loop Table Alignment with KEYLKUP"
 ; ----------------------------------------------------------------------
 	DEFB	"01234567"
 	DEFB	"89:;,-./"
@@ -2400,6 +2409,7 @@ KEYPRESS8:
 ;
 ; ----------------------------------------------------------------------
 ; 3105 - Keyboard Rows 0-3, shifted, Caps Lock
+ASSERT $ == KEYLKUP + $C0, "Keyboard Row Loop Table Alignment with KEYLKUP"
 ; ----------------------------------------------------------------------
 	DEFB	BQUOTE, "ABCDEFG"
 	DEFB	"HIJKLMNO"
@@ -2417,6 +2427,7 @@ KEYENTRY3:
 ;
 ; ----------------------------------------------------------------------
 ; 3125 - Keyboard Rows 4-6, Shifted, Caps Lock
+ASSERT $ == KEYLKUP + $E0, "Keyboard Row Loop Table Alignment with KEYLKUP"
 ; ----------------------------------------------------------------------
 	DEFB	0, "!", DQUOTE, "#$%&", SQUOTE
 	DEFB	"()*+<=>?"
@@ -2471,7 +2482,7 @@ SLOWTIM3:
 	djnz 	SLOWTIM3	;31ba - delay
 	ret			;31bc
 ;
-; PART anouther routine
+; PART another routine
 NOGOOD2:
 	ld 	hl,NOOKCS	;31bd - NOTE: 2CA5H is the ?BAD? message string.
 ;
@@ -3525,7 +3536,11 @@ INITR:
 	jp 	JT_INTHAND	;4012 (mRST7) - RST 38H (Interrupt)
 ;
 ; ----------------------------------------------------------------------
-; Default Device Control Blocks
+; 36BF - 36F8 - Default Device Control Blocks
+;   NOTE: This is referenced directly in code from $0452
+;     (not jump table), thus should keep aligned for compatibility
+;
+ASSERT $ = $36BF, "Compatibility called directly from $0452"
 ; ----------------------------------------------------------------------
 KEYDCB:
 ;
@@ -3572,15 +3587,14 @@ KEYDCB:
 	jp 	INT2INVOKE	; 4046 (IVECT8) - Interrupt Vector 2 - JP 35A9H
 	rst 0			; 4049 (NMIVEC) - RST 0 NMI Vector (Reset If So)
 	nop
-;
-; ----------------------------------------------------------------------
-; 36F5H 36F8 - UNUSED
-; ----------------------------------------------------------------------
-;
 	DEFB	0, 0, 0, 0	;36f5 - 36f8 -- UNUSED
 ;
 ; ----------------------------------------------------------------------
 ; 36F9H - Initial Vectors and DCBs for RAM 41E5H-4224H.
+;   NOTE: This is referenced directly in code from $045D
+;     (not jump table), thus should keep aligned for compatibility
+;
+ASSERT $ = $36F9, "Compatibility called directly from $045D"
 ; ----------------------------------------------------------------------
 ;
 SERDCB:
@@ -3794,6 +3808,10 @@ VERNUM:
 ;
 ; ----------------------------------------------------------------------
 ; 37EBH - Display the Copyright Message
+;   NOTE: This is referenced directly in code from $00FF
+;     (not jump table), thus should keep aligned for compatibility
+;
+ASSERT $ = $37EB, "Compatibility called directly from $00FF"
 ; ----------------------------------------------------------------------
 COPYWR:
 	; On Entry HL equals HDGMSG --- Message 'Radio Shack Model III Basic'
