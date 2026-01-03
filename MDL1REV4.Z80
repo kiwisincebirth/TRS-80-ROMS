@@ -22,7 +22,7 @@
 #DEFINE BUGFIX1 ; Fix Error 1 - 04F6H - 32 Character Mode Line Length
 #DEFINE BUGFIX5 ; Fix Error 5 - 08A7H - INT(DoubleValue) rounding
 #DEFINE BUGFIX7 ; Fix Error 7 - 0EF2H - Space after Type declaration Tag
-#DEFINE BUGFIX7C ; Fix Error 7C - 213DH - ???
+#DEFINE BUGFIX7C ; Fix Error 7C - 213DH - Space after TAB keyword
 #DEFINE BUGFIX8 ; Fix Error 8 - 1009H - PRINT USING, - sign at end of field
 ;
 ; Rom Additional Features
@@ -643,14 +643,12 @@ CWRTON: call	CTON		;0284
 #IFDEF BUGFIX1
 ;
 DSPLINLTH:
-	out	(vidcmt),a	; Continue from called code setting the HW register
+	ld	a,(CAST)	; get shadow copy of Cassette port
 	and	CAST32		; check if 32 char mode
 	ld	a,64		; assume 64 line length
-	jr	z,DSPLINLTH1	; Jump if 64
-	ld	a,32		; set 32 line length
-DSPLINLTH1:
-	ld	(LINLEN),a	; update line length register
-	ret
+	ret	z		; flag not set so return the 64
+	srl	a		; set 32 line length
+	ret			; and return it.
 ;
 ; ----------------------------------------------------------------------
 	DEFC 	BUGFIX1_ENABLED = 1
@@ -658,7 +656,6 @@ DSPLINLTH1:
 	DEFC 	BUGFIX1_BYTES = $ - DSPLINLTH
 	PUBLIC 	BUGFIX1_BYTES
 #ENDIF
-
 ; ----------------------------------------------------------------------
 ; BUGFIX7 - Space after Type declaration Tag
 ; ----------------------------------------------------------------------
@@ -678,15 +675,18 @@ INFINEFIX:
 	PUBLIC 	BUGFIX7_BYTES
 #ENDIF
 ;
+; ----------------------------------------------------------------------
+; BUGFIX7C - Space after TAB keyword
+; ----------------------------------------------------------------------
+;
 #IFDEF BUGFIX7C
 ;
 TABERFIX:
-	GETCHR			; get next char
+	GETCHR			; get next char - RST 10
 	cp	')'		; if close bracket
-	jr	z, TABERFIX2:	; found closing bracket, continue normally
+	ret	z		; found closing bracket, continue normally
 	dec	hl		; not a closing bracket, so DONT consume it.
-TABERFIX2:
-	jp	TABERFIXCONTINUE
+	ret
 ; ----------------------------------------------------------------------
 	DEFC 	BUGFIX7C_ENABLED = 1
 	PUBLIC 	BUGFIX7C_ENABLED
@@ -1117,13 +1117,8 @@ DSPHOM:	ld	hl,vidmem	;04c0 - starting address of video memory
 	ld	a,(CAST)	;04c3 - Shadow of Cassette Port
 	and	~CAST32		;04c6 - turn off the 32 char mode bit
 	ld	(CAST),a	;04c8 - save shadow copy
-;
-#IFDEF BUGFIX1
-	jp	DSPLINLTH	;BUGFIX - Set vidcmt and update line length
-#ELSE
 	out	(vidcmt),a	;04cb - write to the cassette port
 	ret			;04cd
-#ENDIF
 ;
 ; ----------------------------------------------------------------------
 ; 04CEH – Backspace – “DSPBSP”
@@ -1174,21 +1169,15 @@ DSPUP:	ld   de,$10000-vidlin	;04f1 - negative video line length (-64)
 ; 04F6H – Set up 32-Character mode – “DSPETB”
 ; ----------------------------------------------------------------------
 DSPETB:
-	; NOTE: Code below was reorganised for compatibility with DSPLINLTH
+	ld	a,(CAST)	;04f6 - get shadow copy of Cassette port
+	or	CAST32		;04f9 - Set the 32 Char mode bit
+	ld	(CAST),a	;04fb - save shadow copy of cassette port
+	out	(vidcmt),a	;04fd - output setting the HW register
 	inc	hl		;0500 - Increment the current cursor position
 	ld	a,l		;0501 - get lower order byte
 	and	$FE		;0502 - mask out the LSB bit, not relevant for 32char
 	ld	l,a		;0504 - write it back to L, adjusting cursor position
-;
-	ld	a,(CAST)	;04f6 - get shadow copy of Cassette port
-	or	CAST32		;04f9 - Set the 32 Char mode bit
-	ld	(CAST),a	;04fb - save shadow copy of cassette port
-#IFDEF BUGFIX1
-	jp	DSPLINLTH	;BUGFIX - Set vidcmt and update line length
-#ELSE
-	out	(vidcmt),a	;04fd - output setting the HW register
 	ret			;0505
-#ENDIF
 ; ----------------------------------------------------------------------
 ; 0506H – Process control characters – “DSPCTL”
 ; ----------------------------------------------------------------------

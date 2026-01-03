@@ -6,6 +6,7 @@
 ;
 ; DEFINES USED INTERNALLY
 ;
+; BUGFIX1 - Dependancy on DSPLINLTH (provided externally)
 ; BUGFIX5 - No Dependancies
 ; BUGFIX7 - Dependancy on INFINEFIX (provided externally)
 ; BUGFIX7C - Dependancy on TABERFIX (provided externally)
@@ -5279,7 +5280,11 @@ PRINTD:	ld	a,(hl)		;20A5 Reload next element from code string
 ; ----------------------------------------------------------------------
 ;   Jumped here if we are sure we are using the display
 ; ----------------------------------------------------------------------
+#IFDEF BUGFIX1
+ISTTY:	call	DSPLINLTH	; get the line length into A from shadow Port
+#ELSE
 ISTTY:	ld	a,(LINLEN)	;20dd
+#ENDIF
 	ld	b,a		;20e0 - the video line size
 	ld	a,(TTYPOS)	;20e1 - current video line position
 	add	a,(hl)		;20e4 - Add the len of string to be displayed
@@ -5345,8 +5350,7 @@ TABER:	call	GTBYTC		;2137 - evaluate the tab number, and return with the result 
 ;
 	ld	e,a		;213c - E - number of tabs <= 127
 #IFDEF BUGFIX7C
-	JP	TABERFIX	;Fixed routine to consume the )
-TABERFIXCONTINUE:
+	call	TABERFIX	;Fixed routine to consume the )
 #ELSE
 	SYNTAX	(')')		;213d - rst 08h
 	dec	hl		;213f - decrement back, will consume latter
