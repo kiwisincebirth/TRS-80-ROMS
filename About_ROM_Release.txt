@@ -89,5 +89,5 @@ https://github.com/kiwisincebirth/TRS-80/blob/main/MODEL3.md
 
 Patches Included Are:
 * Lower Case Support with no character translation
-* Bug Fixes 5,8
+* Bug Fixes 1, 5, 7, 7C, 8
 * Bug Fixes 27, 28, 29, 30, 31, 40 (specific to Model 3)
