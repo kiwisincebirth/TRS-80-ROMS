@@ -10,23 +10,18 @@ Affect both Model 1 and Model 3 See -
 When BASIC prints an unformatted number, BASIC prints keeps the number on one video,
 line. However, in the 32 character mode the rule is violated.
 
-#### Resolution
-
-The issue is caused because the variable LINLEN (stored at $409D) - holds the number of 
-characters per line - is never updated when entering 32 character mode, it remains at 64, 
+The issue is caused because the variable `LINLEN` (stored at $409D) - holds the number of
+characters per line - is never updated when entering 32 character mode, it remains at 64,
 so routines that use this variable, will be affected.
 
-The fix requires this variable to be updated when entering ($04F6) and exiting ($04C0) 
-32 character mode. These routines will include the instruction  `out (vidcmt),a` which 
-is updating the hardware register (IO port $FF) that controls 32 character mode.
+The updating of `LINLEN` was investigated, but this was incompatible with TRSDOS on the Model 3 which
+used this memory space for other purposes, only initializing it when launching Basic.
 
-Replacing the last two instructions 
+#### Resolution
 
-```
-out	(vidcmt),a
-ret
-```
+The fix requires ignores teh `LINLEN` variable, instead derives it from the shadow cassette port.
 
+The instruction at `ld	a,(LINLEN)` at address $20DD needs to be replaced with a 
 with a `JP DSPLINLTH` (below) fixes the issue.
 
 Noting for one of the routines ($04F6) the order of instructions has to be modified 
@@ -37,23 +32,26 @@ The new routine being jumped to is.
 
 ```
 DSPLINLTH:
-	out	(vidcmt),a	; Continue from called code setting the HW register
+	ld	a,(CAST)	; get shadow copy of Cassette port
 	and	CAST32		; check if 32 char mode
 	ld	a,64		; assume 64 line length
-	jr	z,DSPLINLTH1	; Jump if 64
-	ld	a,32		; set 32 line length
-DSPLINLTH1:
-	ld	(LINLEN),a	; update line length register
-	ret
+	ret	z		    ; flag not set so return the 64
+	srl	a		    ; set 32 line length
+	ret			    ; and return it.
 ```
 
-This fix requires 14 bytes 
+On the Model 3 the fix is almost identical except the shadow control port is `SHADEC`
+($4210) and the mask used is `SHADM32` ($04)
 
-Test Program -> Should display number without breaks
+This fix requires 11 bytes.
+
+#### Test Program
+
+The following test program should display numbers without line breaks
 
 ```
 10 CLS:PRINT CHR$(23);
-20 FOR X = 12345 TO 12350:PRINT X;:NEXT
+20 FOR X = 12345 TO 12360:PRINT X;:NEXT
 ```
 
 ### Error 5 - INT(DoubleValue) rounding issue
@@ -87,11 +85,9 @@ Replacing the following code ($0EF2)
 INFINE:	inc	hl
 		jr	FINE	
 ```
-With
-```
-INFINE:	JP	INFINEFIX
-```
-And adding a new routine 
+
+With the instruction `jp INFINEFIX` which jumps to the following routine
+
 ```
 INFINEFIX:
 	inc	hl		; next program byte
@@ -100,9 +96,11 @@ INFINEFIX:
 	jp 	nz,FINE		; NO - Exit and Continue
 	jr	INFINEFIX	; loop around
 ```
-This requires about 9 extra bytes
+The fix requires 9 extra bytes
 
-Test Program -> Should consistently display a single result - regardless of the spaces
+#### Test Program
+
+The following test program should consistently display a single result - regardless of the spaces
 
 ```
 5 N=3
@@ -177,7 +175,9 @@ TABERFIX:
     ret
 ```
 
-Test Program -> Should consistently display `Hello` tabbed by 10
+#### Test Program
+
+The following test program should consistently display `Hello` indented by 10 spaces
 
 ```
 10 REM Spaces between brackets

@@ -19,7 +19,10 @@
 ; #DEFINE VIDEO50 ; Uncomment to Enable 50Hz Video Support (RTC)
 ;
 ; Rom Bug Fixes
+; #DEFINE BUGFIX1  ; Uncomment to Fix Error 1 - 0573H - 32 Character Mode Line Length
 ; #DEFINE BUGFIX5  ; Uncomment to Fix Error 5 - 08A7H - INT(DoubleValue) rounding
+; #DEFINE BUGFIX7  ; Uncomment to Fix Error 7 - 0EF2H - Space after Type declaration Tag
+; #DEFINE BUGFIX7C ; Uncomment to Fix Error 7C - 213DH - Space after TAB keyword
 ; #DEFINE BUGFIX8  ; Uncomment to Fix Error 8 - 1009H - PRINT USING, - sign at end of field
 ; #DEFINE BUGFIX27 ; Uncomment to Fix Error 27, 29, 31 - 0072H - Basic Entry 06CCh.
 ; #DEFINE BUGFIX28 ; Uncomment to Fix Error 28 - 02B5H - Stack Init
@@ -35,12 +38,25 @@
 #IFDEF PATCH
   ; USED BY AUTOMATED BUILD
   ; TO DEFINE PATCH FEATURES
+  #DEFINE BUGFIX1
   #DEFINE BUGFIX5
+  #DEFINE BUGFIX7
+  #DEFINE BUGFIX7C
   #DEFINE BUGFIX8
   #DEFINE BUGFIX27
   #DEFINE BUGFIX28
   #DEFINE BUGFIX30
   #DEFINE BUGFIX40
+#ENDIF
+;
+#IFDEF BUGFIX1
+  #DEFINE EXTRA_SPACE
+#ELIFDEF BUGFIX7
+  #DEFINE EXTRA_SPACE
+#ELIFDEF BUGFIX7C
+  #DEFINE EXTRA_SPACE
+#ELIFDEF BUGFIX27
+  #DEFINE EXTRA_SPACE
 #ENDIF
 ;
 ; ======================================================================
@@ -473,35 +489,14 @@ USEDEF:	dec	hl		;00e7 - minus 1
 	jp	READY		;0102 - UNUSED - A hangover from Model 1
 ;
 ; ----------------------------------------------------------------------
-; 0105H-011BH – MESSAGE STORAGE
-;   Note: Starts at 0113H if FreHD has been defined
+; 0105H-012CH – MESSAGE STORAGE
 ; ----------------------------------------------------------------------
 ;
-#IFDEF BUGFIX27
-;
-; Messages compacted to save space
-;
-MEMMSG:	DEFB	"Mem Size",0		   		; Memory Size Message
-HDGMSG:	DEFB	"R/S M3 Basic",$0D			; RS L2 Basic
-	DEFB	0, 0, 0, 0, 0, 0			; UNUSED PADDING
-;
-; Untokenize Code Moved here to allow reinstatement of the missing 0677 Entry Point
-;
-UNTOKEN5A:			; Original Code MOVED here
-	cp 	'E'		;06c9 - Test for an E
-	ret 	nz		;06cb - no then Skip
-	dec 	bc		;06cc
-	ld 	a,(bc)		;06cd - get 1 character back
-	cp 	'R'		;06ce - Test for an R
-	ret 	nz		;06d0 - no then Skip
-	dec 	bc		;06d1
-	JP	UNTOKEN5B	; JMP back to Untokenize
-;
-#ELSE
-;
 MEMMSG:	DEFB	"Memory Size",0		   		; Memory Size Message
+#IFDEF PATCH
+HDGMSG:	DEFB	"R/S Model III BASIC Rev 1.4",$0D	; RS L2 Basic
+#ELSE
 HDGMSG:	DEFB	"Radio Shack Model III Basic",$0D	; RS L2 Basic
-;
 #ENDIF
 ;
 ; ----------------------------------------------------------------------
@@ -1170,24 +1165,29 @@ PRTDRV2:
 	cp	$80		;03e5 - is it a graphic
 	jr 	nc,PRTDRV6	;03e7 - handle the graphics character.
 ;
+#IFDEF EXTRA_SPACE
+;
+; Remove use of PRTABLE translation table, freeing 96 bytes
+;
+ 	cp    	BQUOTE		; is it a back quote
+ 	jr    	nz,PRTDRV5	; no just print it, C already contains the char
+ 	ld	c,'@'		; translate to '@'
+	jr	PRTDRV5		; print it
+	DEFS	($03F5 - $)	; fill - 4 bytes unused
+;
+#ELSE
+;
 ; Handle Translation of printed character using the Translation table
 ;
 	ld 	b,0		;03e9 - set MSB to 0
-	sub 	$20		;03eb - adjust A character to print table offset $20
+	sub 	SPACE		;03eb - adjust A character to print table offset $20
 	ld 	c,a		;03ed - load to C. BC now has character offset
 	ld 	hl,PRTABLE	;03ee - the printer character table
 	add 	hl,bc		;03f1 - add the offset
 	ld 	c,(hl)		;03f2 - load the print char
 	jr 	PRTDRV5		;03f3 - print it.
 ;
-; possible reimplementation of code above to remove PRTABLE, freeing 96 bytes
-; which could be used for other fixes. See Notes at 3145
-;
-; 	CP    	$60		; is it a back quote
-; 	JR    	NZ,PRTDRV5	; no just print it
-; 	LD	c,$40		; translate to '@'
-;	JR	PRTDRV5		; print it
-;	DEFB	0, 0, 0, 0	; four NOP fillers
+#ENDIF
 ;
 PRTCR:
 	ld 	a,(ix+5)	;03f5 - num chars printer
@@ -1884,8 +1884,7 @@ RESETR:				; The 06CC BASIC Entry Point
 	ld	bc,STPRDY	;06cc - Address of
 	jp	ERESET		;06cf - Jumps to 19AE
 UNTOKEN5B:
-	DEFC 	BUGFIX27_ENABLED = 1
-	PUBLIC 	BUGFIX27_ENABLED
+;
 #ELSE
 	cp 	'E'		;06c9 - Test for an E
 	ret 	nz		;06cb - no then Skip
@@ -2242,6 +2241,8 @@ ASSERT $ == $2FFB, "Segment: Continuation at $2FFB"
 ;
 ; ======================================================================
 ;
+ASSERT $ == $3000, "Segment: Jump Table at $3000"
+;
 ; JUMP TABLE
 ;
 JT_SLOWWR:
@@ -2283,6 +2284,7 @@ JT_DATTIM:
 ;
 ; ----------------------------------------------------------------------
 ; 3039 - NMI HANDLER ENTRY POINT
+;   This Address is effectively the Last Entry in the Jump Table!
 ; ----------------------------------------------------------------------
 NMIENTRY:
 	in 	a,(nonmask)	;3039 - Read the Non-Maskable Interrupt Latch.
@@ -2315,6 +2317,8 @@ GETVERSION:
 ;
 ; NOTE: The use of this (and following) is dependant on positon
 ; Calculated from the First Table located at $3045 adding $20 byte offsets
+;
+ASSERT $ == KEYLKUP + $20, "Keyboard Row Loop Table Alignment with KEYLKUP"
 ; ----------------------------------------------------------------------
 	DEFB	"01234567"
 	DEFB	"89:;,-./"
@@ -2331,6 +2335,7 @@ RPTDLY15:
 ;
 ; ----------------------------------------------------------------------
 ; 3085 - Keyboard Rows 0-3, shifted, No Caps Lock
+ASSERT $ == KEYLKUP + $40, "Keyboard Row Loop Table Alignment with KEYLKUP"
 ; ----------------------------------------------------------------------
 	DEFB	BQUOTE, "ABCDEFG"
 	DEFB	"HIJKLMNO"
@@ -2350,6 +2355,7 @@ CAPSLOCK3:
 ;
 ; ----------------------------------------------------------------------
 ; 30A5 - Keyboard Rows 4-6, shifted, No Caps Lock.
+ASSERT $ == KEYLKUP + $60, "Keyboard Row Loop Table Alignment with KEYLKUP"
 ; ----------------------------------------------------------------------
 	DEFB	$00, "!", DQUOTE, "#$%&", SQUOTE
 	DEFB	"()*+<=>?"
@@ -2366,6 +2372,7 @@ CAPSLOCK:
 ;
 ; ----------------------------------------------------------------------
 ; 30C5 - Keyboard Rows 0-3, UN shifted, Caps Lock.
+ASSERT $ == KEYLKUP + $80, "Keyboard Row Loop Table Alignment with KEYLKUP"
 ; ----------------------------------------------------------------------
 	DEFB	"@ABCDEFG"
 	DEFB	"HIJKLMNO"
@@ -2382,6 +2389,7 @@ PRSCN_ALT:
 ;
 ; ----------------------------------------------------------------------
 ; 30E5 - Keyboard Rows 4-6, UNshifted, Caps Lock
+ASSERT $ == KEYLKUP + $A0, "Keyboard Row Loop Table Alignment with KEYLKUP"
 ; ----------------------------------------------------------------------
 	DEFB	"01234567"
 	DEFB	"89:;,-./"
@@ -2400,6 +2408,7 @@ KEYPRESS8:
 ;
 ; ----------------------------------------------------------------------
 ; 3105 - Keyboard Rows 0-3, shifted, Caps Lock
+ASSERT $ == KEYLKUP + $C0, "Keyboard Row Loop Table Alignment with KEYLKUP"
 ; ----------------------------------------------------------------------
 	DEFB	BQUOTE, "ABCDEFG"
 	DEFB	"HIJKLMNO"
@@ -2417,6 +2426,7 @@ KEYENTRY3:
 ;
 ; ----------------------------------------------------------------------
 ; 3125 - Keyboard Rows 4-6, Shifted, Caps Lock
+ASSERT $ == KEYLKUP + $E0, "Keyboard Row Loop Table Alignment with KEYLKUP"
 ; ----------------------------------------------------------------------
 	DEFB	0, "!", DQUOTE, "#$%&", SQUOTE
 	DEFB	"()*+<=>?"
@@ -2433,6 +2443,94 @@ KEYENTRY4:
 	ret			;3144
 ;
 ; ----------------------------------------------------------------------
+#IFDEF EXTRA_SPACE
+;
+; ----------------------------------------------------------------------
+; BUGFIX1 - 32 Character Mode Line Length fixed
+; ----------------------------------------------------------------------
+#IFDEF BUGFIX1
+;
+DSPLINLTH:
+	ld	a,(SHADEC)	; get shadow copy of Cassette port
+	and	SHADM32		; check if 32 char mode
+	ld	a,64		; assume 64 line length
+	ret	z		; flag not set so return the 64
+	srl	a		; set 32 line length
+	ret			; and return it.
+;
+	DEFC 	BUGFIX1_ENABLED = 1
+	PUBLIC 	BUGFIX1_ENABLED
+	DEFC 	BUGFIX1_BYTES = $ - DSPLINLTH
+	PUBLIC 	BUGFIX1_BYTES
+#ENDIF
+;
+; ----------------------------------------------------------------------
+; BUGFIX7 - Space after Type declaration Tag
+; ----------------------------------------------------------------------
+;
+#IFDEF BUGFIX7
+;
+INFINEFIX:
+	inc	hl		; next program byte
+	ld	a,(hl)		; get program byte
+	cp	SPACE		; Is it a space
+	jp 	nz,FINE		; NOT - Continue (return)
+	jr	INFINEFIX	; loop around
+; ----------------------------------------------------------------------
+	DEFC 	BUGFIX7_ENABLED = 1
+	PUBLIC 	BUGFIX7_ENABLED
+	DEFC 	BUGFIX7_BYTES = $ - INFINEFIX
+	PUBLIC 	BUGFIX7_BYTES
+#ENDIF
+;
+; ----------------------------------------------------------------------
+; BUGFIX7C - Space after TAB keyword
+; ----------------------------------------------------------------------
+;
+#IFDEF BUGFIX7C
+;
+TABERFIX:
+	GETCHR			; get next char - RST 10
+	cp	')'		; if close bracket
+	ret	z		; found closing bracket, continue normally
+	dec	hl		; not a closing bracket, so DONT consume it.
+	ret
+; ----------------------------------------------------------------------
+	DEFC 	BUGFIX7C_ENABLED = 1
+	PUBLIC 	BUGFIX7C_ENABLED
+	DEFC 	BUGFIX7C_BYTES = $ - TABERFIX
+	PUBLIC 	BUGFIX7C_BYTES
+#ENDIF
+;
+; ----------------------------------------------------------------------
+; BUGFIX27 Untokenize Code Moved here to allow reinstatement of the missing 0677 Entry Point
+; ----------------------------------------------------------------------
+#IFDEF BUGFIX27
+;
+UNTOKEN5A:			; Original Code MOVED here
+	cp 	'E'		;06c9 - Test for an E
+	ret 	nz		;06cb - no then Skip
+	dec 	bc		;06cc
+	ld 	a,(bc)		;06cd - get 1 character back
+	cp 	'R'		;06ce - Test for an R
+	ret 	nz		;06d0 - no then Skip
+	dec 	bc		;06d1
+	JP	UNTOKEN5B	; JMP back to Untokenize
+;
+	DEFC 	BUGFIX27_ENABLED = 1
+	PUBLIC 	BUGFIX27_ENABLED
+	DEFC 	BUGFIX27_BYTES = $ - UNTOKEN5A
+	PUBLIC 	BUGFIX27_BYTES
+#ENDIF
+;
+; ======================================================================
+	DEFC	R1FREE	= $31A5 - $
+	PUBLIC	R1FREE
+	DEFS	$31A5 - $
+; ======================================================================
+;
+#ELSE
+; ----------------------------------------------------------------------
 ; 3145 - Printer Character Translation Table of ASCII codes 32-127.
 ; ----------------------------------------------------------------------
 PRTABLE:
@@ -2442,10 +2540,8 @@ PRTABLE:
 	DEFB	$50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $5A, $5B, $5C, $5D, $5E, $5F
 	DEFB	$40, $61, $62, $63, $64, $65, $66, $67, $68, $69, $6A, $6B, $6C, $6D, $6E, $6F
 	DEFB	$70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $7A, $7B, $7C, $7D, $7E, $7F
-	;
-	; NOTE: The above translation only affect $60 BQUOTE -> $40 @
-	; NOTE: Could be reimplemented without this table, saving 96 bytes
-	; NOTE: See 03EE for the use of this table, and possible reimplementation
+; ----------------------------------------------------------------------
+#ENDIF
 ;
 ; ======================================================================
 ; CASSETTE ROUTINES
@@ -2471,7 +2567,7 @@ SLOWTIM3:
 	djnz 	SLOWTIM3	;31ba - delay
 	ret			;31bc
 ;
-; PART anouther routine
+; PART another routine
 NOGOOD2:
 	ld 	hl,NOOKCS	;31bd - NOTE: 2CA5H is the ?BAD? message string.
 ;
@@ -3525,7 +3621,11 @@ INITR:
 	jp 	JT_INTHAND	;4012 (mRST7) - RST 38H (Interrupt)
 ;
 ; ----------------------------------------------------------------------
-; Default Device Control Blocks
+; 36BF - 36F8 - Default Device Control Blocks
+;   NOTE: This is referenced directly in code from $0452
+;     (not jump table), thus should keep aligned for compatibility
+;
+ASSERT $ = $36BF, "Compatibility called directly from $0452"
 ; ----------------------------------------------------------------------
 KEYDCB:
 ;
@@ -3572,15 +3672,14 @@ KEYDCB:
 	jp 	INT2INVOKE	; 4046 (IVECT8) - Interrupt Vector 2 - JP 35A9H
 	rst 0			; 4049 (NMIVEC) - RST 0 NMI Vector (Reset If So)
 	nop
-;
-; ----------------------------------------------------------------------
-; 36F5H 36F8 - UNUSED
-; ----------------------------------------------------------------------
-;
 	DEFB	0, 0, 0, 0	;36f5 - 36f8 -- UNUSED
 ;
 ; ----------------------------------------------------------------------
 ; 36F9H - Initial Vectors and DCBs for RAM 41E5H-4224H.
+;   NOTE: This is referenced directly in code from $045D
+;     (not jump table), thus should keep aligned for compatibility
+;
+ASSERT $ = $36F9, "Compatibility called directly from $045D"
 ; ----------------------------------------------------------------------
 ;
 SERDCB:
@@ -3794,6 +3893,10 @@ VERNUM:
 ;
 ; ----------------------------------------------------------------------
 ; 37EBH - Display the Copyright Message
+;   NOTE: This is referenced directly in code from $00FF
+;     (not jump table), thus should keep aligned for compatibility
+;
+ASSERT $ = $37EB, "Compatibility called directly from $00FF"
 ; ----------------------------------------------------------------------
 COPYWR:
 	; On Entry HL equals HDGMSG --- Message 'Radio Shack Model III Basic'
@@ -3813,6 +3916,13 @@ CASMSG:
 ;
 ; ======================================================================
 ;                END OF CODE
+; ======================================================================
+;
+; Report Free Memory
+#IFDEF EXTRA_SPACE
+	DEFC	TOTFREE = R1FREE
+	PUBLIC	TOTFREE
+#ENDIF
 ; ======================================================================
 ;
 ; PADDING to create 16KB ROM Image, to allow append multiple
