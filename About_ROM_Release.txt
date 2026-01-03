@@ -88,6 +88,5 @@ https://github.com/kiwisincebirth/TRS-80/blob/main/MODEL3.md
 | MDL3F5.bin | Model 3 - FreHd Patched 50Hz | model3f50   | FREHDBT PATCH VIDEO50 |
 
 Patches Included Are:
-* Lower Case Support with no character translation
 * Bug Fixes 1, 5, 7, 7C, 8
 * Bug Fixes 27, 28, 29, 30, 31, 40 (specific to Model 3)
