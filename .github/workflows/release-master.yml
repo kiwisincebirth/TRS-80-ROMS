@@ -34,7 +34,7 @@ jobs:
 
       - name: Create Package Archive
         run: |
-          tar cvf TRS-80-${{github.ref_name}}-ROM-Images.tar *.txt *.bin *.md
+          tar cvf TRS-80-${{github.ref_name}}-ROM-Images.tar *.txt *.bin
 
       # https://github.com/marketplace/actions/automatic-releases
       - name: Attach Package Archive
@@ -42,8 +42,9 @@ jobs:
         with:
           repo_token: "${{secrets.GITHUB_TOKEN}}"
           draft: true
-          prerelease: true
-          automatic_release_tag: "latest"
-          title: "Build-${{github.ref_name}}"
+          prerelease: false
+          automatic_release_tag: "v${{github.ref_name}}"
+          title: "Release V${{github.ref_name}}"
           files: |
             *.tar
+            *.txt
