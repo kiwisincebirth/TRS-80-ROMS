@@ -75,3 +75,9 @@ model3frehd:
 
 clean:
 	@rm -f *.bin *.def *.lis *.map *.o *.sym
+
+# ===============================================
+
+frehdboot:
+	@echo "Generating Model 1 - Rev 1.3 FreHD"
+	@${Z80ASM} -oFREHDBOOT.bin FREHDBOOT.Z80

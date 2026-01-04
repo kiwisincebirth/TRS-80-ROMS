@@ -145,11 +145,10 @@ DEFC	SYSSTK	= RAM+$288	; Stack address usd by SYSTEM command
 _START:
 rst00:	di			;0000
 	xor	a		;0001
-#IFNDEF EXTBOOT
-	jp	INIT		;0002
+#IFDEF EXTBOOT
+	jp	JT_BOOTS	;0002 - perform alternate system bootstrap
 #ELSE
-	jp	BOOTSTRAP	;0002 - perform alternate system bootstrap
-	; Suggest using "M3" convention of JP vector at 3015H (future)
+	jp	INIT		;0002
 #ENDIF
 ;
 ; The BDOS (Basic Disk Operating System) entry point address in most CP/M systems
@@ -509,11 +508,10 @@ USEDEF:	dec	hl		;00e7 - minus 1
 	add	hl,de		;00f5 - subtract 32 bytes from the memory size
 	ld	(STKTOP),hl	;00f6 - start of string space pointer MEMSIZE-32
 ;
-#IFNDEF POSTBASIC
-	call	SCRTCH		;00f9 - init the Level II variables and pointers
+#IFDEF POSTBASIC
+	jp	FINBASIC	; Call to Finalise Basic Startup.
 #ELSE
-	call	FINBASIC	; Call to Finalise Basic Startup.
-	; FINBASIC routine should JP SCRTCH to complete.
+	call	SCRTCH		;00f9 - init the Level II variables and pointers
 #ENDIF
 ;
 #IFNDEF FREHDBT
