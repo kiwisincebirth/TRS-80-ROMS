@@ -27,6 +27,20 @@ jobs:
           sudo snap alias z88dk.z88dk-z80asm z88dk-z80asm
           make
 
+      - name: Create Package Archive
+        run: |
+          tar cvf TRS-80-${{github.run_number}}-ROM-Images.tar *.txt *.bin
+
+      # Capture artifacts
+      - name: Archive Release Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          retention-days: 30
+          path: |
+            *.tar
+            *.txt
+
       - name: Minor version for each master merge
         uses: anothrNick/github-tag-action@1.64.0
         env:
