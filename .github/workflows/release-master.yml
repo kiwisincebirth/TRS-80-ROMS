@@ -43,7 +43,7 @@ jobs:
           repo_token: "${{secrets.GITHUB_TOKEN}}"
           draft: true
           prerelease: false
-          automatic_release_tag: "${{github.run_number}}"
+          automatic_release_tag: "release${{github.run_number}}"
           title: "Release ${{github.run_number}}"
           files: |
             *.tar
