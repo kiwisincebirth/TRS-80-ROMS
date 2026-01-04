@@ -7,37 +7,32 @@ Affect both Model 1 and Model 3 See -
 
 ### Error 1 - Line breaks printing numbers in 32 Char Mode
 
-When BASIC prints an unformatted number, BASIC prints keeps the number on one video,
+When BASIC prints an unformatted number, it keeps the number on one video,
 line. However, in the 32 character mode the rule is violated.
 
-The issue is caused because the variable `LINLEN` (stored at $409D) - holds the number of
-characters per line - is never updated when entering 32 character mode, it remains at 64,
-so routines that use this variable, will be affected.
+The issue is caused because the variable `LINLEN` ($409D) - which holds the number of
+characters per line - is never updated. When entering 32 character mode it retains the value 64.
+Thus routines that use this variable, will be affected.
 
 The updating of `LINLEN` was investigated, but this was incompatible with TRSDOS on the Model 3 which
-used this memory space for other purposes, only initializing it when launching Basic.
+used this memory space for other purposes, only initializing it when launching BASIC.
 
 #### Resolution
 
-The fix requires ignores teh `LINLEN` variable, instead derives it from the shadow cassette port.
+The fix requires ignores the `LINLEN` variable, instead derives it from the shadow cassette port.
 
-The instruction at `ld	a,(LINLEN)` at address $20DD needs to be replaced with a 
-with a `JP DSPLINLTH` (below) fixes the issue.
-
-Noting for one of the routines ($04F6) the order of instructions has to be modified 
-so the last 2 instruction match those above. This was easy enough to do, since the 
-other instructions ($0500-$0504) being moved are independent 
-
-The new routine being jumped to is.
+The instruction at `ld a,(LINLEN)` at address $20DD needs to be replaced with a 
+`call DSPLINLTH` (below) to get the correct line length, this fixes the issue.
+The new routine being called is.
 
 ```
 DSPLINLTH:
-	ld	a,(CAST)	; get shadow copy of Cassette port
-	and	CAST32		; check if 32 char mode
-	ld	a,64		; assume 64 line length
-	ret	z		    ; flag not set so return the 64
-	srl	a		    ; set 32 line length
-	ret			    ; and return it.
+    ld  a,(CAST)    ; get shadow copy of Cassette port
+    and CAST32      ; check if 32 char mode
+    ld  a,64        ; assume 64 line length
+    ret z           ; flag not set so return the 64
+    srl a           ; set 32 line length
+    ret             ; and return it.
 ```
 
 On the Model 3 the fix is almost identical except the shadow control port is `SHADEC`
@@ -56,14 +51,14 @@ The following test program should display numbers without line breaks
 
 ### Error 5 - INT(DoubleValue) rounding issue
 
-EXPECTATION: INT(value) should produce a result equal to or less than value.
+INT(value) should produce a result equal to or less than value.
 However, if the value is double-precision (by definition), the ROM rounds value
 to single-precision first, then performs the INT function. e.g.
 
 ```
 PRINT INT(2.9999999) 
 ```
-Produces `3` instead of `2`.
+Produces `3` instead of `2`, because single precision rounding, rounds up.
 
 #### Resolution
 
@@ -71,7 +66,7 @@ Address 08A7 change `CALL NC,CONSD` to `NOP`'s
 
 ### Error 7 - Space after Type declaration Tag
 
-In Basic spaces have no significance (except in messages to be printed).
+In BASIC spaces have no significance (except in messages to be printed).
 When processing a statement with a type declaration tag after a number and a space before :
 * 7A - An add or subtract -> the operator is applied as a unary operator for next argument
 * 7B - A multiply or divide -> Syntax error.
@@ -82,19 +77,20 @@ Modify the ROM to skip spaces after consuming the suffix, advancing HL past them
 Replacing the following code ($0EF2)
 
 ```
-INFINE:	inc	hl
-		jr	FINE	
+INFINE:
+    inc hl
+    jr  FINE
 ```
 
 With the instruction `jp INFINEFIX` which jumps to the following routine
 
 ```
 INFINEFIX:
-	inc	hl		; next program byte
-	ld	a,(hl)		; get program byte
-	cp	SPACE		; Is it a space
-	jp 	nz,FINE		; NO - Exit and Continue
-	jr	INFINEFIX	; loop around
+    inc hl          ; next program byte
+    ld  a,(hl)      ; get program byte
+    cp  SPACE       ; Is it a space
+    jp  nz,FINE     ; NO - Exit and Continue
+    jr  INFINEFIX   ; loop around
 ```
 The fix requires 9 extra bytes
 
@@ -124,7 +120,7 @@ The following test program should consistently display a single result - regardl
 
 ### Error 7C - Space after TAB declaration
 
-In Basic spaces have no significance (except in messages to be printed).
+In BASIC spaces have no significance (except in messages to be printed).
 When processing a statement with a type declaration tag after a number and a space before :
 * 7C - TAB( also suffers from the issue.
 
@@ -161,17 +157,17 @@ To do this the code
 
 ```
     SYNTAX  (')')   ;213d - rst 08h
-    dec	hl	        ;213f - decrement back, will consume latter
+    dec     hl      ;213f - decrement back, will consume latter
 ```
 
 needs to be replaced with a `CALL` to
 
 ```
 TABERFIX:
-    GETCHR  ; get next char RST 10
-    cp	')' ; if close bracket
-    ret z   ; found closing bracket, continue normally
-    dec	hl  ; not a closing bracket, so DONT consume it.
+    GETCHR      ; get next char RST 10
+    cp  ')'     ; if close bracket
+    ret z       ; found closing bracket, continue normally
+    dec hl      ; not a closing bracket, so DONT consume it.
     ret
 ```
 
@@ -229,15 +225,15 @@ point to BASIC from a machine language routine that moved the stack pointer.
 The routine resets the stack pointer to the last CLEAR n address
 
 ```
-LD  BC,1A18H
-JP  19AEH
+    ld  bc,1A18H
+    jp  19AEH
 ```
 
 The Model 3 does not have this routine, 06CCH is in the middle of the 
 Model 3's modified list routine. This causes compatibility issues 
 and additionally code itself in the ROM is incorrect
-* Bug 27 - Location 0072H: Instruction here is an incorrect `JP 06CCH` 
-* Bug 29 - Location 02C3H: Instruction here is an incorrect `JP 06CCH` 
+* Bug 27 - Location 0072H: Instruction here is an incorrect `jp 06CCH` 
+* Bug 29 - Location 02C3H: Instruction here is an incorrect `jp 06CCH` 
 
 In Model III BASIC, key SYSTEM ENTER then, at the *? prompt, press BREAK.
 If you do this, the system will crash and restart, and you will get the CASS prompt.
@@ -245,27 +241,27 @@ If you do this, the system will crash and restart, and you will get the CASS pro
 #### Resolution
 
 Re-implement (reinstate) the routine at 06CCH and code in this location 
-relocated. Currently this is moved to startup message **TODO* but this will change 
-in future, think this bug fix will move to Release 1.4
+relocated. By reinstating this code all other issues are resolved including any
+issues in "other" code that relies on this entry point.
 
-This fix requires 12 bytes
+This fix requires 12 bytes for the relocated code
 
 ### Error 28 - Stack Pointer Initialisation
 
-Instruction at 02B5H is LD SP,4288H. The instruction here was changed
-to LD SP,4388H because the Model III moved up the start of BASIC by 100H.
+Instruction at 02B5H is `LD SP,4288H`. The instruction here was changed
+to `LD SP,4388H` because the Model III moved up the start of BASIC by 100H.
 
 ### Error 30 - 32 Character Mode
 
-0348H: Instruction here is LD A,(403DH). 403DH is the code that
+0348H: Instruction here is `ld a,(403DH)`. 403DH is the code that
 is jumped to when port 0E0H has bit 3 reset (IOBUS interrupt).
 403DH was used in the Model I to hold an image of what was outputted
 to port 0FFH. If bit 3 of port 0FFH is set then the Model I is in the
 32 characters per line video mode. Another screw up.
 The Model III uses bit 2 of port 0ECH with image in 4210H.
 
-034BH: Instruction here is AND 08H. Wrong bit is tested. The correct
-instruction should be AND 04H. OP-ED: Once Radio Shack explained the
+034BH: Instruction here is `and 08H`. Wrong bit is tested. The correct
+instruction should be `and 04H`. OP-ED: Once Radio Shack explained the
 cursor movement when in the 32 characters per line video mode, Radio
 Shack did not fix the code. And, Radio Shack made Logical Systems modify
 TRSDOS 6 to behave the same way! However, with LSDOS 6.3, someone should

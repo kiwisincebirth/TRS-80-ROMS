@@ -14,6 +14,18 @@ Main Features
 * Both 1.3 and 1.2 versions, plus EACA clone hardware.
 * Several optional patches have been included via `#DEFINE`
 
+## Make Targets
+
+| Make Target | Description                        | File          | Assembler Defines    |
+|-------------|------------------------------------|---------------|----------------------|
+| model12     | Model 1 Rev 1.2 (Official)         | MDL1REV2.bin  | VER12                |
+| model13     | Model 1 Rev 1.3 (Official)         | MDL1REV3.bin  |                      |
+| model13f    | Model 1 Rev 1.3 - FreHD Patched    | MDL1REV3F.bin | FREHDBT PATCH        |
+| model13p    | Model 1 Rev 1.3 - Patched          | MDL1REV3P.bin | PATCH                |
+| eaca80      | Dick Smith System 80 (Official)    | EACA80.bin    | EACA80 VER12         |
+| eaca80f     | Dick Smith System 80 FreHd Patched | EACA80F.bin   | EACA80 FREHDBT PATCH |
+| eaca80p     | Dick Smith System 80 Patched       | EACA80P.bin   | EACA80 PATCH         |
+
 ## Build Options
 
 There are several `DEFINE`'s that can be set in the code (very start) to enable certain features.
@@ -41,6 +53,9 @@ There are several optional features.
 Bug Fixes can be applied
 * `#DEFINE BUGFIX5` - Fix Error 5 - 08A7H - INT(DoubleValue) rounding
 * `#DEFINE BUGFIX8` - Fix Error 8 - 1009H - PRINT USING, - sign at end of field
+
+  And the following grouped define
+* `#DEFINE PATCH` - Includes `NMIHARD`, `LOWCASE`, `BUGFIX5`, and `BUGFIX8`
 
 Some additional defines, which are build options rather than features
 * `#DEFINE SIZE16K` - Will pad the end of the rom with $FF to 16KB size. useful if want to append multiple ROM

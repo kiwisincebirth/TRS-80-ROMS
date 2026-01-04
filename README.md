@@ -1,30 +1,78 @@
 # TRS-80
 
-## Model I / III ROM Source Code
+## Description
 
 This repository contains well documented, well-structured Source Code for the Tandy TRS-80 line of computers.
-The source code has also been extended with optional `#DEFINE`'s to provide common customisation options.
+Since the actual source code has not been published (in its original form), this code is based
+of disassembly and significant documentation published over the years.
+* Provides TRS-80 Model 1 and Model 3 ROM source code
+* Based of disassembly, and publicly available documentation.
+* Supports EACA clone (aka Disk Smith System-80) hardware
+* Compiled and verified against official ROM images
+* Provides prebuilt ROM images for common configurations
+* Provides common enhancements to the ROM images
+* Provides Fixes known BUG's in the ROM images
+* Excellent level of source code quality  
+
+## Source Code
+
+### Model I / III ROM Source Code
+
+Source Code for the "official" ROM's for Tandy TRS-80 computers. These ROM's include options
+for improvements while maintaining backwards compatibility
 
 Two primary ROMS are available:
 * [Tandy TRS-80 Model 1 Level 2 BASIC ROM](./MODEL1.md)
 * [Tandy TRS-80 Model III Level 2 BASIC ROM](./MODEL3.md)
 
-And a third enhanced ROM
+### Extended Model 1 ROM Source Code
+
+Tandy released several versions of the Model 1 ROM, ending in Revision 1.3 released in 1980.
+The following provides a much **Enhanced** Model 1 ROM with features, fixes for modern enthusiasts.
+
+And a third **Enhanced** ROM
 * [Tandy TRS-80 Model 1 Level 2 BASIC ROM Rev 1.4](./MODEL1.4.md)
 
-### Motivation
+### Source Code Files
 
-I read a post asking why Model 1 BASIC hadn’t been ported to a modern hobbyist CP/M environment. Of course there are 
-many reasons why this has not been done but one of the issues is (after doing a search) I could not locate original 
-source code, which would be needed for such a port. I did locate several disassembles, but none we adequately 
+The following files are supplied:
+
+| File                 | Description                                            |
+|----------------------|--------------------------------------------------------|
+| CONSTANTS.Z80        | Included - Defines Constants used in Source Code       |
+| LEVEL2BASIC-0708.Z80 | Included - Shared Level 2 Basic Code starting at $0708 |
+| LEVEL2BASIC-2CA5.Z80 | Included - Shared Level 2 Basic Code starting at $2CA5 |
+| makefile             | make                                                   |
+| MDL1LEV2.Z80         | Model 1 Level 2 - Main source file                     |
+| MDL1REV4.Z80         | Model 1 Level 2 (Enhanced) - Main source file          |
+| MDL3LEV2.Z80         | Model 3 Level 2 - Main source file                     |
+
+### Building
+
+This source code is assembled with Z88DK. Please the seperate [Build Guide](BUILDING.md)
+
+*Previously assembly was with Telemark Assembler / UZ80AS*
+
+### Distribution
+
+Fully Built ROM files are available please see the
+[Releases](https://github.com/kiwisincebirth/TRS-80/releases) for the link to download
+
+## Background
+
+### Original Motivation
+
+I read a post asking why Model 1 BASIC hadn’t been ported to a modern hobbyist CP/M environment. Of course there are
+many reasons why this has not been done but one of the issues is (after doing a search) I could not locate original
+source code, which would be needed for such a port. I did locate several disassembles, but none we adequately
 complete, well formatted, or well documented
 
-I am unsure why the original source code has not been published (in its original form), since the ROM contents have 
+I am unsure why the original source code has not been published (in its original form), since the ROM contents have
 been very heavily documented over the years. However, this repository aims to address this.
 
-### Description
+### Source Code Improvements
 
-While originally based off a (low quality) disassembly, the following improvements have been made: 
+While originally based off a (low quality) disassembly, the following improvements have been made:
 * Replaced all disassembler generated labels with meaningful labels.
 * Ensured all jumps (JR and JP) reference valid code labels.
 * Replaced all $3xxx hardware references with `.EQU` definitions.
@@ -38,41 +86,6 @@ On the last point I was unaware of these optimisations until I worked on this co
 If you are interested search the code for `Trick` you will find cope optimisations
 that save a few bytes by allowing Jumps to the second byte of 2 byte instruction
 
-## Source Code
-
-See The following for details of source code including Build Options:
-* [Model 1 Build Options](./MODEL1.md)
-* [Model 1 Build Options Rev 1.4](./MODEL1.4.md)
-* [Model III Build Options](./MODEL3.md)
-
-### Compiling
-
-This source code is assembled with Z88DK. Please the seperate [Build Guide](BUILDING.md)
-
-*Previously assembly was with Telemark Assembler / UZ80AS*
-
-## Extensions
-
-### Model 1 - Modern Rev 1.4
-
-Tandy released several versions of the Model 1 ROM, ending in 
-Revision 1.3 released in 1980.
-The following provides an updated [Level 2 BASIC ROM Rev 1.4](./MODEL1.4.md)
-which has features, fixes for modern enthusiasts.
-
-### L2 Basic for CP/M
-
-I have created an implementation of Level 2 Basic that runs as an executable CP/M 2.2 (or greater). 
-
-Switch to the branch "cpmbasic" which takes this source code and you will find TBASIC.Z80 which will
-compile to a CP/M COM executable file. It is partially documented in the TBASIC.ASM file, it has many
-limitations but does work. 
-
-i.e. You do need to be careful though RAM starts at 3000H (not 4000H), so POKE's to what would normally be video
-RAM would easily corrupt your program. No attempt has been mad to address these issues. 
-
-It also includes the `LOAD filename.BAS` which will load a TRS-80 basic program from CP/M filesystem
-
 ## Fine Print
 
 ### Legal
@@ -85,6 +98,10 @@ the original authors.
 
 If you wish to improve the quality of this source code (better documentation) I  would be happy to accept Pull Requests,
 please ensure you test that the build works using Telemark Assembler.
+
+### Credits
+
+**TODO**
 
 ### References
 

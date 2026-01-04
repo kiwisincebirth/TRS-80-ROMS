@@ -1635,8 +1635,8 @@ PRTSTA_BROKEN:
 ;
 #IFDEF BUGFIX40
 	; Correctly read the printer status byte from Line Printer Port
-	nop
 	in 	a,(lineprt)	;05d1 - get printer status byte
+	nop
 	DEFC 	BUGFIX40_ENABLED = 1
 	PUBLIC 	BUGFIX40_ENABLED
 #ELSE
@@ -3606,6 +3606,8 @@ RS232OUT4:
 ; ----------------------------------------------------------------------
 ; 36AAH - 36BE - Initial Vectors and DCBs for RAM 4000H-404BH
 ; Copied into RAM during init code at 3445
+;
+ASSERT $ = $36AA, "General Alignment of this block with blocks below"
 ; ----------------------------------------------------------------------
 ;
 INITR:

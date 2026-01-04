@@ -24,11 +24,19 @@ Main Features
 
 Breaking Features
 * Cassette Support has been removed, in favour of newer features
+* See section [Cassette Support](#cassette-support) below for more details.
+
+## Make Targets
+
+| Make Target | Description                  | File             | Assembler Defines |
+|-------------|------------------------------|------------------|-------------------|
+| model14     | Model 1 Rev 1.4 (Enhanced)   | MDL1REV4.bin     |                   |
+| model14eaca | System 80 Rev 1.4 (Enhanced) | MDL1REV4EACA.bin | EACA80            |
 
 ## Build Options
 
 There are several `DEFINE`'s that can be set in the code (very start) to enable certain features.
-By default, all of these options are enabled (unless noted), and can individually be disabled. 
+By default, **ALL* of these options are enabled (unless OPTIONAL), and can individually be disabled. 
 
 There are several enhanced features:
 * `#DEFINE FREHDBT` - Enables the FreHD auto boot feature, i.e. the Auto boot ROM. This requires version 1.3

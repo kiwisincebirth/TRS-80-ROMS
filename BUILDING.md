@@ -69,7 +69,7 @@ listing of the assembled code. See the docs for more information
 Can be built by `make`
 
 To make a specific target below are some high level targets. For specific targets see
-the [List of ROM Targets](./_INCLUED-FILES.txt)
+the [List of ROM Targets](./About_Release.txt)
 
 | Target     | What is built            |
 |------------|--------------------------|
