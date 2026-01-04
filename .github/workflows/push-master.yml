@@ -1,0 +1,36 @@
+name: Build Main Workflow
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
+    push:
+      branches: [ "main" ]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Required for tag analysis
+
+      # Runs a set of commands using the runners shell
+      - name: Install z88dk and Assemble Code
+        run: |
+          sudo snap install z88dk --beta
+          sudo snap alias z88dk.z88dk-z80asm z88dk-z80asm
+          make
+
+      - name: Minor version for each master merge
+        uses: anothrNick/github-tag-action@1.64.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_PREFIX: "v"
+          DRY_RUN: false
+          DEFAULT_BUMP: minor

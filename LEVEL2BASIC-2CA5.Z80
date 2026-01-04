@@ -1,0 +1,652 @@
+; ======================================================================
+; Shared LEVEL2 BASIC code for TRS-80 MODEL 1 & MODEL 3
+; ======================================================================
+;
+ASSERT $ == $2CA5, "Segment: Level 2 Basic - Should start at $2CA5"
+;
+; ======================================================================
+;
+; ----------------------------------------------------------------------
+; 2CA5-2CA9 – MESSAGE STORAGE LOCATION – “NOOKCS”
+; ----------------------------------------------------------------------
+NOOKCS:	DEFB	"BAD"		;2ca5
+	DEFB	ENTER , $00	;2ca8
+;
+; ----------------------------------------------------------------------
+; 2CAA-2CB0 – LEVEL II BASIC PEEK ROUTINE – “PEEK”
+;   The original ROM source code says that PEEK only accepts positive
+;   numbers up to 32767 and POKE will only take an address up to 32767.
+;   Negative numbers can be used to refer to locations higher than 32767,
+;   the correspondence is given by subtracting 65536 from locations higher
+;   than 32767 or by specifying a positive number up to 65535
+; ----------------------------------------------------------------------
+PEEK:	call	FRCINT		;2caa - convert Value to Integer, HL contains LSB
+	ld	a,(hl)		;2cad - read memory location
+	jp	SNGFLT		;2cae - reuse some code to assign this to an unsigned int
+;
+; ----------------------------------------------------------------------
+; 2CB1-2CBC – LEVEL II BASIC POKE ROUTINE – “POKE”
+; ----------------------------------------------------------------------
+POKE:	call	GETIN2		;2cb1 - get integer address
+	push	de		;2cb4 - save integer address
+	SYNTAX	(',')		;2cb5 - rst 08h - check for comma
+	call	GETBYT		;2cb7 - get byte value to write
+	pop	de		;2cba - restore the address
+	ld	(de),a		;2cbb - perform the write of value to memory location
+	ret			;2cbc
+;
+; ----------------------------------------------------------------------
+; 2CBD-2E52 – LEVEL II BASIC USING ROUTINE – “PRINUS”
+;   The original ROM source code says that we wind up here after the “USING”
+;   clause in a PRINT statement is recognized. The idea is to scan the using
+;   string until the value list is exhausted, finding string and numeric
+;   fields to print values out of the list in, and just outputing any
+;   characters that aren’t part of a print field
+; ----------------------------------------------------------------------
+PRINUS:	call	FRMCHK		;2cbd
+	call	CHKSTR		;2cc0
+	SYNTAX	(SEMICO)	;2cc3 - rst 08h compare with semicolin ';'
+	ex	de,hl		;2cc5
+	ld	hl,(FACLO)	;2cc6
+	jr	INIUS		;2cc9
+REUSST:	ld	a,(FLGINP)	;2ccb
+	or	a		;2cce
+	jr	z,FCERR3	;2ccf
+	pop	de		;2cd1
+	ex	de,hl		;2cd2
+INIUS:	push	hl		;2cd3
+	xor	a		;2cd4
+	ld	(FLGINP),a	;2cd5
+	cp	d		;2cd8
+	push	af		;2cd9
+	push	de		;2cda
+	ld	b,(hl)		;2cdb
+	or	b		;2cdc
+FCERR3:	jp	z,FCERR		;2cdd
+	inc	hl		;2ce0
+	ld	c,(hl)		;2ce1
+	inc	hl		;2ce2
+	ld	h,(hl)		;2ce3
+	ld	l,c		;2ce4
+	jr	PRCCHR		;2ce5
+BGSTRF:	ld	e,b		;2ce7
+	push	hl		;2ce8
+	ld	c,$02		;2ce9
+LPSTRF:	ld	a,(hl)		;2ceb
+	inc	hl		;2cec
+	cp	'%'		;2ced
+	jp	z,ISSTRF	;2cef
+	cp	SPACE		;2cf2
+	jr	nz,NOSTRF	;2cf4
+	inc	c		;2cf6
+	djnz	LPSTRF		;2cf7
+;
+NOSTRF:	pop	hl		;2cf9
+	ld	b,e		;2cfa
+	ld	a,'%'		;2cfb
+;
+NEWUCH:	call	PLSPRT		;2cfd
+	call	OUTDO		;2d00
+PRCCHR:	xor	a		;2d03
+	ld	e,a		;2d04
+	ld	d,a		;2d05
+PLSFIN:	call	PLSPRT		;2d06
+	ld	d,a		;2d09
+	ld	a,(hl)		;2d0a
+	inc	hl		;2d0b
+	cp	'!'		;2d0c
+	jp	z,SMSTRF	;2d0e
+	cp	'#'		;2d11
+	jr	z,NUMNUM	;2d13
+	dec	b		;2d15
+	jp	z,REUSIN	;2d16
+	cp	'+'		;2d19
+	ld	a,$08		;2d1b
+	jr	z,PLSFIN	;2d1d
+	dec	hl		;2d1f
+	ld	a,(hl)		;2d20
+	inc	hl		;2d21
+	cp	'.'		;2d22
+	jr	z,DOTNUM	;2d24
+	cp	'%'		;2d26
+	jr	z,BGSTRF	;2d28
+	cp	(hl)		;2d2a
+	jr	nz,NEWUCH	;2d2b
+	cp	'$'		;2d2d
+	jr	z,DOLRNM	;2d2f
+	cp	'*'		;2d31
+	jr	nz,NEWUCH	;2d33
+	ld	a,b		;2d35
+	cp	$02		;2d36
+	inc	hl		;2d38
+	jr	c,NOTSPC	;2d39
+	ld	a,(hl)		;2d3b
+	cp	'$'		;2d3c
+NOTSPC:	ld	a,$20		;2d3e
+	jr	nz,SPCNUM	;2d40
+	dec	b		;2d42
+	inc	e		;2d43
+;
+	DEFB	CPNN		;2d44 - Z80 Trick - CP nn - skipping next instruction
+;
+DOLRNM:	xor	a		;2d45
+	add	a,$10		;2d46
+	inc	hl		;2d48
+SPCNUM:	inc	e		;2d49
+	add	a,d		;2d4a
+	ld	d,a		;2d4b
+NUMNUM:	inc	e		;2d4c
+	ld	c,$00		;2d4d
+	dec	b		;2d4f
+	jr	z,ENDNUS	;2d50
+	ld	a,(hl)		;2d52
+	inc	hl		;2d53
+	cp	'.'		;2d54 - is a . (i.e., a trailing digit).
+	jr	z,AFTDOT	;2d56
+	cp	'#'		;2d58 - is a # (i.e., a leading digit).
+	jr	z,NUMNUM	;2d5a
+	cp	','		;2d5c
+	jr	nz,FINNUM	;2d5e
+	ld	a,d		;2d60
+	or	$40		;2d61
+	ld	d,a		;2d63
+	jr	NUMNUM		;2d64
+; ----------------------------------------------------------------------
+; 2D66 – Part of the PRINT USING Routine – “DOTNUM”
+; ----------------------------------------------------------------------
+DOTNUM:	ld	a,(hl)		;2d66
+	cp	'#'		;2d67
+	ld	a,'.'		;2d69
+	jr	nz,NEWUCH	;2d6b
+	ld	c,$01		;2d6d
+	inc	hl		;2d6f
+AFTDOT:	inc	c		;2d70
+	dec	b		;2d71
+	jr	z,ENDNUS	;2d72
+	ld	a,(hl)		;2d74
+	inc	hl		;2d75
+	cp	'#'		;2d76 - is a #; that there are more digits after the decimal point
+	jr	z,AFTDOT	;2d78
+; ----------------------------------------------------------------------
+; 2D7A – Part of the PRINT USING Routine – “FINNUM”
+; ----------------------------------------------------------------------
+FINNUM:	push	de		;2d7a
+	ld	de,NOTSCI	;2d7b
+	push	de		;2d7e
+	ld	d,h		;2d7f
+	ld	e,l		;2d80
+	cp	UPARRW		;2d81 - is an up arrow ↑
+	ret	nz		;2d83
+	cp	(hl)		;2d84
+	ret	nz		;2d85
+	inc	hl		;2d86
+	cp	(hl)		;2d87
+	ret	nz		;2d88
+	inc	hl		;2d89
+	cp	(hl)		;2d8a
+	ret	nz		;2d8b
+	inc	hl		;2d8c
+	ld	a,b		;2d8d
+	sub	$04		;2d8e
+	ret	c		;2d90
+	pop	de		;2d91
+	pop	de		;2d92
+	ld	b,a		;2d93
+	inc	d		;2d94
+	inc	hl		;2d95
+;
+	DEFB	JPZNN		;2d96 Z80 Trick - JP Z,nnnn - skipping next 2 instructions
+;
+NOTSCI:	ex	de,hl		;2d97
+	pop	de		;2d98
+ENDNUS:	ld	a,d		;2d99
+	dec	hl		;2d9a
+	inc	e		;2d9b
+	and	$08		;2d9c
+	jr	nz,ENDNUM	;2d9e
+	dec	e		;2da0
+	ld	a,b		;2da1
+	or	a		;2da2
+	jr	z,ENDNUM	;2da3
+	ld	a,(hl)		;2da5
+	sub	$2D		;2da6
+	jr	z,SGNTRL	;2da8
+	cp	$FE		;2daa
+	jr	nz,ENDNUM	;2dac
+	ld	a,$08		;2dae
+SGNTRL:	add	a,$04		;2db0
+	add	a,d		;2db2
+	ld	d,a		;2db3
+	dec	b		;2db4
+; ----------------------------------------------------------------------
+; 2DB5 – Part of the PRINT USING Routine – “ENDNUM”
+; ----------------------------------------------------------------------
+ENDNUM:	pop	hl		;2db5
+	pop	af		;2db6
+	jr	z,FLDFIN	;2db7
+	push	bc		;2db9
+	push	de		;2dba
+	call	FRMEVL		;2dbb
+	pop	de		;2dbe
+	pop	bc		;2dbf
+	push	bc		;2dc0
+	push	hl		;2dc1
+	ld	b,e		;2dc2
+	ld	a,b		;2dc3
+	add	a,c		;2dc4
+	cp	25		;2dc5 - total number of characters in Register A is greater than 24
+	jp	nc,FCERR	;2dc7
+	ld	a,d		;2dca
+	or	$80		;2dcb - Turn on the “USING” bit in the flags
+	call	PUFOUT		;2dcd
+	call	STROUT		;2dd0
+FNSTRF:	pop	hl		;2dd3
+	dec	hl		;2dd4
+	GETCHR			;2dd5 - rst 10h
+	scf			;2dd6
+	jr	z,CRDNUS	;2dd7
+	ld	(FLGINP),a	;2dd9
+	cp	SEMICO		;2ddc - compare with semicolon ';'
+	jr	z,SEMUSN	;2dde
+	cp	','		;2de0
+	jp	nz,SNERR	;2de2
+SEMUSN:	GETCHR			;2de5 - rst 10h
+CRDNUS:	pop	bc		;2de6
+	ex	de,hl		;2de7
+	pop	hl		;2de8
+	push	hl		;2de9
+	push	af		;2dea
+	push	de		;2deb
+	ld	a,(hl)		;2dec
+	sub	b		;2ded
+	inc	hl		;2dee
+	ld	c,(hl)		;2def
+	inc	hl		;2df0
+	ld	h,(hl)		;2df1
+	ld	l,c		;2df2
+	ld	d,$00		;2df3
+	ld	e,a		;2df5
+	add	hl,de		;2df6
+	ld	a,b		;2df7
+	or	a		;2df8
+	jp	nz,PRCCHR	;2df9
+	jr	FINUSI		;2dfc
+; ----------------------------------------------------------------------
+; 2DFE-2E00 – Part of the PRINT USING Routine – “REUSIN”
+; ----------------------------------------------------------------------
+REUSIN:	call	PLSPRT		;2dfe
+	call	OUTDO		;2e01
+FINUSI:	pop	hl		;2e04
+	pop	af		;2e05
+	jp	nz,REUSST	;2e06
+FLDFIN:	call	c,CRDO		;2e09
+	ex	(sp),hl		;2e0c
+	call	FRETM2		;2e0d
+	pop	hl		;2e10
+	jp	FINPRT		;2e11
+; ----------------------------------------------------------------------
+; 2E14-2E15 – Part of the PRINT USING Routine – “SMSTRF”
+; ----------------------------------------------------------------------
+SMSTRF:	ld	c,$01		;2e14
+;
+	DEFB	LDANN		;2e16 Z80 Trick - LD A,nn - skipping next instruction
+;
+ISSTRF:	pop	af		;2e17
+	dec	b		;2e18
+	call	PLSPRT		;2e19
+	pop	hl		;2e1c
+	pop	af		;2e1d
+	jr	z,FLDFIN	;2e1e
+	push	bc		;2e20
+	call	FRMEVL		;2e21
+	call	CHKSTR		;2e24
+	pop	bc		;2e27
+	push	bc		;2e28
+	push	hl		;2e29
+	ld	hl,(FACLO)	;2e2a
+	ld	b,c		;2e2d
+	ld	c,$00		;2e2e
+	push	bc		;2e30
+	call	LEFTUS		;2e31
+	call	STRPRT		;2e34
+	ld	hl,(FACLO)	;2e37
+	pop	af		;2e3a
+	sub	(hl)		;2e3b
+	ld	b,a		;2e3c
+	ld	a,SPACE		;2e3d
+	inc	b		;2e3f
+; ----------------------------------------------------------------------
+; This loop will print all the spaces needed and then jump to 2DD3H.
+; ----------------------------------------------------------------------
+UPRTSP:	dec	b		;2e40
+	jp	z,FNSTRF	;2e41
+	call	OUTDO		;2e44
+	jr	UPRTSP		;2e47
+; ---------------------------------------------------------------------
+; 2E49 – Part of the PRINT USING Routine – “PLSPRT”
+;   When a “+” is detected in the “USING” string and a numeric field follows,
+;   a bit in Register D should be set, otherwise + should be printed.
+; ----------------------------------------------------------------------
+PLSPRT:	push	af		;2e49
+	ld	a,d		;2e4a
+	or	a		;2e4b
+	ld	a,'+'		;2e4c
+	call	nz,OUTDO	;2e4e
+	pop	af		;2e51
+	ret			;2e52
+;
+; ----------------------------------------------------------------------
+; enter EDIT if there was an error in a line number
+; ----------------------------------------------------------------------
+ERREDT:	ld	(ERRFLG),a	;2e53
+	ld	hl,(ERRLIN)	;2e56
+	or	h		;2e59
+	and	l		;2e5a
+	inc	a		;2e5b
+	ex	de,hl		;2e5c
+	ret	z		;2e5d
+	jr	EREDIT		;2e5e
+; ----------------------------------------------------------------------
+; 2E60-2FFA – LEVEL II BASIC EDIT ROUTINE – “EDIT”
+;
+;   the EDIT command takes a single line number as its argument. If that
+;   line doesn’t exist, and error is thrown. If the line does exist,
+;   the line number is then typed, and the system waits for the user
+;   to enter any of the valid commands.
+; ----------------------------------------------------------------------
+EDIT:	call	LINSPC		;2e60
+	ret	nz		;2e63
+EREDIT:	pop	hl		;2e64
+EEDITS:	ex	de,hl		;2e65
+	ld	(DOT),hl	;2e66
+	ex	de,hl		;2e69
+	call	FNDLIN		;2e6a
+	jp	nc,USERR	;2e6d
+	ld	h,b		;2e70
+	ld	l,c		;2e71
+	inc	hl		;2e72
+	inc	hl		;2e73
+	ld	c,(hl)		;2e74
+	inc	hl		;2e75
+	ld	b,(hl)		;2e76
+	inc	hl		;2e77
+	push	bc		;2e78
+	call	BUFLIN		;2e79
+LLED:	pop	hl		;2e7c
+	push	hl		;2e7d
+	call	LINPRT		;2e7e
+	ld	a,SPACE		;2e81
+	call	OUTDO		;2e83
+	ld	hl,(BUFPNT)	;2e86
+	ld	a,CURON		;2e89 -  the “turn on the cursor” character
+	call	OUTDO		;2e8b
+	push	hl		;2e8e
+	ld	c,$FF		;2e8f
+LENLP:	inc	c		;2e91
+	ld	a,(hl)		;2e92
+	or	a		;2e93
+	inc	hl		;2e94
+	jr	nz,LENLP	;2e95
+	pop	hl		;2e97
+	ld	b,a		;2e98
+DISPED:	ld	d,$00		;2e99
+DISPI:	call	INCHR		;2e9b
+	sub	'0'		;2e9e - test to see if the character was alphabetic or alphanumeric
+	jr	c,NOTDGI	;2ea0
+	cp	$0A		;2ea2
+	jr	nc,NOTDGI	;2ea4
+	ld	e,a		;2ea6
+	ld	a,d		;2ea7
+	rlca			;2ea8
+	rlca			;2ea9
+	add	a,d		;2eaa
+	rlca			;2eab
+	add	a,e		;2eac
+	ld	d,a		;2ead
+	jr	DISPI		;2eae
+;
+; ----------------------------------------------------------------------
+; 2EB0H – LEVEL II BASIC EDIT ROUTINE – “NOTDGI”
+;
+;  While getting user command input within an edit, we wind up here if
+; the user enters a non-numeric character (i.e., the actual command,
+; and not just the repetition number which precedes it)
+; ----------------------------------------------------------------------
+NOTDGI:	push	hl		;2eb0
+	ld	hl,DISPED	;2eb1
+	ex	(sp),hl		;2eb4
+	dec	d		;2eb5
+	inc	d		;2eb6
+	jp	nz,NTZERD	;2eb7
+	inc	d		;2eba
+NTZERD:	cp	$D8		;2ebb - Check to see if the character is a BACKSPACE character
+	jp	z,DELED		;2ebd
+	cp	$DD		;2ec0 - Check to see if the character is a CARRIAGE RETURN.
+	jp	z,CRED		;2ec2
+	cp	$F0		;2ec5 - Check to see if the character is a SPACE.
+	jr	z,SPED		;2ec7
+	cp	$31		;2ec9 - Check to see if the character is lowercase
+	jr	c,NOTLW4	;2ecb
+	sub	$20		;2ecd - Convert the lowercase character to uppercase
+NOTLW4:	cp	'Q'-$30		;2ecf - Check to see if the character is a Q (Quit)
+	jp	z,QED		;2ed1
+	cp	'L'-$30		;2ed4 - Check to see if the character is an L (Branch)
+	jp	z,LED		;2ed6
+	cp	'S'-$30		;2ed9 - Check to see if the character is an S (Search)
+	jr	z,SED		;2edb
+	cp	'I'-$30		;2edd - Check to see if the character is an I (Insert)
+	jp	z,IED		;2edf
+	cp	'D'-$30		;2ee2 - Check to see if the character is a D (Delete)
+	jp	z,DED		;2ee4
+	cp	'C'-$30		;2ee7 - Check to see if the character is a C (Change)
+	jp	z,CED		;2ee9
+	cp	'E'-$30		;2eec - Check to see if the character is an E (End)
+	jp	z,EED		;2eee
+	cp	'X'-$30		;2ef1 - Check to see if the character is an X (Extend)
+	jp	z,XED		;2ef3
+	cp	'K'-$30		;2ef6 - Check to see if the character is a K (Kill)
+	jr	z,KED		;2ef8
+	cp	'H'-$30		;2efa - Check to see if the character is an H (Hack)
+	jp	z,HED		;2efc
+	cp	'A'-$30		;2eff - Check to see if the character is an A (Again)
+	ret	nz		;2f01
+; ----------------------------------------------------------------------
+; 2F02 – EDIT Command – Cancel and Restore Logic.
+; ----------------------------------------------------------------------
+	pop	bc		;2f02
+	pop	de		;2f03
+	call	CRDO		;2f04
+	jp	EEDITS		;2f07
+; ----------------------------------------------------------------------
+; 2F0A – This routine prints a string of text to the display, printer or tape – “SPED”
+;
+;   This routine it uses 032AH to do this. HL must point to the first character of
+;   the string. (409CH must be set before calling this routine, see 32AH).
+;   String must be delimited with a zero byte.
+;   409CH holds current output device flag: -1=cassette, 0=video and 1=printer
+; ----------------------------------------------------------------------
+SPED:	ld	a,(hl)		;2f0a
+	or	a		;2f0b
+	ret	z		;2f0c
+	inc	b		;2f0d
+	call	OUTDO		;2f0e
+	inc	hl		;2f11
+	dec	d		;2f12
+	jr	nz,SPED		;2f13
+	ret			;2f15
+; ----------------------------------------------------------------------
+; 2F16 – EDIT Command – KILL Logic – “KED”.
+; ----------------------------------------------------------------------
+KED:	push	hl		;2f16
+	ld	hl,TYPSLH	;2f17
+	ex	(sp),hl		;2f1a
+	scf			;2f1b
+SED:	push	af		;2f1c
+	call	INCHR		;2f1d
+	ld	e,a		;2f20
+	pop	af		;2f21
+	push	af		;2f22
+	call	c,TYPSLH	;2f23
+SRCALP:	ld	a,(hl)		;2f26
+	or	a		;2f27
+	jp	z,POPART	;2f28
+	call	OUTDO		;2f2b
+	pop	af		;2f2e
+	push	af		;2f2f
+	call	c,DELCHR	;2f30
+	jr	c,NOTSRC	;2f33
+	inc	hl		;2f35
+	inc	b		;2f36
+NOTSRC:	ld	a,(hl)		;2f37
+	cp	e		;2f38
+	jr	nz,SRCALP	;2f39
+	dec	d		;2f3b
+	jr	nz,SRCALP	;2f3c
+POPART:	pop	af		;2f3e
+	ret			;2f3f
+; ----------------------------------------------------------------------
+; 2F40 – EDIT Command – LIST Logic – “LED”.
+; ----------------------------------------------------------------------
+LED:	call	LISPRT		;2f40
+	call	CRDO		;2f43
+	pop	bc		;2f46
+	jp	LLED		;2f47
+; ----------------------------------------------------------------------
+; 2F4A – EDIT Command – DELETE Logic – “DED”
+; ----------------------------------------------------------------------
+DED:	ld	a,(hl)		;2f4a
+	or	a		;2f4b
+	ret	z		;2f4c
+	ld	a,'!'		;2f4d
+	call	OUTDO		;2f4f
+DELLP:	ld	a,(hl)		;2f52
+	or	a		;2f53
+	jr	z,TYPSLH	;2f54
+	call	OUTDO		;2f56
+	call	DELCHR		;2f59
+	dec	d		;2f5c
+	jr	nz,DELLP	;2f5d
+TYPSLH:	ld	a,'!'		;2f5f
+	call	OUTDO		;2f61
+	ret			;2f64
+; ----------------------------------------------------------------------
+; 2F65 – EDIT Command – CHANGE Logic – “CED”.
+; ----------------------------------------------------------------------
+CED:	ld	a,(hl)		;2f65
+	or	a		;2f66
+	ret	z		;2f67
+	call	INCHR		;2f68
+	ld	(hl),a		;2f6b
+	call	OUTDO		;2f6c
+	inc	hl		;2f6f
+	inc	b		;2f70
+	dec	d		;2f71
+	jr	nz,CED		;2f72
+	ret			;2f74
+; ----------------------------------------------------------------------
+; 2F75 – EDIT Command – HACK/INSERT Logic – “HED”
+; ----------------------------------------------------------------------
+HED:	ld	(hl),$00	;2f75
+	ld	c,b		;2f77
+XED:	ld	d,$FF		;2f78
+	call	SPED		;2f7a
+IED:	call	INCHR		;2f7d
+	or	a		;2f80
+	jp	z,IED		;2f81
+	cp	BACKS		;2f84
+	jr	z,TYPARW	;2f86
+	cp	ENTER		;2f88
+	jp	z,CRED		;2f8a
+	cp	ARUP		;2f8d - Up arrow
+	ret	z		;2f8f
+	jr	nz,NTARRW	;2f90
+; ----------------------------------------------------------------------
+; 2F92 – EDIT Command – BACKSPACE CURSOR Logic – “TYPARW”.
+; ----------------------------------------------------------------------
+TYPARW:	ld	a,BACKS		;2f92
+	dec	b		;2f94
+	inc	b		;2f95
+	jr	z,DINGI		;2f96
+	call	OUTDO		;2f98
+	dec	hl		;2f9b
+	dec	b		;2f9c
+	ld	de,IED		;2f9d
+	push	de		;2fa0
+; ----------------------------------------------------------------------
+; 2FA1 – LEVEL II BASIC EDIT ROUTINE – “DELCHR”
+;   This subroutine will delete the character pointed to by HL
+;   and will correct Register C
+; ----------------------------------------------------------------------
+DELCHR:	push	hl		;2fa1
+	dec	c		;2fa2
+CMPRSS:	ld	a,(hl)		;2fa3
+	or	a		;2fa4
+	scf			;2fa5
+	jp	z,POPHRT	;2fa6
+	inc	hl		;2fa9
+	ld	a,(hl)		;2faa
+	dec	hl		;2fab
+	ld	(hl),a		;2fac
+	inc	hl		;2fad
+	jr	CMPRSS		;2fae
+; ----------------------------------------------------------------------
+; 2FB0 – EDIT Command – ADD A CHARACTER Logic – “NTARRW”.
+; ----------------------------------------------------------------------
+NTARRW:	push	af		;2fb0
+	ld	a,c		;2fb1
+	cp	$FF		;2fb2
+	jr	c,OKINS		;2fb4
+	pop	af		;2fb6
+DINGI:	jr	IED		;2fb7
+OKINS:	sub	b		;2fb9
+	inc	c		;2fba
+	inc	b		;2fbb
+	push	bc		;2fbc
+	ex	de,hl		;2fbd
+	ld	l,a		;2fbe
+	ld	h,$00		;2fbf
+	add	hl,de		;2fc1
+	ld	b,h		;2fc2
+	ld	c,l		;2fc3
+	inc	hl		;2fc4
+	call	BLTUC		;2fc5
+	pop	bc		;2fc8
+	pop	af		;2fc9
+	ld	(hl),a		;2fca
+	call	OUTDO		;2fcb
+	inc	hl		;2fce
+	jp	IED		;2fcf
+; ----------------------------------------------------------------------
+; 2FD2 – EDIT Command – BACKSPACE Logic – “DELED”.
+; ----------------------------------------------------------------------
+DELED:	ld	a,b		;2fd2
+	or	a		;2fd3
+	ret	z		;2fd4
+	dec	b		;2fd5
+	dec	hl		;2fd6
+	ld	a,BACKS		;2fd7
+	call	OUTDO		;2fd9
+	dec	d		;2fdc
+	jr	nz,DELED	;2fdd
+	ret			;2fdf
+CRED:	call	LISPRT		;2fe0
+EED:	call	CRDO		;2fe3
+	pop	bc		;2fe6
+	pop	de		;2fe7
+	ld	a,d		;2fe8
+	and	e		;2fe9
+	inc	a		;2fea
+EDITRT:	ld	hl,(BUFPNT)	;2feb
+	dec	hl		;2fee
+	ret	z		;2fef
+	scf			;2ff0
+	inc	hl		;2ff1
+	push	af		;2ff2
+	jp	EDENT		;2ff3
+; ----------------------------------------------------------------------
+; 2FF6 – EDIT Command – QUIT Logic – “QED”.
+; ----------------------------------------------------------------------
+QED:	pop	bc		;2ff6
+	pop	de		;2ff7
+	jp	READY		;2ff8
+; ----------------------------------------------------------------------
