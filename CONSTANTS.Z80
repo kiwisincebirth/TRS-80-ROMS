@@ -9,7 +9,7 @@
 #DEFINE	SYNTAX(char)	rst 08h\ DEFB char
 #DEFINE	GETCHR		rst 10h
 #DEFINE	CPDEHL		rst 18h
-#DEFINE	TSTDAT		rst 20h
+#DEFINE	GETYPE		rst 20h
 #DEFINE NOP2		nop\ nop
 #DEFINE NOP3		nop\ nop\ nop
 ;
