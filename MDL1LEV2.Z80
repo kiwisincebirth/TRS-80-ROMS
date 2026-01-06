@@ -220,7 +220,7 @@ _PUT:	push	bc		;001b
 	jr	CIOJ		;001e - BASIC driver entry routine at 0046H
 ;
 ; ======================================================================
-; 0020H (RST 20H) - Test Data Mode - TSTDAT
+; 0020H (RST 20H) - Get the current Number Type - GETYPE
 ;
 ;   This routine jumps to 25D9H through 4009H.
 ;   If the NTF=8 then C=RESET or else C=SET, Z flag will be SET if NTF=3

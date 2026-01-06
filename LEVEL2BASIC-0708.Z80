@@ -116,6 +116,10 @@ NORM1:	ld	b,a		;0768
 	sub	$08		;0772
 	cp	$E0		;0774
 	jr	nz,NORM1	;0776
+; ----------------------------------------------------------------------
+; This routine will ZERO out the ACCumulator,
+;   changing only Register A in the process. A will exit as 0.
+; ----------------------------------------------------------------------
 ZERO:	xor	a		;0778
 ZERO0:	ld	(FAC),a		;0779
 	ret			;077c
@@ -300,7 +304,7 @@ FNLOG:	call	SIGN		;0809
 	call	FINLOG		;083e
 MULLN2:	ld	bc,$8031	;0841
 	ld	de,$7218	;0844
-; fall into the MULTiplocation routine.
+; fall into the multiplication routine.
 ;
 ; ======================================================================
 ; 0847H – LEVEL II BASIC SINGLE PRECISION MULTIPLICATION, – “FMULT”
@@ -534,10 +538,12 @@ SIGN:	ld	a,(FAC)		;0955
 	DEFB	CPNN		;095d - Z80 Trick - CP nn - skip next bytye
 ;
 FCOMPS:	cpl			;095e
-ICOMPS:	rla			;095f
-SIGNS:	sbc	a,a		;0960
-	ret	nz		;0961
-	inc	a		;0962
+; ----------------------------------------------------------------------
+ICOMPS:	rla			;095f - sign bit in Register A into the CARRY FLAG
+SIGNS:	sbc	a,a		;0960 - If the CARRY FLAG is 0 (i.e., POSITIVE), make Register A = 0.
+				;       If the CARRY FLAG is 1 (i.e., NEGATIVE), make Register A = FFH
+	ret	nz		;0961 - Return If the CARRY FLAG was 1, (negative)
+	inc	a		;0962 - Register A will be equal to 1
 	ret			;0963
 ; ----------------------------------------------------------------------
 ; 0964H-0976H – MATH CONVERSION ROUTINE – “FLOAT”
@@ -545,11 +551,15 @@ SIGNS:	sbc	a,a		;0960
 ;   turn it into a floating point number. All registers are modified.
 ; ----------------------------------------------------------------------
 FLOAT:	ld	b,$88		;0964
-	ld	de,$0000	;0966
+	ld	de,0		;0966
+; ----------------------------------------------------------------------
+; This routine will float the singed number in B/A/D/E.
+; All registers are modified.
+; ----------------------------------------------------------------------
 FLOATR:	ld	hl,FAC		;0969
 	ld	c,a		;096c
 	ld	(hl),b		;096d
-	ld	b,$00		;096e
+	ld	b,0		;096e
 	inc	hl		;0970
 	ld	(hl),$80	;0971
 	rla			;0973
@@ -563,9 +573,16 @@ FLOATR:	ld	hl,FAC		;0969
 ; ----------------------------------------------------------------------
 FNABS:	call	VSIGN		;0977
 	ret	p		;097a
-VNEG:	TSTDAT			;097b
+; ----------------------------------------------------------------------
+; This routine will negate any value in the ACCumulator. Every Register is affected.
+; ----------------------------------------------------------------------
+VNEG:	GETYPE			;097b - RST 20 - check the current number type
 	jp	m,INEG		;097c
 	jp	z,TMERR		;097f
+; ----------------------------------------------------------------------
+; This routine will negate the single or double precision number in the ACCumulator.
+; Registers A, H, and L are affected.
+; ----------------------------------------------------------------------
 NNEG:	ld	hl,FAC-1	;0982
 	ld	a,(hl)		;0985
 	xor	$80		;0986
@@ -579,6 +596,9 @@ NNEG:	ld	hl,FAC-1	;0982
 ;   execution. Registers A, H, and L are affected.
 ; ----------------------------------------------------------------------
 FNSGN:	call	VSIGN		;098a
+; ----------------------------------------------------------------------
+; This routine will convert a signed number (held in Register A) into an integer.
+; ----------------------------------------------------------------------
 CONIA:	ld	l,a		;098d
 	rla			;098e
 	sbc	a,a		;098f
@@ -591,11 +611,15 @@ CONIA:	ld	l,a		;098d
 ;   After execution A register=00 if ACCumulator=0, A=01 if ACC > 0
 ;   or A=FFH if A < 1. The Flags are also valid.
 ; ----------------------------------------------------------------------
-VSIGN:	TSTDAT			;0994
+VSIGN:	GETYPE			;0994 - RST 20 - check the current number type
 	jp	z,TMERR		;0995
 	jp	p,SIGN		;0998
 	ld	hl,(FACLO)	;099b
 ;
+; ----------------------------------------------------------------------
+; 099EH - INTEGER SIGN
+;   Finds the sign of the value held at (HL). Only Register A is altered.
+; ----------------------------------------------------------------------
 ISIGN:	ld	a,h		;099e
 	or	l		;099f
 	ret	z		;09a0
@@ -643,7 +667,7 @@ MOVRF:	ld	hl,FACLO	;09bf
 ; ----------------------------------------------------------------------
 ; 09C2H – SINGLE PRECISION MATH ROUTINE – “MOVRM” - MOVE
 ;   It loads four byte Single, pointed by HL, into the BC/DE Register Pairs.
-;   Only Register A is unchanged.
+;   HL is incremented. Only Register A and Flags are unchanged.
 ; ----------------------------------------------------------------------
 MOVRM:	ld	e,(hl)		;09c2
 	inc	hl		;09c3
@@ -745,7 +769,7 @@ VMOVAF:	ld	hl,ARGLO	;09fc
 	ld	de,VMOVE	;09ff
 VMOVMF:	push	de		;0a02
 VDFACS:	ld	de,FACLO	;0a03
-	TSTDAT			;0a06
+	GETYPE			;0a06 - RST 20 - check the current number type
 	ret	c		;0a07
 	ld	de,DFACLO	;0a08
 	ret			;0a0b
@@ -800,8 +824,11 @@ FCOMP2:	inc	hl		;0a26
 ; ======================================================================
 ; 0A39H – LEVEL II BASIC INTEGER COMPARISON ROUTINE – “ICOMP”
 ;
-;   Integer compare. Compares HL with DE. After execution, A=0 if HL=DE,
-;   A=1 if HL>DE or A=FFH if HL<DE. The S and Z flags are valid.
+;   Integer compare. Compares HL with DE. After execution,
+;     A=0   if HL=DE,
+;     A=1   if HL>DE
+;     A=FFH if HL<DE.
+;   The S and Z flags are valid.
 ; ----------------------------------------------------------------------
 ICOMP:	ld	a,d		;0a39
 	xor	h		;0a3a
@@ -872,7 +899,7 @@ DCOMP:	call	XDCOMP		;0a78
 ;   (Integer=2). If NTF=3 (string) a TM ERROR will be generated and control
 ;   will be passed to BASIC. Every register is affected. No rounding is performed
 ; ----------------------------------------------------------------------
-FRCINT:	TSTDAT			;0a7f - check the value of the current number type
+FRCINT:	GETYPE			;0a7f - RST 20 - check the current number type
 	ld	hl,(FACLO)	;0a80 - in case an int, Load HL with the integer
 	ret	m		;0a83 - If an INTEGER, then return HL
 	jp	z,TMERR		;0a84 - If a STRING, Display a ?TM ERROR
@@ -939,7 +966,7 @@ CONIS2:	ld	bc,$9080	;0aa3
 ;   Force the number in the ACCumulator to be a single-precision number.
 ;   Every register is affected.
 ; ----------------------------------------------------------------------
-FRCSNG:	TSTDAT			;0ab1
+FRCSNG:	GETYPE			;0ab1 - RST 20 - check the current number type
 	ret	po		;0ab2
 	jp	m,CONSI		;0ab3
 	jp	z,TMERR		;0ab6
@@ -981,7 +1008,7 @@ CONSIH:	call	VALSNG		;0acf
 ;   or single precision) and convert it to double-precision.
 ;   The result will be in ACC and NTF will be 8.
 ; ----------------------------------------------------------------------
-FRCDBL:	TSTDAT			;0adb
+FRCDBL:	GETYPE			;0adb - RST 20 - check the current number type
 	ret	nc		;0adc
 	jp	z,TMERR		;0add
 	call	m,CONSI		;0ae0
@@ -1015,7 +1042,7 @@ VALSNG:	ld	a,VTSNG		;0aef - single precision number type flag (of 4)
 ;   This routine calls 20H (RST 20H) and returns if NTF=3 (string) else if NTF is not 3
 ;   then it generates a TM ERROR. BC, DE, and HL are saved
 ; ----------------------------------------------------------------------
-CHKSTR:	TSTDAT			;0af4
+CHKSTR:	GETYPE			;0af4 - RST 20 - check the current number type
 	ret	z		;0af5
 ;
 ; ----------------------------------------------------------------------
@@ -1069,7 +1096,7 @@ DCXBRT:	dec	bc		;0b24
 ;   point number in WRA1. The result is stored in WRA1 and
 ;   the type flag is set to integer.
 ; ----------------------------------------------------------------------
-FNFIX:	TSTDAT			;0b26
+FNFIX:	GETYPE			;0b26 - RST 20 - check the current number type
 	ret	m		;0b27
 	call	SIGN		;0b28
 	jp	p,FNINT		;0b2b
@@ -1085,7 +1112,7 @@ FNFIX:	TSTDAT			;0b26
 ;   is returned. If the value is negative with a fractional part,
 ;   it is rounded up before truncation. The integer portion is left in A
 ; ----------------------------------------------------------------------
-FNINT:	TSTDAT			;0b37
+FNINT:	GETYPE			;0b37 - RST 20 - check the current number type
 	ret	m		;0b38
 	jr	nc,DINT		;0b39
 	jr	z,TMERR		;0b3b
@@ -1108,7 +1135,7 @@ IINT:	ld	hl,FAC		;0b40
 ;
 ; ----------------------------------------------------------------------
 ; 0B59H-0B9DH – MATH ROUTINE – “DINT”
-;   Greated Integer function for double-precision numbers.
+;   Integer function for double-precision numbers.
 ;   All registers are affected.
 ; ----------------------------------------------------------------------
 DINT:	ld	hl,FAC		;0b59
@@ -1186,6 +1213,17 @@ UMULT2:	dec	a		;0bc1
 MULRET:	ex	de,hl		;0bc4
 	pop	hl		;0bc5
 	ret			;0bc6
+;
+; ======================================================================
+; INTEGER CONVENTIONS
+; ======================================================================
+;
+; * Integer variables are 2 byte signed numbers, with the LSB coming first
+; * For one argument functions, the argument is in (HL) and the results are put into (HL)
+; * For two argument operations, the first argument is in (DE), the second in (HL),
+;   and the restuls are left in the ACCumulator and, if there was no overflow, (HL).
+;   If there was an overflow, then the arguments are converted to single precision.
+; * When integers are stored in the ACCumulator, they are stored at FACLO+0 and FACLO+1, with VALTYPE=2
 ;
 ; ======================================================================
 ; 0BC7H – LEVEL II BASIC INTEGER SUBTRACTION – “ISUB”
@@ -1835,7 +1873,7 @@ FINE2:	call	p,FINMUL	;0eca
 	push	hl		;0ed4
 	call	z,VNEG		;0ed5
 	pop	hl		;0ed8
-	TSTDAT			;0ed9
+	GETYPE			;0ed9 - RST 20 - check the current number type
 	ret	pe		;0eda
 	push	hl		;0edb
 	ld	hl,POPHRT	;0edc
@@ -1847,7 +1885,7 @@ FINE2:	call	p,FINMUL	;0eca
 ;   This routine checks to see if we have seen TWO decimal points and to set
 ;   the decimal point flag. We jumped here when we found a single decimal point.
 ; ----------------------------------------------------------------------
-FINDP:	TSTDAT			;0ee4
+FINDP:	GETYPE			;0ee4 - RST 20 - check the current number type
 	inc	c		;0ee5
 	jr	nz,FINE		;0ee6
 	call	c,FINFRC	;0ee8
@@ -1855,7 +1893,7 @@ FINDP:	TSTDAT			;0ee4
 ; ----------------------------------------------------------------------
 ; 0EEE – MATH ROUTINE – “FININT”
 ; ----------------------------------------------------------------------
-FININT:	TSTDAT			;0eee
+FININT:	GETYPE			;0eee - RST 20 - check the current number type
 	jp	p,SNERR		;0eef
 ;
 #IFDEF BUGFIX7
@@ -1897,7 +1935,7 @@ FINFRC:	push	hl		;0efb
 ; ----------------------------------------------------------------------
 FINMUL:	ret	z		;0f0a
 FINMLT:	push	af		;0f0b
-	TSTDAT			;0f0c
+	GETYPE			;0f0c - RST 20 - check the current number type
 	push	af		;0f0d
 	call	po,MUL10	;0f0e
 	pop	af		;0f11
@@ -1913,7 +1951,7 @@ DCRART:	dec	a		;0f16
 FINDIV:	push	de		;0f18
 	push	hl		;0f19
 	push	af		;0f1a
-	TSTDAT			;0f1b
+	GETYPE			;0f1b - RST 20 - check the current number type
 	push	af		;0f1c
 	call	po,DIV10	;0f1d
 	pop	af		;0f20
@@ -1938,7 +1976,7 @@ FINDIG:	push	de		;0f29
 	ld	a,(hl)		;0f2f
 	sub	$30		;0f30
 	push	af		;0f32
-	TSTDAT			;0f33
+	GETYPE			;0f33 - RST 20 - check the current number type
 	jp	p,FINDGV	;0f34
 	ld	hl,(FACLO)	;0f37
 	ld	de,$0CCD	;0f3a - 3277 to see if we will overflow
@@ -2207,7 +2245,7 @@ FOFRS2:	dec	hl		;1066
 ;   all FLAGs are set correctly.
 ; ----------------------------------------------------------------------
 FOFLDN:	push	af		;1074
-	TSTDAT			;1075
+	GETYPE			;1075 - RST 20 - check the current number type
 	ld	a,$22		;1076
 	adc	a,a		;1078
 	ld	(hl),a		;1079
@@ -2532,7 +2570,7 @@ FFXLV2:	push	bc		;11f8
 FONTINV: push	de		;1201
 	xor	a		;1202
 	push	af		;1203
-	TSTDAT			;1204
+	GETYPE			;1204 - RST 20 - check the current number type
 	jp	po,FOUNDB	;1205
 FORBIG:	ld	a,(FAC)		;1208
 	cp	$91		;120b
@@ -2549,7 +2587,7 @@ FORBIG:	ld	a,(FAC)		;1208
 ; 1222 – MATH ROUTINE – “FOUNDB”
 ; ----------------------------------------------------------------------
 FOUNDB:	call	FOUNVC		;1222
-FOUNDV1: TSTDAT			;1225
+FOUNDV1: GETYPE			;1225 - RST 20 - check the current number type
 	jr	nc,FOUNDV4	;1226
 	ld	bc,$9143	;1228
 	ld	de,$4FF9	;122b
@@ -2581,7 +2619,7 @@ FOUNDV3: pop	af		;124b
 ; 124F – MATH ROUTINE – “FOUNVC”
 ;   This routine will see if the number in the ACCumulator is small enough yet
 ; ----------------------------------------------------------------------
-FOUNVC:	TSTDAT			;124f
+FOUNVC:	GETYPE			;124f - RST 20 - check the current number type
 	jp	pe,FONVC1	;1250
 	ld	bc,$9474	;1253 - the exponent and the MSB of a single precision
 	ld	de,$23F8	;1256 - BC and DE = (single precision) 999,999.5
@@ -2665,7 +2703,7 @@ FOUED1:	dec	c		;129c
 ;   that has been normalized to decimal digits.
 ; ----------------------------------------------------------------------
 FOUTCV:	push	de		;12a4
-	TSTDAT			;12a5
+	GETYPE			;12a5 - RST 20 - check the current number type
 	jp	po,FOUTCS	;12a6
 	push	bc		;12a9
 	push	hl		;12aa
@@ -3668,37 +3706,39 @@ BNKTXT:	DEFB	"Break"
 ;
 ; ----------------------------------------------------------------------
 ; 1936-1954 – SCAN STACK ROUTINE – “FNDFOR”
-;   This routine is called with DE as the address of the NEXT index.
+;   This routine is called with DE as the address of the NEXT variable index.
 ;   It scans the STACK backwards looking for a FOR push. If one is found,
 ;   it gets the address of the index and compares with the DE that was in
-;   place when this routine was called. If it is equal, then it exits
-;   with A=0 and HL=Address of the variable. If it is not equal it will
-;   keep scanning until no FOR push is found and then exit with A<>0.
+;   place when this routine was called.
+;     If NOT found then it exits with A<>0.
+;     If FOUND, then it exits with A=0 and
+;        HL=Address of 4th Byte in stack.
+;        DE=Loop Variable address (typically passed in, not from the Stack)
 ; ----------------------------------------------------------------------
-FNDFOR:	ld	hl,$0004	;1936
-	add	hl,sp		;1939
-LOOPER:	ld	a,(hl)		;193a
-	inc	hl		;193b
-	cp	TKFOR		;193c - Check (which is the current STACK pointer – 4) is a FOR token to make sure that the item in the STACK was associated with a FOR loop
-	ret	nz		;193e
-	ld	c,(hl)		;193f
-	inc	hl		;1940
+FNDFOR:	ld	hl,4		;1936 - accounting for this and outer CALL statements
+	add	hl,sp		;1939 - move up the stack by 4 bytes
+LOOPER:	ld	a,(hl)		;193a - get bytes at stack-4
+	inc	hl		;193b - back one more byte
+	cp	TKFOR		;193c - Check for a FOR token, asserting STACK item was a FOR loop
+	ret	nz		;193e - Wasnt so return.
+	ld	c,(hl)		;193f - BC - the pointer to FOR variable
+	inc	hl		;1940 - incrementing the memory address pointer
 	ld	b,(hl)		;1941
-	inc	hl		;1942
-	push	hl		;1943
-	ld	l,c		;1944
+	inc	hl		;1942 - increment to the Sign of the increment
+	push	hl		;1943 - save the memory pointer (HL) the Sign of the Increment
+	ld	l,c		;1944 - HL - pointer to FOR variable
 	ld	h,b		;1945
-	ld	a,d		;1946
+	ld	a,d		;1946 - check if passed in variable address DE = 0
 	or	e		;1947
-	ex	de,hl		;1948
-	jr	z,POPGOF	;1949
-	ex	de,hl		;194b
-	CPDEHL			;194c
-POPGOF:	ld	bc,$000E	;194d
-	pop	hl		;1950
-	ret	z		;1951
-	add	hl,bc		;1952
-	jr	LOOPER		;1953
+	ex	de,hl		;1948 - DE -> For variable; HL -> passed in loop variable
+	jr	z,POPGOF	;1949 - skip the compare since no variable name was passed in
+	ex	de,hl		;194b - DE -> passed in loop variable; HL -> For variable
+	CPDEHL			;194c - compare the variable addresses
+POPGOF:	ld	bc,14		;194d - amount to advance up the stack
+	pop	hl		;1950 - Restore the memory pointer to Sign of the Increment
+	ret	z		;1951 - Found so return with HL pointing to the Sign of the Increment
+	add	hl,bc		;1952 - Not Found - Move Up stack By 14 bytes to location of next FOR
+	jr	LOOPER		;1953 - Loop
 ; ----------------------------------------------------------------------
 ; 1955-1962 – DATA MOVEMENT ROUTINE – “BLTU”
 ;   This routine moves a variable into another area specified by the caller.
@@ -4408,80 +4448,111 @@ SYNCHR:	ld	a,(hl)		;1c96
 ;
 ; ----------------------------------------------------------------------
 ; 1CA1-1D1D – Level II BASIC FOR ROUTINE – “FOR”
+;
+; The Stack contains the following (ascending Stack order)
+;   1 Byte  - The FOR token ( constant = $81 )
+;   2 Bytes - A pointer to the loop's variable
+;   1 Byte  - A byte reflecting the sign of the increment
+;   4 Bytes - SINGLE value of the STEP
+;   4 Bytes - SINGLE upper limit TO of the loop
+;   2 Bytes - The line number of the FOR statement
+;   2 Bytes - A BASIC program pointer into the FOR statement
+;
+; For an Integer the Stack may look something more like this
+;   1 Byte  - The FOR token ( constant = $81 )
+;   2 Bytes - A pointer to the loop's variable
+;   1 Byte  - A byte reflecting the sign of the increment
+;   4 Bytes - INTEGER UNUSED PADDING
+;   2 Bytes - INTEGER value of the STEP
+;   2 Bytes - INTEGER upper limit TO of the loop
+;   2 Bytes - The line number of the FOR statement
+;   2 Bytes - A BASIC program pointer into the FOR statement
+;
 ; ----------------------------------------------------------------------
-FOR:	ld	a,$64		;1ca1
-	ld	(SUBFLG),a	;1ca3
-	call	LET		;1ca6
-	ex	(sp),hl		;1ca9
-	call	FNDFOR		;1caa
-	pop	de		;1cad
-	jr	nz,NOTOL	;1cae
+FOR:	ld	a,$64		;1ca1 - the value for the FOR flag
+	ld	(SUBFLG),a	;1ca3 - Save the FOR flag. 40DCH
+	call	LET		;1ca6 - read the FOR variable, read initial value, store in (TEMP)
+	ex	(sp),hl		;1ca9 - Exchange the current BASIC program pointer to the STACK
+	call	FNDFOR		;1caa - see if there is a FOR statement to the STACK using variable name
+	pop	de		;1cad - get BASIC program pointer (should be the TO token)
+	jr	nz,NOTOL	;1cae - An existing FOR is not found skip next 3 instructions
 	add	hl,bc		;1cb0
 	ld	sp,hl		;1cb1
 	ld	(SAVSTK),hl	;1cb2
-NOTOL:	ex	de,hl		;1cb5
-	ld	c,$08		;1cb6
-	call	GETSTK		;1cb8
-	push	hl		;1cbb
-	call	DATA		;1cbc
-	ex	(sp),hl		;1cbf
-	push	hl		;1cc0
-	ld	hl,(CURLIN)	;1cc1
-	ex	(sp),hl		;1cc4
-	SYNTAX	(TKTO)		;1cc5 - rst 08h
-	TSTDAT			;1cc7
-	jp	z,TMERR		;1cc8
-	jp	nc,TMERR	;1ccb
-	push	af		;1cce
-	call	FRMEVL		;1ccf
-	pop	af		;1cd2
-	push	hl		;1cd3
-	jp	p,SNGFOR	;1cd4
-	call	FRCINT		;1cd7
-	ex	(sp),hl		;1cda
-	ld	de,1		;1cdb
-	ld	a,(hl)		;1cde
-	cp	TKSTEP		;1cdf
-	call	z,GETINT	;1ce1
-	push	de		;1ce4
-	push	hl		;1ce5
-	ex	de,hl		;1ce6
-	call	ISIGN		;1ce7
-	jr	STPSGN		;1cea
-;
+NOTOL:	ex	de,hl		;1cb5 - HL -> BASIC program pointer; DE -> STACK pointer address
+	ld	c, 16/2		;1cb6 - 16 bytes are needed for a FOR entry
+	call	GETSTK		;1cb8 - check to see if 16 bytes are available
 ; ----------------------------------------------------------------------
-; 1CECH – Part of the FOR routine – “SNGFOR”
+	push	hl		;1cbb - temp save HL, restored in EX instruction
+	call	DATA		;1cbc - Scanning the BASIC program until (HL) END OF LINE terminator
+	ex	(sp),hl		;1cbf - (SAVE) Saving basic program pointer
+	push	hl		;1cc0
+	ld	hl,(CURLIN)	;1cc1 - Get Basic Line number
+	ex	(sp),hl		;1cc4 - (SAVE) BASIC line number
+	SYNTAX	(TKTO)		;1cc5 - rst 08h Look for TO Token
+	GETYPE			;1cc7 - RST 20 - check the current number type
+	jp	z,TMERR		;1cc8 - EXIT if String Type
+	jp	nc,TMERR	;1ccb - EXIT if Double Type
+	push	af		;1cce
+	call	FRMEVL		;1ccf - Evaluate the expression following TO
+	pop	af		;1cd2
+	push	hl		;1cd3 - temp save the BASIC program pointer TO
+	jp	p,SNGFOR	;1cd4 - jump forward if a Single Loop
+; ----------------------------------------------------------------------
+; Part of the FOR routine – Setup for an Integer Loop
+; ----------------------------------------------------------------------
+	call	FRCINT		;1cd7 - Convert to Integer in HL
+	ex	(sp),hl		;1cda - (SAVE) the TO Integer into the stack.
+	ld	de,1		;1cdb - Default Step Value = 1
+	ld	a,(hl)		;1cde - next char from the BASIC program line
+	cp	TKSTEP		;1cdf - Check for a STEP token
+	call	z,GETINT	;1ce1 - if step then get step value as an Integer
+	push	de		;1ce4 - (SAVE) the Step Amount
+	push	hl		;1ce5 - temp save the BASIC program pointer
+	ex	de,hl		;1ce6 - HL -> Step val; DE -> program pointer
+	call	ISIGN		;1ce7 - get the sign of the STEP value in HL
+	jr	STPSGN		;1cea
+; ----------------------------------------------------------------------
+; Part of the FOR routine – Setup for a Single Loop
 ; ----------------------------------------------------------------------
 SNGFOR:	call	FRCSNG		;1cec
 	call	MOVRF		;1cef
 	pop	hl		;1cf2
-	push	bc		;1cf3
-	push	de		;1cf4
-	ld	bc,$8100	;1cf5
-	ld	d,c		;1cf8
+	push	bc		;1cf3 - (SAVE) the TO Single into the stack.
+	push	de		;1cf4 - (SAVE) Single has 4 bytes
+	ld	bc,$8100	;1cf5 - Single precision constant for 1
+	ld	d,c		;1cf8 - loaded into BC and DE
 	ld	e,d		;1cf9
-	ld	a,(hl)		;1cfa
-	cp	TKSTEP		;1cfb
-	ld	a,$01		;1cfd
-	jr	nz,ONEON	;1cff
-	call	FRMCHK		;1d01
-	push	hl		;1d04
-	call	FRCSNG		;1d05
-	call	MOVRF		;1d08
-	call	SIGN		;1d0b
-STPSGN:	pop	hl		;1d0e
-ONEON:	push	bc		;1d0f
-	push	de		;1d10
-	ld	c,a		;1d11
-	TSTDAT			;1d12
-	ld	b,a		;1d13
-	push	bc		;1d14
-	push	hl		;1d15
-	ld	hl,(TEMP)	;1d16
-	ex	(sp),hl		;1d19
-NXTCON:	ld	b,TKFOR		;1d1a
-	push	bc		;1d1c
-	inc	sp		;1d1d
+	ld	a,(hl)		;1cfa - next char from the BASIC program line
+	cp	TKSTEP		;1cfb - Check for a STEP token
+	ld	a,1		;1cfd - Default Step Value = 1
+	jr	nz,ONEON	;1cff - Skip forward if we dont have STEP token
+	call	FRMCHK		;1d01 - Evaluate the step expression
+	push	hl		;1d04 - save BASIC program pointer
+	call	FRCSNG		;1d05 - convert to single
+	call	MOVRF		;1d08 - load the single precision into BC DE
+	call	SIGN		;1d0b - Get the Sign of value into A
+; ----------------------------------------------------------------------
+; Part of the FOR routine – Common Setup
+; ----------------------------------------------------------------------
+STPSGN:	pop	hl		;1d0e - the BASIC program pointer
+ONEON:	push	bc		;1d0f - (SAVE) The Single Precision STEP Value
+	push	de		;1d10 - (SAVE) OR Integer Padding
+	ld	c,a		;1d11 - sign value for the STEP value
+	GETYPE			;1d12 - RST 20 - check the current number type
+	ld	b,a		;1d13 - type-adjusted and sign of the number type flag
+	push	bc		;1d14 - (SAVE)
+	push	hl		;1d15 - temp save the BASIC program pointer
+	ld	hl,(TEMP)	;1d16 - Pointer to loop variable in call to LET
+	ex	(sp),hl		;1d19 - (SAVE) Pointer to the Loops Variable
+; ----------------------------------------------------------------------
+; Jumped here at completion of FOR NEXT Loop
+; ----------------------------------------------------------------------
+NXTCON:	ld	b,TKFOR		;1d1a - The BASIC FOR token
+	push	bc		;1d1c - (SAVE) The For Token in B register
+	inc	sp		;1d1d - Reverting the Store of C in above push
+	; Fall through
+;
 ; ----------------------------------------------------------------------
 ; 1D1E-1D77 – LEVEL II BASIC INTERPRETER – “NEWSTT”
 ;   this is where we go for a new statement. The character on the BASIC
@@ -4949,7 +5020,7 @@ LET:	call	PTRGET		;1f21
 	ld	(TEMP),hl	;1f27
 	ex	de,hl		;1f2a
 	push	de		;1f2b
-	TSTDAT			;1f2c
+	GETYPE			;1f2c - RST 20 - check the current number type
 	push	af		;1f2d
 	call	FRMEVL		;1f2e
 	pop	af		;1f31
@@ -5260,7 +5331,7 @@ PRINTD:	ld	a,(hl)		;20A5 Reload next element from code string
 ;
 #ENDIF
 ;
-	TSTDAT			;20bd
+	GETYPE			;20bd - RST 20 - check the current number type
 	jr	z,STRDON	;20be
 	call	FOUT		;20c0
 	call	STRLIT		;20c3
@@ -5534,7 +5605,7 @@ LOPDAT:	call	PTRGET		;21fd
 	jp	z,DATAH		;2229
 	push	de		;222c
 DATBK:	call	FILIND		;222d
-	TSTDAT			;2230
+	GETYPE			;2230 - RST 20 - check the current number type
 	push	af		;2231
 	jr	nz,NUMINS	;2232
 	GETCHR			;2234 - rst 10h
@@ -5623,24 +5694,27 @@ NOWLIN:	GETCHR			;22ae - rst 10h
 ; ----------------------------------------------------------------------
 ; 22B6-2336 – LEVEL II BASIC NEXT ROUTINE – “NEXT”
 ; ----------------------------------------------------------------------
-NEXT:	ld	de,$0000	;22b6
-NEXTC:	call	nz,PTRGET	;22b9
-	ld	(TEMP),hl	;22bc
-	call	FNDFOR		;22bf
-	jp	nz,NFERR	;22c2
-	ld	sp,hl		;22c5
-	ld	(SAVSTK),hl	;22c6
-	push	de		;22c9
-	ld	a,(hl)		;22ca
-	inc	hl		;22cb
-	push	af		;22cc
-	push	de		;22cd
-	ld	a,(hl)		;22ce
+NEXT:	ld	de,$0000	;22b6 - default for cases where NEXT doesn't include a variable name
+NEXTC:	call	nz,PTRGET	;22b9 - Get the pointer to variable which follows the NEXT token -> DE
+	ld	(TEMP),hl	;22bc - Save the BASIC program pointer (after next) into temp storage
+	call	FNDFOR		;22bf - search the STACK for the appropriate FOR (see above)
+	jp	nz,NFERR	;22c2 - If not found, then display a NF ERROR message
+	ld	sp,hl		;22c5 - Reset Stack using discovered FOR entry (HL) Sign
+	ld	(SAVSTK),hl	;22c6 - save the stack pointer
+	push	de		;22c9 - Save the pointer to the variables address
+	ld	a,(hl)		;22ca - sign for the STEP value
+	inc	hl		;22cb - increment to the value of the STEP
+	push	af		;22cc - Save the value of the sign for the STEP value
+	push	de		;22cd - Save the pointer to the loop variable
+	ld	a,(hl)		;22ce - number type flag for the STEP value
 	inc	hl		;22cf
 	or	a		;22d0
-	jp	m,INTNXT	;22d1
+	jp	m,INTNXT	;22d1 - if the STEP value is an integer
+; ----------------------------------------------------------------------
+; Part of the NEXT code, process the variable as Single precision
+; ----------------------------------------------------------------------
 	call	MOVFM		;22d4
-	ex	(sp),hl		;22d7
+	ex	(sp),hl		;22d7 - HL pointer to loop variable; STACK pointer for the FOR entry
 	push	hl		;22d8
 	call	FADDS		;22d9
 	pop	hl		;22dc
@@ -5650,62 +5724,64 @@ NEXTC:	call	nz,PTRGET	;22b9
 	push	hl		;22e4
 	call	FCOMP		;22e5
 	jr	FINNXT		;22e8
-;
 ; ----------------------------------------------------------------------
-; 22EAH - Part of the NEXT code, process the variable as an int “INTNXT”
+; Part of the NEXT code, process the variable as an Integer
 ; ----------------------------------------------------------------------
-INTNXT:	inc	hl		;22ea
+INTNXT:	inc	hl		;22ea - skip 4 bytes of INTEGER Padding
 	inc	hl		;22eb
 	inc	hl		;22ec
 	inc	hl		;22ed
-	ld	c,(hl)		;22ee
+	ld	c,(hl)		;22ee - the LSB of the STEP value
 	inc	hl		;22ef
-	ld	b,(hl)		;22f0
+	ld	b,(hl)		;22f0 - the MSB of the STEP value
 	inc	hl		;22f1
-	ex	(sp),hl		;22f2
-	ld	e,(hl)		;22f3
+	ex	(sp),hl		;22f2 - HL pointer to loop variable; STACK pointer for the FOR entry
+	ld	e,(hl)		;22f3 - the LSB of the TO variable
 	inc	hl		;22f4
-	ld	d,(hl)		;22f5
-	push	hl		;22f6
-	ld	l,c		;22f7
+	ld	d,(hl)		;22f5 - the MSB of the TO variable
+	push	hl		;22f6 - save the pointer to loop variable
+	ld	l,c		;22f7 - STEP variable into HL
 	ld	h,b		;22f8
-	call	IADD		;22f9
-	ld	a,(VALTYP)	;22fc
+	call	IADD		;22f9 - add the 2 integer numbers DE,HL store to ACC
+	ld	a,(VALTYP)	;22fc - value type of result
 	cp	VTSNG		;22ff - Compare with Single Precision
-	jp	z,OVERR		;2301 - Is it Single precision
-	ex	de,hl		;2304
-	pop	hl		;2305
-	ld	(hl),d		;2306
+	jp	z,OVERR		;2301 - **** OVERFLOW **** into Single precision **** BUG!
+	ex	de,hl		;2304 - DE will now hold the new loop variable value
+	pop	hl		;2305 - restore the loop variable pointer
+	ld	(hl),d		;2306 - save MSB of result back to the loop variable
 	dec	hl		;2307
-	ld	(hl),e		;2308
-	pop	hl		;2309
-	push	de		;230a
-	ld	e,(hl)		;230b
+	ld	(hl),e		;2308 - save LSB of result back to the loop variable
+	pop	hl		;2309 - restore the for entry pointer
+	push	de		;230a - save the loop variable pointer back to stack
+	ld	e,(hl)		;230b - get the Final value LSB
 	inc	hl		;230c
-	ld	d,(hl)		;230d
+	ld	d,(hl)		;230d - get the Final value MSB
 	inc	hl		;230e
-	ex	(sp),hl		;230f
-	call	ICOMP		;2310
+	ex	(sp),hl		;230f -
+	call	ICOMP		;2310 - Compare current HL, and final value DE, Set Flags
 ; ----------------------------------------------------------------------
-; 2313H	- Part of the NEXT code, continue after skipping over the int processing “FINNXT”
+; Part of the NEXT code, check for loop completed, or continue loop
 ; ----------------------------------------------------------------------
-FINNXT:	pop	hl		;2313
-	pop	bc		;2314
-	sub	b		;2315
-	call	MOVRM		;2316
-	jr	z,LOOPDN	;2319
-	ex	de,hl		;231b
-	ld	(CURLIN),hl	;231c
-	ld	l,c		;231f
-	ld	h,b		;2320
-	jp	NXTCON		;2321
+FINNXT:	pop	hl		;2313 - restore the loop variable pointer
+	pop	bc		;2314 - Get the sign into B
+	sub	b		;2315 - Subtract the sign
+	call	MOVRM		;2316 - loads a SINGLE PRECISION value (HL) into BC and DE
+	jr	z,LOOPDN	;2319 - Jump if loop NOT COMPLETED
 ; ----------------------------------------------------------------------
-; 2324H	– Part of the NEXT code, jumped if we haven’t hit the TO counter yet “LOOPDN”
+; Part of the NEXT code, Finished the Loop, need to continue after NEXT
+; ----------------------------------------------------------------------
+	ex	de,hl		;231b - HL -> BASIC line number of the FOR statement ?
+	ld	(CURLIN),hl	;231c - Save the BASIC line number
+	ld	l,c		;231f - LSB of the BASIC program pointer ?
+	ld	h,b		;2320 - MSB of the BASIC program pointer ?
+	jp	NXTCON		;2321 - continue execution and restore the FOR token
+; ----------------------------------------------------------------------
+; Part of the NEXT code, jumped if we haven’t hit the TO counter yet
 ; ----------------------------------------------------------------------
 LOOPDN:	ld	sp,hl		;2324
 	ld	(SAVSTK),hl	;2325
-	ld	hl,(TEMP)	;2328
-	ld	a,(hl)		;232b
+	ld	hl,(TEMP)	;2328 - Restore the BASIC program pointer from temp storage
+	ld	a,(hl)		;232b - get the character from
 	cp	','		;232c
 	jp	nz,NEWSTT	;232e
 	GETCHR			;2331 - rst 10h
@@ -5871,7 +5947,7 @@ FINREL:	ld	a,b		;23ec
 	ld	de,$6404	;23f2
 	ld	hl,DOCMP	;23f5
 	push	hl		;23f8
-	TSTDAT			;23f9
+	GETYPE			;23f9 - RST 20 - check the current number type
 	jp	nz,NUMREL	;23fa
 	ld	hl,(FACLO)	;23fd
 	push	hl		;2400
@@ -6107,7 +6183,7 @@ ISVAR:	call	PTRGET		;2540
 RETVAR:	push	hl		;2543
 	ex	de,hl		;2544
 	ld	(FACLO),hl	;2545
-	TSTDAT			;2548
+	GETYPE			;2548 - RST 20 - check the current number type
 	call	nz,VMOVFM	;2549
 	pop	hl		;254c
 	ret			;254d
@@ -6232,9 +6308,9 @@ NOTER:	ld	d,$5A		;25c4
 RETAPG:	jp	RETAOP		;25d6
 ;
 ; ======================================================================
-; 25D9 – The RST 20H code – “GETYPR”
+; 25D9 – The RST 20H code – “GETYPR” - GETYPE
 ;
-;   This is the TEST DATA MODE, which determines the type of the current
+;   This determines the type of the current
 ;   value in ACCumulator and returns a combination of STATUS flags and
 ;   unique numeric values in the A Register according to the data mode flag (40AFH).
 ;      TYPE   CODE   ZERO   CARRY   NEG   PARITY   A-Register
@@ -6359,14 +6435,14 @@ NOSEC:	ld	de,HAVTYP	;262b
 HAVTYP:	ld	a,d		;2652 - the number type
 	ld	(VALTYP),a	;2653 - save the num type flag
 	GETCHR			;2656 - rst 10h
-	ld	a,(SUBFLG)	;2657
-	or	a		;265a
+	ld	a,(SUBFLG)	;2657 - Load the FOR flag
+	or	a		;265a - set the Flags
 	jp	nz,NOARYS	;265b
 	ld	a,(hl)		;265e
 	sub	'('		;265f - '(' - test for an array
 	jp	z,ISARY		;2661
 NOARYS:	xor	a		;2664
-	ld	(SUBFLG),a	;2665
+	ld	(SUBFLG),a	;2665 - Set the "permit arrays" array flag to 'no subscript'.
 	push	hl		;2668
 	push	de		;2669
 	ld	hl,(VARTAB)	;266a
@@ -6459,7 +6535,7 @@ FINZER:	ld	(FAC),a		;26d5
 	ld	h,a		;26d9
 	ld	l,a		;26da
 	ld	(FACLO),hl	;26db
-	TSTDAT			;26de
+	GETYPE			;26de - RST 20 - check the current number type
 	jr	nz,POPHR2	;26df
 	ld	hl,m_REDDY-1	;26e1
 	ld	(FACLO),hl	;26e4
@@ -6665,7 +6741,7 @@ FNFRE:	ld	hl,(STREND)	;27d4
 	ex	de,hl		;27d7
 	ld	hl,$0000	;27d8
 	add	hl,sp		;27db
-	TSTDAT			;27dc
+	GETYPE			;27dc - RST 20 - check the current number type
 	jr	nz,GIVDBL	;27dd
 ; ----------------------------------------------------------------------
 ; 27DF - Get number of bytes free string space to ACCUM (TAS)
@@ -7180,7 +7256,7 @@ STRNGS:	GETCHR			;2a2f - rst 10h
 ; ----------------------------------------------------------------------
 	ex	(sp),hl		;2a3d
 	push	hl		;2a3e
-	TSTDAT			;2a3f
+	GETYPE			;2a3f - RST 20 - check the current number type
 	jr	z,STRSTR	;2a40
 	call	CONINT		;2a42
 	jr	CALSPA		;2a45
