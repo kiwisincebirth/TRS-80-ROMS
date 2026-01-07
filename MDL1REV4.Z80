@@ -24,6 +24,7 @@
 #DEFINE BUGFIX7 ; Fix Error 7 - 0EF2H - Space after Type declaration Tag
 #DEFINE BUGFIX7C ; Fix Error 7C - 213DH - Space after TAB keyword
 #DEFINE BUGFIX8 ; Fix Error 8 - 1009H - PRINT USING, - sign at end of field
+#DEFINE BUGFIX11 ; Fix Error 11 - 2301H - Overflow on Integer FOR loop
 ;
 ; Rom Additional Features
 #DEFINE LOWCASE ; Disable Alpha Character Translation (0471h)
@@ -692,6 +693,25 @@ TABERFIX:
 	PUBLIC 	BUGFIX7C_ENABLED
 	DEFC 	BUGFIX7C_BYTES = $ - TABERFIX
 	PUBLIC 	BUGFIX7C_BYTES
+#ENDIF
+;
+; ----------------------------------------------------------------------
+; BUGFIX11 - Overflow on Integer FOR loop
+; ----------------------------------------------------------------------
+;
+#IFDEF BUGFIX11
+;
+INTNXTOVER:
+	pop	hl		; restore the loop variable pointer (2305)
+	pop	hl		; restore the for entry pointer (2309)
+	ld	bc,6		; need to consume 6 more bytes off the stack
+	add	hl,bc		; which is passed as HL into the next routine
+	jp	LOOPDN		; Normal NEXT completion of loop
+; ----------------------------------------------------------------------
+	DEFC 	BUGFIX11_ENABLED = 1
+	PUBLIC 	BUGFIX11_ENABLED
+	DEFC 	BUGFIX11_BYTES = $ - INTNXTOVER
+	PUBLIC 	BUGFIX11_BYTES
 #ENDIF
 ;
 ; ======================================================================

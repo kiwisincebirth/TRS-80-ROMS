@@ -52,16 +52,16 @@ model3:
 	@echo "Verifying* Model 3 - Rev 1.3"
 	@diff MDL3.bin ./test-roms/Model3-RevC-2EF8.bin
 model3f:
-	@echo "Generating Model 3 - Rev 1.3 (FreHD Patched)"
+	@echo "Generating Model 3 - Rev 1.4 (FreHD Patched)"
 	@${Z80ASM} -DPATCH -DFREHDBT -oMDL3F.bin MDL3LEV2.Z80
 model3p:
-	@echo "Generating Model 3 - Rev 1.3 (Patched)"
+	@echo "Generating Model 3 - Rev 1.4 (Patched)"
 	@${Z80ASM} -DPATCH -oMDL3P.bin MDL3LEV2.Z80
 model3f50:
-	@echo "Generating Model 3 - Rev 1.3 (FreHD Patched)"
+	@echo "Generating Model 3 - Rev 1.4 (FreHD Patched)"
 	@${Z80ASM} -DVIDEO50 -DPATCH -DFREHDBT -oMDL3F50.bin MDL3LEV2.Z80
 model3p50:
-	@echo "Generating Model 3 - Rev 1.3 (Patched)"
+	@echo "Generating Model 3 - Rev 1.4 (Patched)"
 	@${Z80ASM} -DVIDEO50 -DPATCH -oMDL3P50.bin MDL3LEV2.Z80
 
 # This one is not part of ALL, it is used to test

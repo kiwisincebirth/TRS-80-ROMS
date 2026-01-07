@@ -24,6 +24,7 @@
 ; #DEFINE BUGFIX7  ; Uncomment to Fix Error 7 - 0EF2H - Space after Type declaration Tag
 ; #DEFINE BUGFIX7C ; Uncomment to Fix Error 7C - 213DH - Space after TAB keyword
 ; #DEFINE BUGFIX8  ; Uncomment to Fix Error 8 - 1009H - PRINT USING, - sign at end of field
+; #DEFINE BUGFIX11 ; Uncomment to Fix Error 11 - 2301H - Overflow on Integer FOR loop
 ; #DEFINE BUGFIX27 ; Uncomment to Fix Error 27, 29, 31 - 0072H - Basic Entry 06CCh.
 ; #DEFINE BUGFIX28 ; Uncomment to Fix Error 28 - 02B5H - Stack Init
 ; #DEFINE BUGFIX30 ; Uncomment to Fix Error 30 - 034BH - 32 Char Mode
@@ -43,17 +44,22 @@
   #DEFINE BUGFIX7
   #DEFINE BUGFIX7C
   #DEFINE BUGFIX8
+  #DEFINE BUGFIX11
   #DEFINE BUGFIX27
   #DEFINE BUGFIX28
   #DEFINE BUGFIX30
   #DEFINE BUGFIX40
 #ENDIF
 ;
+; The following Bug Fixes require extra space
+;
 #IFDEF BUGFIX1
   #DEFINE EXTRA_SPACE
 #ELIFDEF BUGFIX7
   #DEFINE EXTRA_SPACE
 #ELIFDEF BUGFIX7C
+  #DEFINE EXTRA_SPACE
+#ELIFDEF BUGFIX11
   #DEFINE EXTRA_SPACE
 #ELIFDEF BUGFIX27
   #DEFINE EXTRA_SPACE
@@ -2500,6 +2506,25 @@ TABERFIX:
 	PUBLIC 	BUGFIX7C_ENABLED
 	DEFC 	BUGFIX7C_BYTES = $ - TABERFIX
 	PUBLIC 	BUGFIX7C_BYTES
+#ENDIF
+;
+; ----------------------------------------------------------------------
+; BUGFIX11 - Overflow on Integer FOR loop
+; ----------------------------------------------------------------------
+;
+#IFDEF BUGFIX11
+;
+INTNXTOVER:
+	pop	hl		; restore the loop variable pointer (2305)
+	pop	hl		; restore the for entry pointer (2309)
+	ld	bc,6		; need to consume 6 more bytes off the stack
+	add	hl,bc		; which is passed as HL into the next routine
+	jp	LOOPDN		; Normal NEXT completion of loop
+; ----------------------------------------------------------------------
+	DEFC 	BUGFIX11_ENABLED = 1
+	PUBLIC 	BUGFIX11_ENABLED
+	DEFC 	BUGFIX11_BYTES = $ - INTNXTOVER
+	PUBLIC 	BUGFIX11_BYTES
 #ENDIF
 ;
 ; ----------------------------------------------------------------------

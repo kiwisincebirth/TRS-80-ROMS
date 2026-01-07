@@ -58,6 +58,7 @@ Bug Fixes Applied
 * `#DEFINE BUGFIX7` - Fix Error 7 - 0EF2H - Space after type declaration tag
 * `#DEFINE BUGFIX7C` - Fix Error 7C - 213DH - Space after TAB token
 * `#DEFINE BUGFIX8` - Fix Error 8 - 1009H - PRINT USING, - sign at end of field
+* `#DEFINE BUGFIX11` - Fix Error 11 - 2301H - Overflow on Integer FOR loop
 
 The base ROM can also be customised to hardware.
 * `#DEFINE EACA80` - (OPTIONAL) uncomment to enable Dick Smith System-80 (EACA) hardware support.
@@ -92,4 +93,8 @@ These changes have been tested on TRS-DOS disk basic without issue
 The build output has a listing of the available free space in the ROMS.
 
 __TBD__
+
+As at 7/Jan/26 there were 330 bytes free (easily available) in the ROM after cassette removal and 
+patches applied, split into 3 main sections. Plus another 35 bytes in much smaller sections
+which could be utilised with some additional effort
 

@@ -38,7 +38,7 @@ DSPLINLTH:
 On the Model 3 the fix is almost identical except the shadow control port is `SHADEC`
 ($4210) and the mask used is `SHADM32` ($04)
 
-This fix requires 11 bytes.
+This fix requires 11 extra bytes.
 
 #### Test Program
 
@@ -57,8 +57,9 @@ to single-precision first, then performs the INT function. e.g.
 
 ```
 PRINT INT(2.9999999) 
+3
 ```
-Produces `3` instead of `2`, because single precision rounding, rounds up.
+Should produces `2`. It is cased because single precision rounding, rounds up.
 
 #### Resolution
 
@@ -92,7 +93,8 @@ INFINEFIX:
     jp  nz,FINE     ; NO - Exit and Continue
     jr  INFINEFIX   ; loop around
 ```
-The fix requires 9 extra bytes
+
+The fix requires 9 extra bytes.
 
 #### Test Program
 
@@ -171,6 +173,8 @@ TABERFIX:
     ret
 ```
 
+The fix requires 6 extra bytes.
+
 #### Test Program
 
 The following test program should consistently display `Hello` indented by 10 spaces
@@ -198,7 +202,7 @@ The following test program should consistently display `Hello` indented by 10 sp
 
 ### Error 8 - PRINT USING, sign at end of field
 
-RULE: A PRINT USING statement with a negative sign at the end of the field prints
+A `PRINT USING` statement with a negative sign at the end of the field prints
 a negative sign after negative numbers and prints a space for positive numbers.
 However, if the field specifiers in the string also has two asterisks at the
 beginning of the field, the ROM prints an asterisk instead of a space after a
@@ -213,6 +217,63 @@ Produces `**1234*` instead of `**1234-`
 #### Resolution
 
 Address 1099 Change instruction `LD B,C` to a `NOP`
+
+### Error 11 - Overflow on Integer FOR loop
+
+`FOR NEXT` loops with valid integer values should complete without error 
+i.e. The following should not produce an overflow error.
+
+```
+FOR J% = 0 TO 30000 STEP 5000 : PRINT J%; : NEXT J%
+?OV Error
+```
+
+#### Resolution
+
+The overflow error occurs (as explicitly not handled) when adding the `STEP` value to the loop variable
+causing an Integer (-32768 to 32767 ) overflow. This is easy to produce with large `STEP` values.
+
+The code issue is found in Code from address `22F9H` to `2301H` where the loop variable is advanced.
+This code is part of the `NEXT` loop processing
+
+```
+    call    IADD        ;22f9 - ADD the loop and STEP integer values
+    ld      a,(VALTYP)  ;22fc - Get value type of result
+    cp      VTSNG       ;22ff - Is it Single Precision
+    jp      z,OVERR     ;2301 - **** Jump to OVERFLOW Error
+```
+
+In BASIC code a FOR NEXT loop using Integer `%` variable must be specified using only Integer values.
+The execution of the FOR statement itself will fail for any `TO` or `STEP` values that fall outside this range.
+
+Thus, if the addition `call IADD` produces a single precision then by definition
+the loop itself has exceeded its bounds and should complete normally, proceeding the statement
+following the `NEXT`.
+This can be achieved by replacing the instruction at `2301H` with a `jp z,INTNXTOVER`
+
+```
+INTNXTOVER:
+	pop	    hl      ; restore the loop variable pointer (2305)
+	pop	    hl      ; restore the for entry pointer (2309)
+	ld	    bc,6    ; need to consume 6 more bytes off the stack
+	add	    hl,bc   ; which is passed as HL into the next routine
+	jp	    LOOPDN  ; Normal NEXT completion of loop - 2324H   
+```
+
+The code above is responsible for winding back the stack pointer address which it passes in `HL`
+to the `LOOPDN` routine.
+
+The fix requires 9 extra bytes
+
+#### Test Program
+
+The following test program should not fail with `OV Error`
+
+```
+10 FOR J% = 0 TO 30000 STEP 5000
+20 PRINT J%;
+30 NEXT J%
+```
 
 ## Model 3
 
