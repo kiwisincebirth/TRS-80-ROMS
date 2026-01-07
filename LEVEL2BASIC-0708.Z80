@@ -11,6 +11,7 @@
 ; BUGFIX7 - Dependancy on INFINEFIX (provided externally)
 ; BUGFIX7C - Dependancy on TABERFIX (provided externally)
 ; BUGFIX8 - No Dependancies
+; BUGFIX11 - Dependancy on INTNXTOVER (provided externally)
 ;
 ; VER12 - Downgrade Model 1 from Rev 1.3 to Revision 1.2
 ; EACA80 - Applies Dick Smith System 80 Changes (minor)
@@ -5696,7 +5697,7 @@ NOWLIN:	GETCHR			;22ae - rst 10h
 ; ----------------------------------------------------------------------
 NEXT:	ld	de,$0000	;22b6 - default for cases where NEXT doesn't include a variable name
 NEXTC:	call	nz,PTRGET	;22b9 - Get the pointer to variable which follows the NEXT token -> DE
-	ld	(TEMP),hl	;22bc - Save the BASIC program pointer (after next) into temp storage
+	ld	(TEMP),hl	;22bc - Save the BASIC program pointer after NEXT into (TEMP)
 	call	FNDFOR		;22bf - search the STACK for the appropriate FOR (see above)
 	jp	nz,NFERR	;22c2 - If not found, then display a NF ERROR message
 	ld	sp,hl		;22c5 - Reset Stack using discovered FOR entry (HL) Sign
@@ -5745,7 +5746,14 @@ INTNXT:	inc	hl		;22ea - skip 4 bytes of INTEGER Padding
 	call	IADD		;22f9 - add the 2 integer numbers DE,HL store to ACC
 	ld	a,(VALTYP)	;22fc - value type of result
 	cp	VTSNG		;22ff - Compare with Single Precision
-	jp	z,OVERR		;2301 - **** OVERFLOW **** into Single precision **** BUG!
+#IFDEF BUGFIX11
+	jp	z,INTNXTOVER	; Correctly handle the overflow.
+#ELSE
+	; Issue #11 - with Integer loops with large step values causing
+	; overflow into Single precision numbers, which is not well handled.
+	; FOR J% = 0 TO 30000 STEP 5000 : NEXT J%
+	jp	z,OVERR		;2301 - Overflow into Single precision !!!
+#ENDIF
 	ex	de,hl		;2304 - DE will now hold the new loop variable value
 	pop	hl		;2305 - restore the loop variable pointer
 	ld	(hl),d		;2306 - save MSB of result back to the loop variable
@@ -5766,26 +5774,26 @@ FINNXT:	pop	hl		;2313 - restore the loop variable pointer
 	pop	bc		;2314 - Get the sign into B
 	sub	b		;2315 - Subtract the sign
 	call	MOVRM		;2316 - loads a SINGLE PRECISION value (HL) into BC and DE
-	jr	z,LOOPDN	;2319 - Jump if loop NOT COMPLETED
+	jr	z,LOOPDN	;2319 - Jump if loop HAS COMPLETED
 ; ----------------------------------------------------------------------
-; Part of the NEXT code, Finished the Loop, need to continue after NEXT
+; Part of the NEXT code, NOT completed the loop, need to go back to FOR
 ; ----------------------------------------------------------------------
-	ex	de,hl		;231b - HL -> BASIC line number of the FOR statement ?
+	ex	de,hl		;231b - HL -> BASIC line number of the FOR statement
 	ld	(CURLIN),hl	;231c - Save the BASIC line number
-	ld	l,c		;231f - LSB of the BASIC program pointer ?
-	ld	h,b		;2320 - MSB of the BASIC program pointer ?
+	ld	l,c		;231f - LSB of the BASIC program pointer
+	ld	h,b		;2320 - MSB of the BASIC program pointer
 	jp	NXTCON		;2321 - continue execution and restore the FOR token
 ; ----------------------------------------------------------------------
-; Part of the NEXT code, jumped if we haven’t hit the TO counter yet
+; Part of the NEXT code, FINISHED the Loop, need to continue after NEXT
 ; ----------------------------------------------------------------------
-LOOPDN:	ld	sp,hl		;2324
-	ld	(SAVSTK),hl	;2325
-	ld	hl,(TEMP)	;2328 - Restore the BASIC program pointer from temp storage
-	ld	a,(hl)		;232b - get the character from
-	cp	','		;232c
-	jp	nz,NEWSTT	;232e
-	GETCHR			;2331 - rst 10h
-	call	NEXTC		;2332
+LOOPDN:	ld	sp,hl		;2324 - restore the Stack based on HL position
+	ld	(SAVSTK),hl	;2325 - save the stack
+	ld	hl,(TEMP)	;2328 - Restore the BASIC program pointer after NEXT
+	ld	a,(hl)		;232b - get the character from program
+	cp	','		;232c - check for comma.
+	jp	nz,NEWSTT	;232e - If NOT comma, then execute Statement after NEXT
+	GETCHR			;2331 - rst 10h - consumes the comma
+	call	NEXTC		;2332 - process the NEXT variable name after the comma
 ;
 ; ----------------------------------------------------------------------
 ; 2335-27C8 – EVALUATE EXPRESSION – “FRMPRN” and “FRMEVL”

@@ -47,6 +47,7 @@ Bug Fixes can be applied
 * `#DEFINE BUGFIX7` - Fix Error 7 - 0EF2H - Space after type declaration tag
 * `#DEFINE BUGFIX7C` - Fix Error 7C - 213DH - Space after TAB token
 * `#DEFINE BUGFIX8` - Fix Error 8 - 1009H - PRINT USING, - sign at end of field
+* `#DEFINE BUGFIX11` - Fix Error 11 - 2301H - Overflow on Integer FOR loop
 * `#DEFINE BUGFIX27` - Fix Error 27 - 06CCH - Basic Entry Point. Also Fixes 29, 31.
 * `#DEFINE BUGFIX28` - Fix Error 28 - 034BH - Stack Initialisation Problem
 * `#DEFINE BUGFIX30` - Fix Error 30 - 034BH - 32 char Mode, Incompatible Model 1 code
