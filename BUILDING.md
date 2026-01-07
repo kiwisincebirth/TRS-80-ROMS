@@ -71,14 +71,15 @@ Can be built by `make`
 To make a specific target below are some high level targets. For specific targets see
 the [List of ROM Targets](./About_Release.txt)
 
-| Target     | What is built            |
-|------------|--------------------------|
-| all        | All ROM's (*default*)    |
-| model1all  | All Model 1 ROM's        |
-| eaca80all  | All EACA ROM's           |
-| model14all | All Enhanced Rev4 ROM's  | 
-| model3all  | All Model 3 ROM's        | 
-| clean      | (*deletes built files*)  |
+| Target     | What is built                |
+|------------|------------------------------|
+| all        | All ROM's (*default*)        |
+| eaca80all  | All EACA ROM's               |
+| model1all  | All Model I ROM's            |
+| model14all | All Model I Enhanced ROM's   | 
+| model3all  | All Model III ROM's          | 
+| model34all | All Model III Enhanced ROM's | 
+| clean      | (*deletes built files*)      |
 
 
 

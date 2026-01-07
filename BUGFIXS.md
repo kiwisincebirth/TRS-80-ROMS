@@ -2,7 +2,7 @@
 
 ## Level 2 Basic
 
-Affect both Model 1 and Model 3 See - 
+Affect both Model I and Model III See - 
 [TRS-80 ROM Errors - Vernon Hester](https://www.trs-80.com/sub-rom-bugs.htm) - for further details.
 
 ### Error 1 - Line breaks printing numbers in 32 Char Mode
@@ -14,7 +14,7 @@ The issue is caused because the variable `LINLEN` ($409D) - which holds the numb
 characters per line - is never updated. When entering 32 character mode it retains the value 64.
 Thus routines that use this variable, will be affected.
 
-The updating of `LINLEN` was investigated, but this was incompatible with TRSDOS on the Model 3 which
+The updating of `LINLEN` was investigated, but this was incompatible with TRSDOS on the Model III which
 used this memory space for other purposes, only initializing it when launching BASIC.
 
 #### Resolution
@@ -35,7 +35,7 @@ DSPLINLTH:
     ret             ; and return it.
 ```
 
-On the Model 3 the fix is almost identical except the shadow control port is `SHADEC`
+On the Model III the fix is almost identical except the shadow control port is `SHADEC`
 ($4210) and the mask used is `SHADM32` ($04)
 
 This fix requires 11 extra bytes.
@@ -275,13 +275,13 @@ The following test program should not fail with `OV Error`
 30 NEXT J%
 ```
 
-## Model 3
+## Model III
 
-The following are Specific to Model 3, typically related to issues porting code from Model 1
+The following are Specific to Model III, typically related to issue's porting code from Model I
 
 ### Error 27 (29, 31) - Basic Entry Point
 
-On the Model 1 The routine located at 06CCH contains the correct entry 
+On the Model I The routine located at 06CCH contains the correct entry 
 point to BASIC from a machine language routine that moved the stack pointer.
 The routine resets the stack pointer to the last CLEAR n address
 
@@ -290,8 +290,8 @@ The routine resets the stack pointer to the last CLEAR n address
     jp  19AEH
 ```
 
-The Model 3 does not have this routine, 06CCH is in the middle of the 
-Model 3's modified list routine. This causes compatibility issues 
+The Model III does not have this routine, 06CCH is in the middle of the 
+Model III 's modified list routine. This causes compatibility issues 
 and additionally code itself in the ROM is incorrect
 * Bug 27 - Location 0072H: Instruction here is an incorrect `jp 06CCH` 
 * Bug 29 - Location 02C3H: Instruction here is an incorrect `jp 06CCH` 
@@ -330,7 +330,7 @@ have had the guts to correct the code.
 
 ### Error 40 - Printer Status Routine
 
-05D1H: The Printer Status Routine - carried over from Model 1 is broken
+05D1H: The Printer Status Routine - carried over from Model I is broken
 Rumor has it that this is a malicious destruction of the
 "printer ready" function was used to hide the name "RON"
 See 044BH which has the correct implementation. It is a relatively easy

@@ -2,28 +2,28 @@
 # TRS-80 Level II Basic Roms
 
 The following distribution contains customised ROM's for the
-* Tandy TRS-80 Model 1
-* Tandy TRS-80 Model 3
-* EACA Model 1 Clones (e.g Dick Smith System-80)
+* Tandy TRS-80 Model I
+* Tandy TRS-80 Model III
+* EACA Model I Clone's (e.g. Dick Smith System-80)
 
 ## Binary Distribution Files
 
 The following files are included.
 
 
-### Tandy TRS-80 Model 1
+### Tandy TRS-80 Model I
 
-For Tandy TRS-80 Model 1, all revisions.
+For Tandy TRS-80 Model I, all revisions.
 
 See the following for further details
 https://github.com/kiwisincebirth/TRS-80/blob/main/MODEL1.md
 
 | File          | Description                        | Make Target |
 |---------------|------------------------------------|-------------|
-| MDL1REV2.bin  | Model 1 Rev 1.2 (Official)         | model12     |
-| MDL1REV3.bin  | Model 1 Rev 1.3 (Official)         | model13     |
-| MDL1REV3F.bin | Model 1 Rev 1.3 - FreHD Patched    | model13f    |
-| MDL1REV3P.bin | Model 1 Rev 1.3 - Patched          | model13p    |
+| MDL1REV2.bin  | Model I Rev 1.2 (Official)         | model12     |
+| MDL1REV3.bin  | Model I Rev 1.3 (Official)         | model13     |
+| MDL1REV3F.bin | Model I Rev 1.3 - FreHD Patched    | model13f    |
+| MDL1REV3P.bin | Model I Rev 1.3 - Patched          | model13p    |
 
 Patches Included Are:
 * Lower Case Support with no character translation
@@ -33,7 +33,7 @@ Patches Included Are:
 
 ### Dick Smith System 80
 
-Including all EACA Inc. clones. These ROM only include the standard 12K
+Including all EACA Inc. clones. These ROM's only include the standard 12K
 ROM, the extended ROM provided on later EACA model's are not included.
 
 See the following for further details
@@ -49,44 +49,65 @@ Patches Included Are:
 * Lower Case Support with no character translation
 * NMI Reset (button) forces full reset.
 * Bug Fixes 5,8
-* Model 1 V1.3 improvements e.g. Keyboard debounce.
+* Model I V1.3 improvements e.g. Keyboard debounce.
 
 
-### Enhanced Model 1 Level 2
+### Enhanced Model I Level 2
 
-This is modernised Level 2 Basic ROM for the Model 1, and Dick Smith System-80
+This is modernised Level 2 Basic ROM for the Model I, and Dick Smith System-80
 
 It is based of the Tandy 1.3 ROMS with many enhancements and fixes applied.
 Unlike other ROM's All features are enabled by default:
-* New "Diskette?" boot capability, simialr to Model 3
+* New "Diskette?" boot capability, similar to Model III
+* FreHD autoboot support
 * Lower Case Support with no character translation
 * NMI Reset (button) forces full reset.
-* Bug Fixes 1, 5, 7, 7C, 8
+* Bug Fixes 1, 5, 7, 7C, 8, 11
 
 See the following for further details
 https://github.com/kiwisincebirth/TRS-80/blob/main/MODEL1.4.md
 
 | File             | Description                  | Make Target |
 |------------------|------------------------------|-------------|
-| MDL1REV4.bin     | Model 1 Rev 1.4 (Enhanced)   | model14     |
+| MDL1REV4.bin     | Model I Rev 1.4 (Enhanced)   | model14     |
 | MDL1REV4EACA.bin | System 80 Rev 1.4 (Enhanced) | model14eaca |
 
 
-### Tandy TRS-80 Model 3
+### Tandy TRS-80 Model III
 
 All ROM are based on the Official - V3 - Rev C - 1981 - ROM's.
 
 See the following for further details
 https://github.com/kiwisincebirth/TRS-80/blob/main/MODEL3.md
 
-| File       | Description                  | Make Target |
-|------------|------------------------------|-------------|
-| MDL3.bin   | Model 3 (Official)           | model3      |
-| MDL3P.bin  | Model 3 - Patched            | model3p     |
-| MDL3F.bin  | Model 3 - FreHd Patched      | model3f     |
-| MDL3P5.bin | Model 3 - Patched 50Hz       | model3p50   |
-| MDL3F5.bin | Model 3 - FreHd Patched 50Hz | model3f50   |
+| File       | Description                    | Make Target |
+|------------|--------------------------------|-------------|
+| MDL3.bin   | Model III (Official)           | model3      |
+| MDL3P.bin  | Model III - Patched            | model3p     |
+| MDL3F.bin  | Model III - FreHd Patched      | model3f     |
+| MDL3P5.bin | Model III - Patched 50Hz       | model3p50   |
+| MDL3F5.bin | Model III - FreHd Patched 50Hz | model3f50   |
 
 Patches Included Are:
-* Bug Fixes 1, 5, 7, 7C, 8
-* Bug Fixes 27, 28, 29, 30, 31, 40 (specific to Model 3)
+* Bug Fixes 5, 8
+* Bug Fixes 28, 30, 40 (specific to Model III)
+
+
+### Enhanced Model III Level 2
+
+This is modernised Level 2 Basic ROM for the Model III
+
+It is based of the Tandy 1.3 ROMS with many enhancements and fixes applied.
+Unlike other ROM's All features are enabled by default:
+* FreHd autoboot support included
+* Bug Fixes 1, 5, 7, 7C, 8, 11
+* Bug Fixes 27, 28, 29, 30, 31, 40 (specific to Model III)
+
+See the following for further details
+https://github.com/kiwisincebirth/TRS-80/blob/main/MODEL3.4.md
+
+| File             | Description                     | Make Target |
+|------------------|---------------------------------|-------------|
+| MDL3REV4.bin     | Model I Rev 1.4 (Enhanced)      | model34     |
+| MDL3REV450.bin   | Model I Rev 1.4 (Enhanced 50Hz) | model3450   |
+
