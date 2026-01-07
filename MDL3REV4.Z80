@@ -1,6 +1,7 @@
 ;
 ; ======================================================================
-;        TRS-80 Model III Level II BASIC ROM - (Disassembled)
+;        TRS-80 Model III Level II BASIC ROM
+;              "Modernised" Revision 1.4
 ;
 ;     Source Code Created By : kiwisincebirth - 2025
 ;     [https://github.com/kiwisincebirth/TRS-80]
@@ -8,38 +9,26 @@
 ; ======================================================================
 ;     NOTE: this code has been formatted with 8 spaces per tab
 ; ----------------------------------------------------------------------
-; Disassembly Based off The following ROMS's
-;
-; ROM  Checksum - Part Number
-;  A     9639     8041364 - This is ROM A for every Model III Level II
-;  B     407C     8040332 - This is ROM B for every Model III Level II
-;  C     2EF8     8040316B - V3 - Rev C - 1981.
-;
 ; Rom Version Definition
 ; #DEFINE VIDEO50 ; Uncomment to Enable 50Hz Video Support (RTC)
 ;
 ; Rom Bug Fixes
-; #DEFINE BUGFIX5  ; Uncomment to Fix Error 5 - 08A7H - INT(DoubleValue) rounding
-; #DEFINE BUGFIX8  ; Uncomment to Fix Error 8 - 1009H - PRINT USING, - sign at end of field
-; #DEFINE BUGFIX28 ; Uncomment to Fix Error 28 - 02B5H - Stack Init
-; #DEFINE BUGFIX30 ; Uncomment to Fix Error 30 - 034BH - 32 Char Mode
-; #DEFINE BUGFIX40 ; Uncomment to Fix Error 40 - 05D1H - Printer Status
+#DEFINE BUGFIX1  ; Fix Error 1 - 0573H - 32 Character Mode Line Length
+#DEFINE BUGFIX5  ; Fix Error 5 - 08A7H - INT(DoubleValue) rounding
+#DEFINE BUGFIX7  ; Fix Error 7 - 0EF2H - Space after Type declaration Tag
+#DEFINE BUGFIX7C ; Fix Error 7C - 213DH - Space after TAB keyword
+#DEFINE BUGFIX8  ; Fix Error 8 - 1009H - PRINT USING, - sign at end of field
+#DEFINE BUGFIX11 ; Fix Error 11 - 2301H - Overflow on Integer FOR loop
+#DEFINE BUGFIX27 ; Fix Error 27, 29, 31 - 0072H - Basic Entry 06CCh.
+#DEFINE BUGFIX28 ; Fix Error 28 - 02B5H - Stack Init
+#DEFINE BUGFIX30 ; Fix Error 30 - 034BH - 32 Char Mode
+#DEFINE BUGFIX40 ; Fix Error 40 - 05D1H - Printer Status
 ;
 ; Rom Additional Features
-; #DEFINE FREHDBT ; Uncomment to enable FreHD Auto boot at startup.
+#DEFINE FREHDBT ; Enable FreHD Auto boot at startup.
 ;
 ; Build Features
 ; #DEFINE SIZE16K ; Uncomment to build a $FF padded 16K Image for banked ROM
-;
-#IFDEF PATCH
-  ; USED BY AUTOMATED BUILD
-  ; TO DEFINE PATCH FEATURES
-  #DEFINE BUGFIX5
-  #DEFINE BUGFIX8
-  #DEFINE BUGFIX28
-  #DEFINE BUGFIX30
-  #DEFINE BUGFIX40
-#ENDIF
 ;
 ; ======================================================================
 ;     INFORMATION
@@ -475,7 +464,9 @@ USEDEF:	dec	hl		;00e7 - minus 1
 ; ----------------------------------------------------------------------
 ;
 MEMMSG:	DEFB	"Memory Size",0		   		; Memory Size Message
-HDGMSG:	DEFB	"Radio Shack Model III Basic",$0D	; RS L2 Basic
+HDGMSG:	DEFB	"R/S Model III BASIC Rev 1.4",$0D	; RS L2 Basic
+;
+;	DEFB	"Radio Shack Model III Basic",$0D	; RS L2 Basic
 ;
 ; ----------------------------------------------------------------------
 ; 012DH – ?L3 ERROR ENTRY POINT – "L3ERR"
@@ -1142,13 +1133,15 @@ PRTFF:
 PRTDRV2:
 	cp	$80		;03e5 - is it a graphic
 	jr 	nc,PRTDRV6	;03e7 - handle the graphics character.
-	ld 	b,0		;03e9 - set MSB to 0
-	sub 	SPACE		;03eb - adjust A character to print table offset $20
-	ld 	c,a		;03ed - load to C. BC now has character offset
-	ld 	hl,PRTABLE	;03ee - the printer character table
-	add 	hl,bc		;03f1 - add the offset
-	ld 	c,(hl)		;03f2 - load the print char
-	jr 	PRTDRV5		;03f3 - print it.
+;
+; Remove use of PRTABLE translation table, freeing 96 bytes
+;
+ 	cp    	BQUOTE		; is it a back quote
+ 	jr    	nz,PRTDRV5	; no just print it, C already contains the char
+ 	ld	c,'@'		; translate to '@'
+	jr	PRTDRV5		; print it
+	DEFS	($03F5 - $)	; fill - 4 bytes unused
+;
 PRTCR:
 	ld 	a,(ix+5)	;03f5 - num chars printer
 	or 	a		;03f8 - set flags
@@ -1835,6 +1828,16 @@ UNTOKEN4:
 	ret 	nz		;06c6 - no then Skip
 	dec 	bc		;06c7
 	ld 	a,(bc)		;06c8 - get 1 character back
+;
+#IFDEF BUGFIX27
+	JP	UNTOKEN5A
+;
+RESETR:				; The 06CC BASIC Entry Point
+	ld	bc,STPRDY	;06cc - Address of
+	jp	ERESET		;06cf - Jumps to 19AE
+UNTOKEN5B:
+;
+#ELSE
 	cp 	'E'		;06c9 - Test for an E
 	ret 	nz		;06cb - no then Skip
 RESETR:				; The 06CC BASIC Entry Point is BROKEN!!!
@@ -1843,6 +1846,7 @@ RESETR:				; The 06CC BASIC Entry Point is BROKEN!!!
 	cp 	'R'		;06ce - Test for an R
 	ret 	nz		;06d0 - no then Skip
 	dec 	bc		;06d1
+#ENDIF
 	ld 	a,(bc)		;06d2 - get 1 character back
 	cp 	':'		;06d3 - Test for a : colon
 	ret 	nz		;06d5 - no then Skip
@@ -2390,16 +2394,112 @@ KEYENTRY4:
 	ld 	a,(RPTROW)	;3141 - repeating row being pressed
 	ret			;3144
 ;
+; ======================================================================
+; REGION 1
+; ======================================================================
+;
 ; ----------------------------------------------------------------------
-; 3145 - Printer Character Translation Table of ASCII codes 32-127.
+; BUGFIX1 - 32 Character Mode Line Length fixed
 ; ----------------------------------------------------------------------
-PRTABLE:
-	DEFB	$20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $2A, $2B, $2C, $2D, $2E, $2F
-	DEFB	$30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $3A, $3B, $3C, $3D, $3E, $3F
-	DEFB	$40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $4A, $4B, $4C, $4D, $4E, $4F
-	DEFB	$50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $5A, $5B, $5C, $5D, $5E, $5F
-	DEFB	$40, $61, $62, $63, $64, $65, $66, $67, $68, $69, $6A, $6B, $6C, $6D, $6E, $6F
-	DEFB	$70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $7A, $7B, $7C, $7D, $7E, $7F
+#IFDEF BUGFIX1
+;
+DSPLINLTH:
+	ld	a,(SHADEC)	; get shadow copy of Cassette port
+	and	SHADM32		; check if 32 char mode
+	ld	a,64		; assume 64 line length
+	ret	z		; flag not set so return the 64
+	srl	a		; set 32 line length
+	ret			; and return it.
+;
+	DEFC 	BUGFIX1_ENABLED = 1
+	PUBLIC 	BUGFIX1_ENABLED
+	DEFC 	BUGFIX1_BYTES = $ - DSPLINLTH
+	PUBLIC 	BUGFIX1_BYTES
+#ENDIF
+;
+; ----------------------------------------------------------------------
+; BUGFIX7 - Space after Type declaration Tag
+; ----------------------------------------------------------------------
+;
+#IFDEF BUGFIX7
+;
+INFINEFIX:
+	inc	hl		; next program byte
+	ld	a,(hl)		; get program byte
+	cp	SPACE		; Is it a space
+	jp 	nz,FINE		; NOT - Continue (return)
+	jr	INFINEFIX	; loop around
+; ----------------------------------------------------------------------
+	DEFC 	BUGFIX7_ENABLED = 1
+	PUBLIC 	BUGFIX7_ENABLED
+	DEFC 	BUGFIX7_BYTES = $ - INFINEFIX
+	PUBLIC 	BUGFIX7_BYTES
+#ENDIF
+;
+; ----------------------------------------------------------------------
+; BUGFIX7C - Space after TAB keyword
+; ----------------------------------------------------------------------
+;
+#IFDEF BUGFIX7C
+;
+TABERFIX:
+	GETCHR			; get next char - RST 10
+	cp	')'		; if close bracket
+	ret	z		; found closing bracket, continue normally
+	dec	hl		; not a closing bracket, so DONT consume it.
+	ret
+; ----------------------------------------------------------------------
+	DEFC 	BUGFIX7C_ENABLED = 1
+	PUBLIC 	BUGFIX7C_ENABLED
+	DEFC 	BUGFIX7C_BYTES = $ - TABERFIX
+	PUBLIC 	BUGFIX7C_BYTES
+#ENDIF
+;
+; ----------------------------------------------------------------------
+; BUGFIX11 - Overflow on Integer FOR loop
+; ----------------------------------------------------------------------
+;
+#IFDEF BUGFIX11
+;
+INTNXTOVER:
+	pop	hl		; restore the loop variable pointer (2305)
+	pop	hl		; restore the for entry pointer (2309)
+	ld	bc,6		; need to consume 6 more bytes off the stack
+	add	hl,bc		; which is passed as HL into the next routine
+	jp	LOOPDN		; Normal NEXT completion of loop
+; ----------------------------------------------------------------------
+	DEFC 	BUGFIX11_ENABLED = 1
+	PUBLIC 	BUGFIX11_ENABLED
+	DEFC 	BUGFIX11_BYTES = $ - INTNXTOVER
+	PUBLIC 	BUGFIX11_BYTES
+#ENDIF
+;
+; ----------------------------------------------------------------------
+; BUGFIX27 Untokenize Code Moved here to allow reinstatement of the missing 0677 Entry Point
+; ----------------------------------------------------------------------
+#IFDEF BUGFIX27
+;
+UNTOKEN5A:			; Original Code MOVED here
+	cp 	'E'		;06c9 - Test for an E
+	ret 	nz		;06cb - no then Skip
+	dec 	bc		;06cc
+	ld 	a,(bc)		;06cd - get 1 character back
+	cp 	'R'		;06ce - Test for an R
+	ret 	nz		;06d0 - no then Skip
+	dec 	bc		;06d1
+	JP	UNTOKEN5B	; JMP back to Untokenize
+;
+	DEFC 	BUGFIX27_ENABLED = 1
+	PUBLIC 	BUGFIX27_ENABLED
+	DEFC 	BUGFIX27_BYTES = $ - UNTOKEN5A
+	PUBLIC 	BUGFIX27_BYTES
+#ENDIF
+;
+; ======================================================================
+	DEFC	R1FREE	= $31A5 - $
+	PUBLIC	R1FREE
+	DEFS	$31A5 - $
+; ======================================================================
 ;
 ; ======================================================================
 ; CASSETTE ROUTINES
@@ -3776,6 +3876,12 @@ CASMSG:
 ;
 ; ======================================================================
 ;                END OF CODE
+; ======================================================================
+;
+; Report Free Memory
+	DEFC	TOTFREE = R1FREE
+	PUBLIC	TOTFREE
+;
 ; ======================================================================
 ;
 ; PADDING to create 16KB ROM Image, to allow append multiple

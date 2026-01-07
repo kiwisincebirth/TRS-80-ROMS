@@ -1,11 +1,12 @@
 .PHONY: all model13all eaca80all model14all model3all clean
 
-all: model13all model12  eaca80all model14all model3all
+all: model13all model12  eaca80all model14all model3all model34all
 
 model13all: model13 model13f model13p
-eaca80all: eaca80 eaca80f eaca80p
+eaca80all: eaca80 eaca80f eaca80p model14eaca
 model14all: model14 model14eaca
 model3all: model3 model3p model3f model3p50 model3f50
+model34all: model34 model3450
 
 Z80ASM=z88dk-z80asm -b -l -g
 
@@ -52,16 +53,16 @@ model3:
 	@echo "Verifying* Model 3 - Rev 1.3"
 	@diff MDL3.bin ./test-roms/Model3-RevC-2EF8.bin
 model3f:
-	@echo "Generating Model 3 - Rev 1.4 (FreHD Patched)"
+	@echo "Generating Model 3 - Rev 1.3 (FreHD Patched)"
 	@${Z80ASM} -DPATCH -DFREHDBT -oMDL3F.bin MDL3LEV2.Z80
 model3p:
-	@echo "Generating Model 3 - Rev 1.4 (Patched)"
+	@echo "Generating Model 3 - Rev 1.3 (Patched)"
 	@${Z80ASM} -DPATCH -oMDL3P.bin MDL3LEV2.Z80
 model3f50:
-	@echo "Generating Model 3 - Rev 1.4 (FreHD Patched)"
+	@echo "Generating Model 3 - Rev 1.3 50Hz (FreHD Patched)"
 	@${Z80ASM} -DVIDEO50 -DPATCH -DFREHDBT -oMDL3F50.bin MDL3LEV2.Z80
 model3p50:
-	@echo "Generating Model 3 - Rev 1.4 (Patched)"
+	@echo "Generating Model 3 - Rev 1.3 50Hz (Patched)"
 	@${Z80ASM} -DVIDEO50 -DPATCH -oMDL3P50.bin MDL3LEV2.Z80
 
 # This one is not part of ALL, it is used to test
@@ -72,6 +73,13 @@ model3frehd:
 	@${Z80ASM} -DFREHDBT -oMDL3LEV2F.bin MDL3LEV2.Z80
 	@echo "Verifying* Model 3 Level 2 (FreHD)"
 	@diff MDL3LEV2F.bin ./test-roms/Model3-RevC-FreHD.bin
+
+model34:
+	@echo "Generating Model 3 - Rev 1.4"
+	@${Z80ASM} -oMDL3REV4.bin MDL3REV4.Z80
+model3450:
+	@echo "Generating Model 3 - Rev 1.4 (50Hz)"
+	@${Z80ASM} -DVIDEO50 -oMDL3REV450.bin MDL3REV4.Z80
 
 clean:
 	@rm -f *.bin *.def *.lis *.map *.o *.sym

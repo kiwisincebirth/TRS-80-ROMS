@@ -5,13 +5,13 @@
 This repository contains well documented, well-structured Source Code for the Tandy TRS-80 line of computers.
 Since the actual source code has not been published (in its original form), this code is based
 of disassembly and significant documentation published over the years.
-* Provides TRS-80 Model 1 and Model 3 ROM source code
+* Provides TRS-80 Model I and Model III ROM source code
 * Based of disassembly, and publicly available documentation.
-* Supports EACA clone (aka Disk Smith System-80) hardware
-* Compiled and verified against official ROM images
-* Provides prebuilt ROM images for common configurations
+* Supports EACA clone (aka [Disk Smith System-80](https://www.classic-computers.org.nz/system-80/)) hardware
+* Assembled and verified against official ROM images
+* Provides [prebuilt ROM images](About_Release.txt) for common configurations
 * Provides common enhancements to the ROM images
-* Provides Fixes known BUG's in the ROM images
+* Provides [fixes to known bugs](BUGFIXS.md) in the ROM images
 * Excellent level of source code quality  
 
 ## Source Code
@@ -19,19 +19,19 @@ of disassembly and significant documentation published over the years.
 ### Model I / III ROM Source Code
 
 Source Code for the "official" ROM's for Tandy TRS-80 computers. These ROM's include options
-for improvements while maintaining backwards compatibility
+for improvements while maintaining full backwards compatibility
 
 Two primary ROMS are available:
-* [Tandy TRS-80 Model 1 Level 2 BASIC ROM](./MODEL1.md)
+* [Tandy TRS-80 Model I Level 2 BASIC ROM](./MODEL1.md)
 * [Tandy TRS-80 Model III Level 2 BASIC ROM](./MODEL3.md)
 
-### Extended Model 1 ROM Source Code
+### Enhanced Model I / III ROM Source Code
 
-Tandy released several versions of the Model 1 ROM, ending in Revision 1.3 released in 1980.
-The following provides a much **Enhanced** Model 1 ROM with features, fixes for modern enthusiasts.
+The following provides a much **Enhanced** ROM's with features, fixes for modern enthusiasts.
 
-And a third **Enhanced** ROM
-* [Tandy TRS-80 Model 1 Level 2 BASIC ROM Rev 1.4](./MODEL1.4.md)
+Two **Enhanced** ROMS are available:
+* [TRS-80 Model I (Enhanced) Level 2 BASIC ROM](./MODEL1.4.md)
+* [TRS-80 Model III (Enhanced) Level 2 BASIC ROM](./MODEL3.4.md)
 
 ### Source Code Files
 
@@ -43,9 +43,10 @@ The following files are supplied:
 | LEVEL2BASIC-0708.Z80 | Included - Shared Level 2 Basic Code starting at $0708 |
 | LEVEL2BASIC-2CA5.Z80 | Included - Shared Level 2 Basic Code starting at $2CA5 |
 | makefile             | make                                                   |
-| MDL1LEV2.Z80         | Model 1 Level 2 - Main source file                     |
-| MDL1REV4.Z80         | Model 1 Level 2 (Enhanced) - Main source file          |
-| MDL3LEV2.Z80         | Model 3 Level 2 - Main source file                     |
+| MDL1LEV2.Z80         | Model I Level 2 - Main source                          |
+| MDL1REV4.Z80         | Model I Level 2 (Enhanced) - Main source               |
+| MDL3LEV2.Z80         | Model III Level 2 - Main source file                   |
+| MDL3REV4.Z80         | Model III Level 2 (Enhanced) - Main source             |
 
 ### Building
 
@@ -62,7 +63,7 @@ Fully Built ROM files are available please see the
 
 ### Original Motivation
 
-I read a post asking why Model 1 BASIC hadn’t been ported to a modern hobbyist CP/M environment. Of course there are
+I read a post asking why Model I BASIC hadn’t been ported to a modern hobbyist CP/M environment. Of course there are
 many reasons why this has not been done but one of the issues is (after doing a search) I could not locate original
 source code, which would be needed for such a port. I did locate several disassembles, but none we adequately
 complete, well formatted, or well documented
@@ -111,7 +112,7 @@ Following References
 * [https://gitlab.com/retroabandon/trs80i34-re] - The disassembly I based this work on.
 * [https://rosettacode.org/wiki/Category:Z80_Assembly#Inlined_bytecode] - Better Else Z80 optimisation
 * [https://wikiti.brandonw.net/index.php?title=Z80_Optimization#Better_else] - Better Else optimisation
-* [https://www.cpcalive.com/docs/TASMMAN.HTM] - Telemark Assembler
+* [Z88DK - Z80 Assembler (z80asm)](https://github.com/z88dk/z88dk/wiki/Tool---z80asm) - used on this project
 * [TRS-80 ROM Errors - Vernon Hester](https://www.trs-80.com/sub-rom-bugs.htm)
 * MOD III ROM COMMENTED - 1981 - Soft Sector Marketing
 * Microsoft BASIC Decoded & Other Mysteries - James Farvour

@@ -1,5 +1,5 @@
 
-# TRS-80 Model 1
+# TRS-80 Model I
 
 ## Level 2 Source Code
 
@@ -10,7 +10,7 @@ Source Code File : [MDL1LEV2.Z80](./MDL1LEV2.Z80)
 ## Main Features
 
 Main Features
-* Fully Compilable Source Code for Model 1 Level 2 12KB ROMS.
+* Fully Compilable Source Code for Model I Level 2 12KB ROMS.
 * Both 1.3 and 1.2 versions, plus EACA clone hardware.
 * Several optional patches have been included via `#DEFINE`
 
@@ -18,10 +18,10 @@ Main Features
 
 | Make Target | Description                        | File          | Assembler Defines    |
 |-------------|------------------------------------|---------------|----------------------|
-| model12     | Model 1 Rev 1.2 (Official)         | MDL1REV2.bin  | VER12                |
-| model13     | Model 1 Rev 1.3 (Official)         | MDL1REV3.bin  |                      |
-| model13f    | Model 1 Rev 1.3 - FreHD Patched    | MDL1REV3F.bin | FREHDBT PATCH        |
-| model13p    | Model 1 Rev 1.3 - Patched          | MDL1REV3P.bin | PATCH                |
+| model12     | Model I Rev 1.2 (Official)         | MDL1REV2.bin  | VER12                |
+| model13     | Model I Rev 1.3 (Official)         | MDL1REV3.bin  |                      |
+| model13f    | Model I Rev 1.3 - FreHD Patched    | MDL1REV3F.bin | FREHDBT PATCH        |
+| model13p    | Model I Rev 1.3 - Patched          | MDL1REV3P.bin | PATCH                |
 | eaca80      | Dick Smith System 80 (Official)    | EACA80.bin    | EACA80 VER12         |
 | eaca80f     | Dick Smith System 80 FreHd Patched | EACA80F.bin   | EACA80 FREHDBT PATCH |
 | eaca80p     | Dick Smith System 80 Patched       | EACA80P.bin   | EACA80 PATCH         |

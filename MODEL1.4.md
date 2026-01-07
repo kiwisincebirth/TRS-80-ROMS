@@ -1,10 +1,10 @@
 
-# TRS-80 Model 1
+# TRS-80 Model I
 
 ## Level 2 ( Revision 1.4 )
 
-This is modernised Level 2 Basic ROM for the Model1
-It is based of the Tandy rev 1.3 ROMS with several enhancements
+This is modernised Level 2 Basic ROM for the Model I.
+It is based of the Tandy Rev 1.3 ROMS with several enhancements
 that can be applied. This should be considered 
 a successor to the L2 ROM's, but does break some compatibility
 
@@ -15,7 +15,7 @@ Source Code File : [MDL1REV4.Z80](./MDL1REV4.Z80)
 ## Main Features
 
 Main Features
-* Mostly Compilable with Model 1 Level 2 12KB ROMS.
+* Mostly Compilable with Model I Level 2 12KB ROMS.
 * Patches have been included via `#DEFINE`, and can be removed at user discretion
 * The Rom has free space, divided into several areas for extension
 * ROM entry points have been maintained as much as possible.
@@ -30,15 +30,17 @@ Breaking Features
 
 | Make Target | Description                  | File             | Assembler Defines |
 |-------------|------------------------------|------------------|-------------------|
-| model14     | Model 1 Rev 1.4 (Enhanced)   | MDL1REV4.bin     |                   |
+| model14     | Model I Rev 1.4 (Enhanced)   | MDL1REV4.bin     |                   |
 | model14eaca | System 80 Rev 1.4 (Enhanced) | MDL1REV4EACA.bin | EACA80            |
 
 ## Build Options
 
 There are several `DEFINE`'s that can be set in the code (very start) to enable certain features.
-By default, **ALL* of these options are enabled (unless OPTIONAL), and can individually be disabled. 
+By default, **ALL** of these options are enabled (unless OPTIONAL), and can individually be disabled. 
 
 There are several enhanced features:
+* `#DEFINE NEWBOOT` - Enables a new boot routine which asks for "diskette?" when no disk is detected and retries.
+  It also allows for break to be pressed at any time. (Credit : John Swiderski)
 * `#DEFINE FREHDBT` - Enables the FreHD auto boot feature, i.e. the Auto boot ROM. This requires version 1.3
   ROM as a base, please do NOT define `VER12` as it is not compatible (it will be ignored anyway)
   Consider also enabling NMIHARD to ensure reset (on non-floppy machine) will force a reset.
@@ -49,8 +51,6 @@ There are several enhanced features:
   This is useful when a lower case mod is installed, but an alternate video driver has not been installed,
   or where the font rom on the machine has the alternate characters in the 00h 1Fh range (0471h)
 * `#DEFINE KEYBOUNCE` - Enables the Keyboard debounce routines that where introduced in rev1.3
-* `#DEFINE NEWBOOT` - Enables a new boot routine which asks for "diskette?" when no disk is detected and retries. 
-  It also allows for break to be pressed at any time. (Credit : John Swiderski)
 
 Bug Fixes Applied
 * `#DEFINE BUGFIX1` - Fix Error 1 - 04F6H - 32 Character Mode Line Length
