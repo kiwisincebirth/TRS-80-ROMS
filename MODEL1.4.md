@@ -90,11 +90,23 @@ These changes have been tested on TRS-DOS disk basic without issue
 
 ## Free Space
 
+The Model I Rom has 3 large regions of usage space left over from cassette removal
+
+| Region | Address        | Capacity  | Available | Formally             |
+|--------|----------------|-----------|-----------|----------------------|
+| 1      | $01E9 - $02B1  | 200 bytes | 200 bytes | Cassette IO Routines |
+| 2      | $02D7 - $0329  | 82 bytes  | 31 bytes  | SYSTEM Tape Loader   |
+| 3      | $2BF5 - $2CA4  | 175 bytes | 98 bytes  | CLOAD CSAVE          |
+
+As at 7/Jan/26 there were 330 bytes free (easily utilised) in the ROM.
+Plus another 35 bytes (4 very small regions) which could be utilised 
+with some additional effort.
+
 The build output has a listing of the available free space in the ROMS.
 
-__TBD__
-
-As at 7/Jan/26 there were 330 bytes free (easily available) in the ROM after cassette removal and 
-patches applied, split into 3 main sections. Plus another 35 bytes in much smaller sections
-which could be utilised with some additional effort
+| Region | Contents                         |
+|--------|----------------------------------|
+| 1      | -nil-                            |
+| 2      | BUGFIX1 thru BUGFIX11, KEYBOUNCE |
+| 3      | FREHDBT, NEWBOOT                 |
 

@@ -642,6 +642,44 @@ CWRTON: call	CTON		;0284
 ; ROM REGION 1 - (01E9 - 02B1) - Cassette
 ; ======================================================================
 ;
+;
+; ======================================================================
+; END ROM REGION 1
+;
+	DEFC	R1FREE	= $02B2 - $
+	PUBLIC	R1FREE
+	DEFS	$02B2 - $
+; ======================================================================
+;
+; ----------------------------------------------------------------------
+; 02B2 – LEVEL II BASIC SYSTEM ROUTINE – “SYSTEM”
+; ----------------------------------------------------------------------
+SYSTEM:	call	SYSOUT		;02b2 - Call the DOS exit for system command at 41E2H.
+	ld	sp,SYSSTK	;02b5 - Set the STACK pointer to the assumed load address.
+	; This location passes control to the routine used by the BASIC command SYSTEM.
+	call	CRDO		;02b8 - display a carriage return on the video display
+	ld	a,'*'		;02bb
+	call	OUTDO		;02bd - Display a * character on the video display.
+	call	QINLIN		;02c0 - get the input from the keyboard
+	jp	c,RESETR	;02c3 - If BREAK key, JMP 06CC entry. BUG 29
+	GETCHR			;02c6 - rst 10h - first byte of user input
+	jp	z,SNERR		;02c7 - if no input then a syntax error
+	cp	'/'		;02ca - check for a slash command
+;
+; Rest of SYSTEM Code was removed/changed to remove cassette functionality
+; Code below was moved up (see original addresses), and modified slightly
+;
+	jp	nz,SNERR	;IF NOT a "/" command then a syntax error
+GODO:	GETCHR			;0322 - rst 10h
+	call	LINGET		;0323 - Convert to ascii string
+	jr	nz,SYSTEM	;0326 - if no address defined Display * prompt
+	ex	de,hl		;0328 - execution address into HL
+	jp	(hl)		;0329 - jump to execution address
+;
+; ======================================================================
+; ROM REGION 2 - (02D7 - 0329) - System
+; ======================================================================
+;
 ; ----------------------------------------------------------------------
 ; BUGFIX1 - 32 Character Mode Line Length fixed
 ; ----------------------------------------------------------------------
@@ -719,43 +757,32 @@ INTNXTOVER:
 	PUBLIC 	BUGFIX11_BYTES
 #ENDIF
 ;
-; ======================================================================
-	DEFC	R1FREE	= $02B2 - $
-	PUBLIC	R1FREE
-	DEFS	$02B2 - $
-; ======================================================================
-;
 ; ----------------------------------------------------------------------
-; 02B2 – LEVEL II BASIC SYSTEM ROUTINE – “SYSTEM”
+; KEYBOUNCE - Routine Added to V1.3 ROMS
 ; ----------------------------------------------------------------------
-SYSTEM:	call	SYSOUT		;02b2 - Call the DOS exit for system command at 41E2H.
-	ld	sp,SYSSTK	;02b5 - Set the STACK pointer to the assumed load address.
-	; This location passes control to the routine used by the BASIC command SYSTEM.
-	call	CRDO		;02b8 - display a carriage return on the video display
-	ld	a,'*'		;02bb
-	call	OUTDO		;02bd - Display a * character on the video display.
-	call	QINLIN		;02c0 - get the input from the keyboard
-	jp	c,RESETR	;02c3 - If BREAK key, JMP 06CC entry. BUG 29
-	GETCHR			;02c6 - rst 10h - first byte of user input
-	jp	z,SNERR		;02c7 - if no input then a syntax error
-	cp	'/'		;02ca - check for a slash command
+#IFDEF KEYBOUNCE
 ;
-; Rest of SYSTEM Code was removed/changed to remove cassette functionality
-; Code below was moved up (see original addresses), and modified slightly
-;
-	jp	nz,SNERR	;IF NOT a "/" command then a syntax error
-GODO:	GETCHR			;0322 - rst 10h
-	call	LINGET		;0323 - Convert to ascii string
-	jr	nz,SYSTEM	;0326 - if no address defined Display * prompt
-	ex	de,hl		;0328 - execution address into HL
-	jp	(hl)		;0329 - jump to execution address
+KEYBOU:	push	bc		;011C Save Row Address in BC into the STACK
+	ld 	bc,$0500	;011D the debounce delay
+	call	DELAY		;0120 delay on delay count in BC (18.8 ms)
+	pop	bc		;0123 Restore the Row Address back to BC
+	ld	a,(bc)		;0124 Reload the original flags from active row
+	and	e		;0125 Combine the current flag lists with the original flag bits
+	ret	z		;0126 Return to caller if zero because the row was not active on the second test
+	ld	a,d		;0127 Otherwise, we have a legitimate active row
+	rlca			;0128 Multiply the row index by 2. twice.
+	rlca			;0129 This code previously existed at the calling site
+	jp	KYDRES		;012A Resume the keyboard driver routine
+; ----------------------------------------------------------------------
+	DEFC 	KEYBOUNCE_ENABLED = 1
+	PUBLIC 	KEYBOUNCE_ENABLED
+	DEFC 	KEYBOUNCE_BYTES = $ - KEYBOU
+	PUBLIC 	KEYBOUNCE_BYTES
+#ENDIF
 ;
 ; ======================================================================
-; ROM REGION 2 - (02D7 - 0329) - System
-; ======================================================================
+; END ROM REGION 2
 ;
-;
-; ======================================================================
 	DEFC	R2FREE	= $032A - $
 	PUBLIC	R2FREE
 	DEFS	$032A - $
@@ -1865,29 +1892,6 @@ HDBOOT:	call	CLS		;0069 - Clear Screen
 #ENDIF
 ;
 ; ----------------------------------------------------------------------
-; KEYBOUNCE - Routine Added to V1.3 ROMS
-; ----------------------------------------------------------------------
-#IFDEF KEYBOUNCE
-;
-KEYBOU:	push	bc		;011C Save Row Address in BC into the STACK
-	ld 	bc,$0500	;011D the debounce delay
-	call	DELAY		;0120 delay on delay count in BC (18.8 ms)
-	pop	bc		;0123 Restore the Row Address back to BC
-	ld	a,(bc)		;0124 Reload the original flags from active row
-	and	e		;0125 Combine the current flag lists with the original flag bits
-	ret	z		;0126 Return to caller if zero because the row was not active on the second test
-	ld	a,d		;0127 Otherwise, we have a legitimate active row
-	rlca			;0128 Multiply the row index by 2. twice.
-	rlca			;0129 This code previously existed at the calling site
-	jp	KYDRES		;012A Resume the keyboard driver routine
-; ----------------------------------------------------------------------
-	DEFC 	KEYBOUNCE_ENABLED = 1
-	PUBLIC 	KEYBOUNCE_ENABLED
-	DEFC 	KEYBOUNCE_BYTES = $ - KEYBOU
-	PUBLIC 	KEYBOUNCE_BYTES
-#ENDIF
-;
-; ----------------------------------------------------------------------
 ; New diskette Startup routine (CREDIT : JOHN SWIDERSKI)
 ; clears screen, and allows for break and retries
 ; ----------------------------------------------------------------------
@@ -1936,10 +1940,11 @@ DSKMSG:
 #ENDIF
 ;
 ; ======================================================================
+; END ROM REGION 3
+;
 	DEFC	R3FREE	= $2CA5 - $
 	PUBLIC	R3FREE
 	DEFS	$2CA5 - $
-; ======================================================================
 ;
 ; ======================================================================
 ; ======================================================================
