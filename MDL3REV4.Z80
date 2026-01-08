@@ -2181,9 +2181,10 @@ ASSERT $ == $2FFB, "Segment: Continuation at $2FFB"
 ; ======================================================================
 ; ======================================================================
 ;
-; ----------------------------------------------------------------------
-; 2FFB - 2FFF - UNUSED bytes - serves no purpose used for checksum
-	DEFB	$DE, $C3, $C3, $44, $B2
+; 2FFB - 2FFF - ROM VERSION STAMP - Previously unused
+	DEFB	0 		; Reserved for CRC injected here
+	DEFB	$03, $04	; Identifier Model 3 Rev (1.)4
+	DEFB	$26, $01	; DateStamp Year, Week
 ;
 ; ======================================================================
 ;

@@ -307,10 +307,10 @@ DEFC	FACFLG	= RAM+$126	; Result - Flags of result for math ops (FAC+2)
 DEFC	ARGLO	= RAM+$127	; REG 2  - Double Precision (Reg 2 4127-412E)
 DEFC	ARG	= RAM+$12E	; REG 2  - Exponent
 ;
-DEFC	FBUFFR	= RAM+$130	; Print buffer used for print processing  (4130-4149)
+DEFC	FBUFFR	= RAM+$130	; Print buffer used for print processing  (4130-4151)
 DEFC	FMLTT0	= RAM+$14A	; Workspace For Double Precision Division (414A-4151)
-DEFC	FMLTT1	= RAM+$14F	; continued.
-DEFC	FMLTT2	= RAM+$150	; continued.
+DEFC	FMLTT1	= RAM+$14F	; Workspace for Single Precision Multiplication (1 Bytes)
+DEFC	FMLTT2	= RAM+$150	; Workspace for Single Precision Multiplication (2 Bytes)
 ;
 ; Disk BASIC Function Exits - Basic Functions (4152-41A5)
 ; initially these are all populated with JP L3ERR statements by code at (008E)

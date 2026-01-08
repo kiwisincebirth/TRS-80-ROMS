@@ -445,8 +445,13 @@ USEDEF:	dec	hl		;00e7 - minus 1
 ; 0105H-011BH – MESSAGE STORAGE
 ; ----------------------------------------------------------------------
 ;
+#IFDEF EACA80
+MEMMSG:	DEFB	"MEM SIZE",0			     	; Mem Size Message
+HDGMSG:	DEFB	"TRS-80 Level II BASIC Rev 1.4",ENTER,0 ; L2 Basic Message
+#ELSE
 MEMMSG:	DEFB	"MEMORY SIZE",0			     ; RS Mem Size Message V1.2
 HDGMSG:	DEFB	"R/S Level II BASIC Rev 1.4",ENTER,0 ; RS L2 Basic Message V1.4
+#ENDIF
 ;
 ; 	DEFB	"RADIO SHACK LEVEL II BASIC",ENTER,0 ; RS L2 Basic Message V1.2
 ;
@@ -1535,9 +1540,14 @@ INITA1:	ld	hl,INITR	;0676 - starting address of the RST’s and DCB’s
 	ld	bc,$36		;067c - move 54 bytes
 	ldir			;067f - Move 6D2-707 to 4000-4035
 ;
+#IFDEF FREHDBT
+	ld	sp,TMPSTK	; For FreHD - init SP, the line commented @ $0693 below
+	nop			; The code being replaced (a delay loop), frehd does anyway
+#ELSE
 	dec	a		;0681 - count down by 2 starting at 0
 	dec	a		;0682 - so effective loop
 	jr	nz,INITA1	;0683 - Loop back until block move occurred 128 times
+#ENDIF
 ;
 	ld	b,$27		;0685 - 39 bytes of memory need to be zerod
 CLRAM:	ld	(de),a		;0687 - zero byte in memory starting at 4036h
@@ -1550,13 +1560,13 @@ CLRAM:	ld	(de),a		;0687 - zero byte in memory starting at 4036h
 	and	$04		;068e - if the BREAK key is being pressed
 	jp	nz,INIT2	;0690 - Jump if the BREAK key was pressed
 ;
-; This is the beginning of the routine which boots a diskette
-	ld	sp,TMPSTK	;0693 - $407D since Disk load will overite > $4200
 #IFDEF FREHDBT
-	; FreHD includes these 3 bytes by removing code below (06ac)
-	call	HDBOOT		;0696 - Call to the FreHD hd boot routines.
+	call	HDBOOT		; Call to the FreHD Boot routines.
+#ELSE
+	ld	sp,TMPSTK	;0693 - $407D since Disk load will overite > $4200
 #ENDIF
 ;
+	; Check for a floppy Disk Drive
 	ld	a,(diskstat)	;0696 - status of the disk controller (37ECH)
 	inc	a		;0699 - FF => 0, 0 => 1
 	cp	$02		;069a - is disk controller present.
@@ -1566,6 +1576,8 @@ CLRAM:	ld	(de),a		;0687 - zero byte in memory starting at 4036h
 ; ----------------------------------------------------------------------
 ; 069FH-06CBH – Bootstrap from Diskette – "BOOT"
 ; Now we know (can assume) there is a disk controller and we should boot it.
+;
+	ASSERT	$ == $069F, "Segment: BOOT (floppy) Entry Point should start at $069F"
 ; ----------------------------------------------------------------------
 ;
 BOOT:	ld	a,$01		;069f - Drive 0
@@ -1574,11 +1586,7 @@ BOOT:	ld	a,$01		;069f - Drive 0
 	ld	hl,diskstat	;06a4 - address of the disk command/status Register 37ECH
 	ld	de,diskdata	;06a7 - address of the disk data Register (37EFH)
 	ld	(hl),$03	;06aa - command 03H (RESTORE and POSITION TO TRACK 0)
-#IFNDEF FREHDBT
-	; FreHD excludes  these 3 bytes for call HDBOOT above (696h)
-	; noting it is expected tha BC = 0000 at this point of the execution
 	ld	bc,$0000	;06ac
-#ENDIF
 	call	DELAY		;06af - delay (BC times 14.65) about 3 seconds
 ;
 BOOTDL:	bit	0,(hl)		;06b2 - is the diskette controller is busy
@@ -1848,7 +1856,7 @@ HDBOOT:	call	CLS		;0069 - Clear Screen
         ld	hl,ROM_LOAD	;0108 - load more "rom" from FreHD
         ld	bc,READROM	;010b - port to read and size counter
         inir			;010e - bulk transfer
-        jp	ROM_LOAD	;0110 - jump to loader in RAM
+        jp	ROM_LOAD	;0110 - jump to loader in RAM, (which may performa RET)
 ; ----------------------------------------------------------------------
 	DEFC 	FREHDBT_ENABLED = 1
 	PUBLIC 	FREHDBT_ENABLED
@@ -1945,9 +1953,10 @@ ASSERT $ == $2FFB, "Segment: Continuation at $2FFB"
 ; ======================================================================
 ; ======================================================================
 ;
-; ----------------------------------------------------------------------
-; 2FFB - 2FFF - UNUSED bytes - serves no purpose used for checksum
-	DEFB	$DE, $C3, $C3, $44, $B2
+; 2FFB - 2FFF - ROM VERSION STAMP - Previously unused
+	DEFB	0 		; Reserved for CRC injected here
+	DEFB	$01, $04	; Identifier Model 1 Rev (1.)4
+	DEFB	$26, $01	; DateStamp Year, Week
 ;
 ; ======================================================================
 ; THE END OF THE LEVEL II BASIC ROMS
