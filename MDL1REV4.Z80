@@ -1648,7 +1648,8 @@ BOOTRD:	ld	a,(de)		;06c4 - load byte from disk data register
 ;  A JP 6CCH is often better than a jump to 1A19H.
 ; ----------------------------------------------------------------------
 	ASSERT	$ == $06CC, "Segment: BASIC Entry Point Should start at $06CC"
-RESETR:	ld	bc,STPRDY	;06cc - Address of
+;
+RESETR:	ld	bc,STPRDY	;06cc - Address of 1A18
 	jp	ERESET		;06cf - Jumps to 19AE
 ; ----------------------------------------------------------------------
 ; 06D2H-0707H – ROM STORAGE LOCATION FOR DATA TO BE MOVED TO RAM

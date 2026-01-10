@@ -136,7 +136,7 @@ The parser is not capable of handling the extra space.
 The interesting thing is no other functions include a `(` in their token. i.e. 
 the token for the function PEEK has no `(` and does not suffer from the same issue as TAB
 
-The solution then is to remove the additonal `(` leaving just `TAB`
+The solution then is to remove the additional `(` leaving just `TAB`
 The interpreter will just parse the expression following the TAB keyword
 and if the expression is ` ( 63 )` - spacing not to important it will correctly 
 parse the number consuming both brackets. 
@@ -150,7 +150,7 @@ There is one issue:
 
 When an existing program is loaded (pre-tokenised) form there will be an issue
 with trailing `)`. Thus the program read would be interpreted as
-`_TAB_10_)_` when infact the previous intention it shoudl have been `_TAB(_10_)_`
+`_TAB_10_)_` when in-fact the previous intention it shoudl have been `_TAB(_10_)_`
 This is a result of the brackets not matching, ie the is an implicit `(` in the
 TAB token.
 
@@ -216,7 +216,7 @@ Produces `**1234*` instead of `**1234-`
 
 #### Resolution
 
-Address 1099 Change instruction `LD B,C` to a `NOP`
+Address 1009 Change instruction `LD B,C` to a `NOP`
 
 ### Error 11 - Overflow on Integer FOR loop
 

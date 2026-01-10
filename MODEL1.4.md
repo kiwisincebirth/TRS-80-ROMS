@@ -99,8 +99,8 @@ The Model I Rom has 3 large regions of usage space left over from cassette remov
 | 3      | $2BF5 - $2CA4  | 175 bytes | 98 bytes  | CLOAD CSAVE          |
 
 As at 7/Jan/26 there were 330 bytes free (easily utilised) in the ROM.
-Plus another 35 bytes (4 very small regions) which could be utilised 
-with some additional effort.
+Plus another 53 bytes (4 very small regions) which could be utilised 
+with some additional effort. (9,10,7,27)
 
 The build output has a listing of the available free space in the ROMS.
 

@@ -47,6 +47,7 @@ DEFC	CPNN	= $FE	; CP nn - skip next bytye
 ;
 DEFC	TKOFF	= $80	; Offset - The first Token, Token Offset.
 ;
+; Program Statement Tokens
 DEFC	TKEND	= $80	; END
 DEFC	TKFOR	= $81	; FOR
 DEFC	TKNEXT	= $87	; NEXT
@@ -58,31 +59,38 @@ DEFC	TKREM	= $93	; REM
 DEFC	TKELSE	= $95	; ELSE
 DEFC	TKERRO	= $9E	; ERROR
 DEFC	TKPRNT	= $B2	; PRINT
+; General Tokens
 DEFC	TKTAB	= $BC	; TAB(
 DEFC	TKTO	= $BD	; TO
-DEFC	TKFN	= $BE	; FN
+DEFC	TKFN	= $BE	; FN      (A# - Dispatched in code at 24FFh)
 DEFC	TKUSNG	= $BF	; USING
 DEFC	TKVARP	= $C0	; VARPTR
-DEFC	TKUSR	= $C1	; USR
+DEFC	TKUSR	= $C1	; USR     (#A)
 DEFC	TKERL	= $C2	; ERL
 DEFC	TKERR	= $C3	; ERR
-DEFC	TKSTRG	= $C4	; STRING$
-DEFC	TKINST	= $C5	; INSTR
-DEFC	TKPOIN	= $C6	; POINT
-DEFC	TKTIME	= $C7	; TIME$
-DEFC	TKMEM	= $C8	; MEM
-DEFC	TKINKY	= $C9	; INKEY$
+DEFC	TKSTRG	= $C4	; STRING$ (#A)
+DEFC	TKINST	= $C5	; INSTR   (#A)
+DEFC	TKPOIN	= $C6	; POINT   (#A)
+DEFC	TKTIME	= $C7	; TIME$   (#A)
+DEFC	TKMEM	= $C8	; MEM     (#A)
+DEFC	TKINKY	= $C9	; INKEY$  (#A)
 DEFC	TKTHEN	= $CA	; THEN
 DEFC	TKNOT	= $CB	; NOT
 DEFC	TKSTEP	= $CC	; STEP
+; Arithmetic Tokens
 DEFC	TKPLUS	= $CD	; +
 DEFC	TKMNUS	= $CE	; -
+DEFC	TKMULT	= $CF	; *
+DEFC 	TKDIV	= $D0	; /
+DEFC	TKPOWER	= $D1	; [ - (up arrow)
+; Boolean Tokens
+DEFC	TKAND	= $D2	; AND - $D2
+DEFC	TKOR	= $D3	; OR  - $D3
+; Logical Operator Tokens
 DEFC	TKGT	= $D4	; >
 DEFC	TKEQL	= $D5	; =
 DEFC	TKLT	= $D6	; <
-;
-DEFC	ONEFUN	= $D7	; Denotes the Start of Range of Tokens Starting at SGN
-;
+; Function Tokens
 DEFC	TKSGN	= $D7	; SGN
 DEFC	TKSQR	= $DD	; SQR
 DEFC	TKATN	= $E4	; ATN
@@ -234,7 +242,7 @@ DEFC	FDIVG	= RAM+$8B	; hence why the code is copied into RAM.
 ;
 DEFC	USRTAB	= RAM+$8E	; Contains address of user subroutine
 ;
-DEFC	MULTR	= RAM+$90	; Random number seed
+DEFC	MULTR	= RAM+$90	; Random number Multiplier's, 3 concecutive bytes
 DEFC	STAINP	= RAM+$93	; Input  port routine IN  A,(00)
 DEFC	OUTWRD	= RAM+$96	; Output port routine OUT A,(00)
 DEFC	CHARC	= RAM+$99	; Last key pressed on the keyboard
@@ -251,7 +259,7 @@ DEFC	TXTTAB	= RAM+$A4	; Start of Basic Program Storage. Pointer
 DEFC	TTYPOS	= RAM+$A6	; Cursor pos on VDU line. See POS function.
 DEFC	BUFPNT	= RAM+$A7	; Keyboard Input buffer. Pointer typically to
 DEFC	CASFLG	= RAM+$A9	; contains 00H if INPUT from cassette
-DEFC	RNDX	= RAM+$AA	; Random number seed
+DEFC	RNDX	= RAM+$AA	; Random number Seed
 DEFC	DIMFLG	= RAM+$AE	; locate or create variable routine flag
 DEFC	VALTYP	= RAM+$AF	; Work Register Value Type flag
 ;

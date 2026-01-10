@@ -39,7 +39,7 @@ FSUBS:	call	MOVRM		;0710
 ; ======================================================================
 ; 0713H – LEVEL II BASIC SINGLE PRECISION SUBTRACTION - “FSUB”
 ;
-;   Subtracts the single precision value in (BC/DE) from the
+;   Subtracts the single precision value in (BC:DE) from the
 ;   single precision value in WRA1. The difference is left in WRA1.
 ; ----------------------------------------------------------------------
 FSUB:	call	NNEG		;0713
@@ -47,7 +47,7 @@ FSUB:	call	NNEG		;0713
 ; ======================================================================
 ; 0716H – LEVEL II BASIC SINGLE PRECISION ADDITION - “FADD”
 ;
-;   Add the single precision value in (BC/DE) to the single
+;   Add the single precision value in (BC:DE) to the single
 ;   precision value in WRA1. The sum is left in WRA1
 ; ----------------------------------------------------------------------
 FADD:	ld	a,b		;0716
@@ -102,6 +102,10 @@ FADD3:	xor	a		;0754
 	sbc	a,c		;0760
 	ld	c,a		;0761
 FADFLT:	call	c,NGER		;0762
+; ----------------------------------------------------------------------
+; Normalizes BC:DE. In doing so, ABCDE and HL are all modified.
+;   This routine shifts the mantissa left until the MSB is a 1.
+; ----------------------------------------------------------------------
 NORMAL:	ld	l,b		;0765
 	ld	h,e		;0766
 	xor	a		;0767
@@ -148,8 +152,8 @@ NORM3:	jp	p,NORM2		;0785
 	ret	z		;0795
 ; ----------------------------------------------------------------------
 ; 0796H-07A7H – SINGLE PRECISION MATH ROUTINE – “ROUND”
-; The "ROUND" routine rounds the result in CDEB and puts the result into the ACCumulator.
-; All registers are affected. CDE is rounded up or down based on the MSB of Register B.
+; The "ROUND" routine rounds the result in BC:DE and puts the result into the ACCumulator.
+; All registers are affected. BC:DE is rounded up or down based on the MSB of Register B.
 ; ----------------------------------------------------------------------
 ROUND:	ld	a,b		;0796
 ROUNDB:	ld	hl,FAC		;0797
@@ -262,6 +266,7 @@ SHRADD:	rra			;07eb
 ; 07F8H-07FBH – SINGLE PRECISION CONSTANT STORAGE LOCATION – “FONE”
 ; ----------------------------------------------------------------------
 FONE:	DEFB	0, 0, 0, $81	; store a value of 1.0
+	; Note: This constant exists $1604, so possibly could be replaced?
 ;
 ; ----------------------------------------------------------------------
 ; 07FCH-0808H – SINGLE PRECISION CONSTANTS STORAGE LOCATION 2 – “LOGCN2”
@@ -310,8 +315,8 @@ MULLN2:	ld	bc,$8031	;0841
 ; ======================================================================
 ; 0847H – LEVEL II BASIC SINGLE PRECISION MULTIPLICATION, – “FMULT”
 ;
-;   Single-precision multiplication (ACCumulator=BCDE*ACC or ACC = ARG * FAC)).
-;   Multiplies the current value in the ACCumulator by the value in (BC/DE).
+;   Single-precision multiplication (ACCumulator=BC:DE*ACC or ACC = ARG * FAC)).
+;   Multiplies the current value in the ACCumulator by the value in (BC:DE).
 ;   the product is left in the ACCumulator.
 ; ----------------------------------------------------------------------
 FMULT:	call	SIGN		;0847
@@ -366,7 +371,7 @@ POPHRT:	pop	hl		;0890
 	ret			;0891
 ; ----------------------------------------------------------------------
 ; 0892H-0896H – SINGLE PRECISION MATH ROUTINE – “FMULT3”
-;   This is accomplished by a circular shift of BC/DE one byte
+;   This is accomplished by a circular shift of BC:DE one byte
 ;   B is lost, C is replaced by A
 ; ----------------------------------------------------------------------
 FMULT3:	ld	b,e		;0892
@@ -386,7 +391,7 @@ FDIVT:	pop	bc		;08a0
 	pop	de		;08a1
 ; ----------------------------------------------------------------------
 ; 08A2H-0903H – LEVEL II BASIC SINGLE PRECISION DIVISION – “FDIV”
-;   Single-precision division (ACCumulator=BCDE/ACCumulator or
+;   Single-precision division (ACCumulator=BC:DE/ACCumulator or
 ;   ACC = ARG / ACC). If ACCumulator=0 a ” /0 ERROR ” will result.
 ; ----------------------------------------------------------------------
 FDIV:	call	SIGN		;08a2
@@ -526,7 +531,7 @@ MUL10:	call	MOVRF		;093e
 	ret	nz		;0951
 	jp	OVERR		;0952
 ; ----------------------------------------------------------------------
-; 0955H-0963H – SINGLE PRECISION MATH ROUTINE – “SIGN”
+; 0955H-0963H – SINGLE DOUBLE MATH ROUTINE – “SIGN” (Accumulator)
 ;   Puts the SIGN of the ACCumulator into Register A.
 ;   Only Register A is modified by this routine;
 ;   the ACCumulator is left untouched.
@@ -607,7 +612,7 @@ CONIA:	ld	l,a		;098d
 	jp	MAKINT		;0991
 ;
 ; ----------------------------------------------------------------------
-; 0994H-09A3H – MATH ROUTINE – “VSIGN”
+; 0994H – MATH COMPARE ROUTINE – “VSIGN” (Accumulator)
 ;   This routine checks the sign of the ACCumulator. NTF must be set.
 ;   After execution A register=00 if ACCumulator=0, A=01 if ACC > 0
 ;   or A=FFH if A < 1. The Flags are also valid.
@@ -615,10 +620,14 @@ CONIA:	ld	l,a		;098d
 VSIGN:	GETYPE			;0994 - RST 20 - check the current number type
 	jp	z,TMERR		;0995
 	jp	p,SIGN		;0998
-	ld	hl,(FACLO)	;099b
+; ----------------------------------------------------------------------
+; 099BH - MATH COMPARE ROUTINE - INTEGER SIGN (Accumulator)
+;   Finds the sign of the Integer value held in the Accumulator
+; ----------------------------------------------------------------------
+ISIGNA:	ld	hl,(FACLO)	;099b
 ;
 ; ----------------------------------------------------------------------
-; 099EH - INTEGER SIGN
+; 099EH - MATH COMPARE ROUTINE - INTEGER SIGN (HL)
 ;   Finds the sign of the value held at (HL). Only Register A is altered.
 ; ----------------------------------------------------------------------
 ISIGN:	ld	a,h		;099e
@@ -627,7 +636,7 @@ ISIGN:	ld	a,h		;099e
 	ld	a,h		;09a1
 	jr	ICOMPS		;09a2
 ; ----------------------------------------------------------------------
-; 09A4H-09B0H – SINGLE PRECISION MATH ROUTINE – “PUSHF” - MOVE
+; 09A4H – SINGLE PRECISION MATH ROUTINE – “PUSHF” - MOVE
 ;   Moves the single precision value in the ACCumulator to the STACK
 ;   It is Assumed that ACCumulator contains a single precision value
 ;   A, BC and HL are unchanged by this function.
@@ -643,7 +652,7 @@ PUSHF:	ex	de,hl		;09a4
 	ret			;09b0
 ;
 ; ----------------------------------------------------------------------
-; 09B1H-09BEH – SINGLE PRECISION MATH ROUTINE – “MOVFM” - MOVE
+; 09B1H – SINGLE PRECISION MATH ROUTINE – “MOVFM” - MOVE
 ;   This routine moves a number from memory (pointed to by HL) into the ACC
 ;   All registers except Register A are affected, with HL = HL + 4 on exit.
 ; ----------------------------------------------------------------------
@@ -660,14 +669,14 @@ MOVFR:	ex	de,hl		;09b4
 	ex	de,hl		;09bd
 	ret			;09be
 ; ----------------------------------------------------------------------
-; 09BFH-09CAH – SINGLE PRECISION MATH ROUTINE – “MOVRF” - MOVE
-;   It loads four bytes from ACCumulator (single) into the BC/DE Register Pairs.
+; 09BFH – SINGLE PRECISION MATH ROUTINE – “MOVRF” - MOVE
+;   It loads four bytes from ACCumulator (single) into the BC:DE Register Pairs.
 ;   Only Register A is unchanged.
 ; ----------------------------------------------------------------------
 MOVRF:	ld	hl,FACLO	;09bf
 ; ----------------------------------------------------------------------
 ; 09C2H – SINGLE PRECISION MATH ROUTINE – “MOVRM” - MOVE
-;   It loads four byte Single, pointed by HL, into the BC/DE Register Pairs.
+;   It loads four byte Single, pointed by HL, into the BC:DE Register Pairs.
 ;   HL is incremented. Only Register A and Flags are unchanged.
 ; ----------------------------------------------------------------------
 MOVRM:	ld	e,(hl)		;09c2
@@ -680,7 +689,7 @@ GETBCD:	ld	d,(hl)		;09c4
 INXHRT:	inc	hl		;09c9
 	ret			;09ca
 ; ----------------------------------------------------------------------
-; 09CBH-09D1H – SINGLE PRECISION MATH ROUTINE – “MOVMF” - MOVE
+; 09CBH – SINGLE PRECISION MATH ROUTINE – “MOVMF” - MOVE
 ;   Copy a Single Precision value from ACCumulator to memory address
 ;   pointed to by HL. Modifies all Registers except for C
 ; ----------------------------------------------------------------------
@@ -693,22 +702,27 @@ MOVMF:	ld	de,FACLO	;09cb
 MOVE:	ld	b,VTSNG		;09ce - Move 4 bytes
 	jr	MOVE1		;09d0
 ; ----------------------------------------------------------------------
-; 09D2H-09DEH – MOVE VALUE FROM DE TO HL - “MOVVFM”
+; 09D2H – MOVE VALUE FROM HL TO DE - “MOVVFM”
 ;   moves the number of bytes specified in the variable type flag
-;   from the address in DE to the address in HL. Uses A, B, DE and HL.
+;   from the address in HL to the address in DE. Uses A, B, DE and HL.
 ; ----------------------------------------------------------------------
 MOVVFM:	ex	de,hl		;09d2
 ; ----------------------------------------------------------------------
-; 09D3H – MOVE VALUE FROM HL TO DE - “VMOVE”
-;   moves the number of bytes specified in the variable type flag
-;   from the address in HL to the address in DE. Uses A, B, DE and HL.
+; 09D3H – MOVE VALUE FROM DE TO HL - “VMOVE”
+;   moves the number of bytes specified in the variable type flag (VALTYP)
+;   from the address in DE to the address in HL. Uses A, B, DE and HL.
 ; ----------------------------------------------------------------------
 VMOVE:	ld	a,(VALTYP)	;09d3
-	ld	b,a		;09d6
 ; ----------------------------------------------------------------------
-; 09D7H – MOVE VALUE FROM HL TO DE - “MOVE1”
+; 09D6H – MOVE VALUE FROM DE TO HL - “VMOVEA”
+;   moves the number of bytes specified in A register
+;   from the address in DE to the address in HL. Uses A, B, DE and HL.
+; ----------------------------------------------------------------------
+VMOVEA:	ld	b,a		;09d6
+; ----------------------------------------------------------------------
+; 09D7H – MOVE VALUE FROM DE TO HL - “MOVE1”
 ;   moves the number of bytes specified in B register
-;   from the address in HL to the address in DE. Uses A, B, DE and HL.
+;   from the address in DE to the address in HL. Uses A, B, DE and HL.
 ; ----------------------------------------------------------------------
 MOVE1:	ld	a,(de)		;09d7
 	ld	(hl),a		;09d8
@@ -746,34 +760,34 @@ UNPACK:	ld	hl,FAC-1	;09df
 ;   Copy any precision value from ACCUM2 to ACCUM.
 ;   Precision and number of bytes moved determined by NTF.
 ; ----------------------------------------------------------------------
-VMOVFA:	ld	hl,ARGLO	;09f4
+VMOVFA:	ld	hl,ARGLO	;09f4 - Source Address Register 2
 ; ----------------------------------------------------------------------
 ; 09F7 – MOVE FROM (HL) TO ACCUM – “VMOVFA”
 ;   Copy any precision value from address pointed to by HL to ACCUM
 ;   Precision and number of bytes moved determined by NTF.
 ; ----------------------------------------------------------------------
-VMOVFM:	ld	de,MOVVFM	;09f7
+VMOVFM:	ld	de,MOVVFM	;09f7 - Pointer to Move from HL to DE
 	jr	VMOVMF		;09fa
 ; ----------------------------------------------------------------------
-; 09FCH-0A0BH – MOVE FROM ACCUM TO ACCUM2 – “VMOVAF”
+; 09FCH – MOVE FROM ACCUM TO ACCUM2 – “VMOVAF”
 ;   Copy any precision value from ACCUM to ACCUM2.
 ;   Precision and number of bytes moved determined by NTF.
 ;   All Registers except C are affected.
 ; ----------------------------------------------------------------------
-VMOVAF:	ld	hl,ARGLO	;09fc
+VMOVAF:	ld	hl,ARGLO	;09fc - Target address of Register 2
 ; ----------------------------------------------------------------------
 ; 09FFH – MOVE FROM ACCUM TO (HL) – “VMOVAF”
 ;   Copy any precision value from ACCUM to address pointed to by HL.
 ;   Precision and number of bytes moved determined by NTF.
 ;   All Registers except C are affected.
 ; ----------------------------------------------------------------------
-	ld	de,VMOVE	;09ff
-VMOVMF:	push	de		;0a02
-VDFACS:	ld	de,FACLO	;0a03
+	ld	de,VMOVE	;09ff - Pointer to Move from DE to HL
+VMOVMF:	push	de		;0a02 - saved as return address
+VDFACS:	ld	de,FACLO	;0a03 - Register 1 Single - Address
 	GETYPE			;0a06 - RST 20 - check the current number type
-	ret	c		;0a07
-	ld	de,DFACLO	;0a08
-	ret			;0a0b
+	ret	c		;0a07 - Process 4 bytes - return to VMOVE
+	ld	de,DFACLO	;0a08 - Register 1 Double - Address
+	ret			;0a0b - return via move operation
 ;
 ; ======================================================================
 ; 0A0CH – LEVEL II BASIC SINGLE PRECISION COMPARE – “FCOMP”
@@ -921,6 +935,11 @@ FRCINT:	GETYPE			;0a7f - RST 20 - check the current number type
 ;
 	call	nc,CONSD	;0a87 - If Double, Convert to single precision
 #ENDIF
+;
+; ----------------------------------------------------------------------
+; CONVERT ACCUM FROM SINGLE TO INTEGER (RESULT ALSO IN HL)
+;     Before calling Push the Error return address as an error return point
+; ----------------------------------------------------------------------
 	ld	hl,OVERR	;0a8a - Just in case the number is too big,
 	push	hl		;0a8d - RET to the ?OV ERROR, pushed onto stack.
 ;
@@ -936,7 +955,8 @@ CONIS:	ld	a,(FAC)		;0a8e
 	ex	de,hl		;0a98
 CONIS1:	pop	de		;0a99
 ; ----------------------------------------------------------------------
-; 0A9AH - LEVEL II BASIC CONVERSION ROUTINE - "MAKINT" - MOVE
+; 0A9A - LEVEL II BASIC CONVERSION ROUTINE - "MAKINT" - MOVE
+;        MOVE FROM (HL) TO ACCUM
 ;   This is the routine that returns the value in the HL Register Pair
 ;   to the BASIC program that called it. In effect it moves the content
 ;   of HL into the ACCumulator so it is ACCumulator = (HL)
@@ -977,7 +997,7 @@ FRCSNG:	GETYPE			;0ab1 - RST 20 - check the current number type
 ;  Convert a double-precision number to single-precision.
 ;  Every register is affected.
 ; ----------------------------------------------------------------------
-CONSD:	call	MOVRF		;0ab9 - Move the HIGH ORDER/MSB's into Register Pair BC/DE
+CONSD:	call	MOVRF		;0ab9 - Move the HIGH ORDER/MSB's into Register Pair BC:DE
 	call	VALSNG		;0abc - set number type to single precision
 	ld	a,b		;0abf - check for zero, first load the exponent
 	or	a		;0ac0 - set flags
@@ -1054,7 +1074,10 @@ TMERR:	ld	e,ERRTM		;0af6
 ;
 ; ----------------------------------------------------------------------
 ; 0AFBH-0B1EH – MATH ROUTINE – “QINT”
-;   This routine is a quick “Greatest Integer” function. Registers A-E are affected.
+;   If (and only if) the A register contains zero, copy the value in A to
+;   the B,C,D,and E registers and return with Z flag set .
+;      - OR - If NOT ZERO
+;   This routine is a quick “Greatest Integer” function.
 ;   The result of INT(ACCumulator) is left in BC DE as a signed number
 ; ----------------------------------------------------------------------
 QINT:	ld	b,a		;0afb
@@ -1850,7 +1873,7 @@ FINEX:	call	FINFRC		;0ea4
 	cp	'-'		;0eb1
 	ret	z		;0eb3
 	inc	d		;0eb4
-	cp	TKPLUS		;0eb5
+	cp	TKPLUS		;0eb5 - '-' Token
 	ret	z		;0eb7
 	cp	'+'		;0eb8
 	ret	z		;0eba
@@ -2406,7 +2429,7 @@ FFXSDO:	pop	hl		;111b
 ; 1124 – MATH ROUTINE – “FFXSFX”
 ;   This routine will print a SINGLE PRECISION number in fixed format/fixed point notation
 ; ----------------------------------------------------------------------
-FFXSFX:	ld	bc,$B60E	;1124 - Load Register Pair BC/DE with 1e16
+FFXSFX:	ld	bc,$B60E	;1124 - Load Register Pair BC:DE with 1e16
 	ld	de,$1BCA	;1127 - BC and DE  SP = to 1×10^16
 	call	FCOMP		;112a
 	jp	p,FFXSDO	;112d
@@ -3045,7 +3068,7 @@ EXPCON:	DEFB	$08		; number of constants which follow
 ;   This is a general purpose summation routine which computes the series
 ;   C0*X+C1*X^3+C2*X^5+C3*X^7+…+C(N)*X^(2*N+1) for I=0 to N when entered
 ;   at 149AH If entered at 14A9H the series changes to
-;   SUM ((((x*c0+c1)x*c2)x+c3)x+.cN. On entry, the x is held in BC/DE and
+;   SUM ((((x*c0+c1)x*c2)x+c3)x+.cN. On entry, the x is held in BC:DE and
 ;   HL points to a list containing the number of terms followed by the coefficients.
 ; ----------------------------------------------------------------------
 POLYX:	call	PUSHF		;149a
@@ -3093,78 +3116,78 @@ POLY1:	pop	af		;14b2
 ;   If the passed argument is 0, the last random number generated is returned.
 ;   If the argument is < 0, a new sequence of random numbers is started using the argument.
 ; ----------------------------------------------------------------------
-FNRND:	call	FRCINT		;14c9
-	ld	a,h		;14cc
+FNRND:	call	FRCINT		;14c9 - convert the RND(x) argument to an integer -> HL
+	ld	a,h		;14cc - the MSB for the argument value
 	or	a		;14cd
-	jp	m,FCERR		;14ce
-	or	l		;14d1
-	jp	z,RND0		;14d2
-	push	hl		;14d5
-	call	RND0		;14d6
-	call	MOVRF		;14d9
-	ex	de,hl		;14dc
-	ex	(sp),hl		;14dd
-	push	bc		;14de
-	call	CONSIH		;14df
-	pop	bc		;14e2
+	jp	m,FCERR		;14ce - FC Error if number was negative
+	or	l		;14d1 - Combine the MSB and LSB of argument, status flags
+	jp	z,RND0		;14d2 - If argument is Zero, JUMP to RND(0), which RETurns
+	push	hl		;14d5 - Save the RND(x) argument to the Stack
+	call	RND0		;14d6 - Call the RND(0) function, generate a number in ACC
+	call	MOVRF		;14d9 - Move the generated random number into BC:DE
+	ex	de,hl		;14dc - Swap random number into BC/HL
+	ex	(sp),hl		;14dd - HL -> integer argument; STACK -> LSB's of RND(0)
+	push	bc		;14de - Save MSB's of random number value to STACK
+	call	CONSIH		;14df - Store RND(x) argument (in HL) into ACC as Single
+	pop	bc		;14e2 - Restore RND(0) from STACK into BC:DE
 	pop	de		;14e3
-	call	FMULT		;14e4
-	ld	hl,FONE		;14e7
-	call	FADDS		;14ea
-	jp	IINT		;14ed
+	call	FMULT		;14e4 - Multiply BC:DE with ACC leave result in ACC
+	ld	hl,FONE		;14e7 - Single precision constant equal to 1.0
+	call	FADDS		;14ea - Add to accumulator
+	jp	IINT		;14ed - and convert result into INT and return.
 ;
 ; ----------------------------------------------------------------------
 ; 14F0 – This routine calculates RND(0) – “RND0”.
 ; ----------------------------------------------------------------------
-RND0:	ld	hl,MULTR	;14f0
-	push	hl		;14f3
-	ld	de,$0000	;14f4
-	ld	c,e		;14f7
-	ld	h,$03		;14f8
-RND00:	ld	l,$08		;14fa
-RND01:	ex	de,hl		;14fc
-	add	hl,hl		;14fd
-	ex	de,hl		;14fe
-	ld	a,c		;14ff
-	rla			;1500
-	ld	c,a		;1501
-	ex	(sp),hl		;1502
-	ld	a,(hl)		;1503
-	rlca			;1504
-	ld	(hl),a		;1505
-	ex	(sp),hl		;1506
+RND0:	ld	hl,MULTR	;14f0 - starting address for a multiplier table
+	push	hl		;14f3 - Save the starting address
+	ld	de,$0000	;14f4 - starting value init to 0
+	ld	c,e		;14f7 - MSB of the starting value in C/DE
+	ld	h,3		;14f8 - counter value for the multiplication loop
+RND00:	ld	l,8		;14fa - LOOP counter value of 8 iterations
+RND01:	ex	de,hl		;14fc - NMSB and the LSB of random number is in HL
+	add	hl,hl		;14fd - Multiply by 2
+	ex	de,hl		;14fe - swap back to original registers
+	ld	a,c		;14ff - get MSB of the random number into A
+	rla			;1500 - Multiply by 2
+	ld	c,a		;1501 - put MSB of the random number back into C
+	ex	(sp),hl		;1502 - get pointer to the multiplier table is now in HL
+	ld	a,(hl)		;1503 - Fetch a multiplier from the the multiplier table
+	rlca			;1504 - Multiply by 2
+	ld	(hl),a		;1505 - Put multiplier back
+	ex	(sp),hl		;1506 - put pointer to the multiplier table back on stack
 	jp	nc,RND02	;1507
-	push	hl		;150a
-	ld	hl,(RNDX)	;150b
-	add	hl,de		;150e
-	ex	de,hl		;150f
-	ld	a,(RNDX+2)	;1510
-	adc	a,c		;1513
-	ld	c,a		;1514
-	pop	hl		;1515
-RND02:	dec	l		;1516
-	jp	nz,RND01	;1517
-	ex	(sp),hl		;151a
-	inc	hl		;151b
-	ex	(sp),hl		;151c
-	dec	h		;151d
-	jp	nz,RND00	;151e
-	pop	hl		;1521
-	ld	hl,$B065	;1522
-	add	hl,de		;1525
-	ld	(RNDX),hl	;1526
-	call	VALSNG		;1529
-	ld	a,$05		;152c
-	adc	a,c		;152e
-	ld	(RNDX+2),a	;152f
-	ex	de,hl		;1532
-	ld	b,$80		;1533
-	ld	hl,FACSGN	;1535
-	ld	(hl),b		;1538
+	push	hl		;150a - Save the counter values
+	ld	hl,(RNDX)	;150b - the NMSB and the LSB of the random number seed
+	add	hl,de		;150e - add the current random number to the seed
+	ex	de,hl		;150f - putting it back into the current random number DE
+	ld	a,(RNDX+2)	;1510 - the MSB of the random number seed
+	adc	a,c		;1513 - add the current random number to the seed
+	ld	c,a		;1514 - putting it back into the current random number C
+	pop	hl		;1515 - Restore the counter values
+RND02:	dec	l		;1516 - dec the main bit loop counter
+	jp	nz,RND01	;1517 - LOOP BACK if not finished, 8 times
+	ex	(sp),hl		;151a - get pointer to the multiplier table is now in HL
+	inc	hl		;151b - BUMP to the Next Multiplier
+	ex	(sp),hl		;151c - put pointer to the multiplier table back on stack
+	dec	h		;151d - dec the multiplier loop counter
+	jp	nz,RND00	;151e - LOOP BACK if not finished, 3 times
+	pop	hl		;1521 - Remove the Multiplier address from the stack.
+	ld	hl,$B065	;1522 - re Seed the random number seed
+	add	hl,de		;1525 - add the current value to this Seed
+	ld	(RNDX),hl	;1526 - Write it back into Seed for latter
+	call	VALSNG		;1529 - set the current number type to single precision
+	ld	a,5		;152c
+	adc	a,c		;152e - Add 5 and the MSB of the random number in C
+	ld	(RNDX+2),a	;152f - Write it back into Seed for latter
+	ex	de,hl		;1532 - the result is now in A/DE
+	ld	b,$80		;1533 - value for the sign flag and the exponent
+	ld	hl,FACSGN	;1535 - address for the sign value storage location.
+	ld	(hl),b		;1538 - Save the sign result to FACSGN
 	dec	hl		;1539
-	ld	(hl),b		;153a
-	ld	c,a		;153b
-	ld	b,$00		;153c
+	ld	(hl),b		;153a - Save the exponent into FAC
+	ld	c,a		;153b - normalize BC:DE to hold the single
+	ld	b,$00		;153c - removing the value of any overflow.
 	jp	NORMAL		;153e
 ;
 ; ======================================================================
@@ -3217,11 +3240,11 @@ SIN1:	push	af		;1577
 ; ----------------------------------------------------------------------
 ; 158B-158E – SINGLE PRECISION CONSTANT STORAGE LOCATION – “PI2”
 ; ----------------------------------------------------------------------
-PI2:	DEFB	$DB, $0F, $49, $81
+PI2:	DEFB	$DB, $0F, $49, $81	; PI/2 Constant = 1.57079637029
 ; ----------------------------------------------------------------------
 ; 158F-1592 – SINGLE PRECISION CONSTANT STORAGE LOCATION – “FR4”
 ; ----------------------------------------------------------------------
-FR4:	DEFB	$00, $00, $00, $7F
+FR4:	DEFB	$00, $00, $00, $7F	; 1/4 Constant = 0.25
 ; ----------------------------------------------------------------------
 ; 1593-15A7 – SINGLE PRECISION CONSTANTS STORAGE LOCATION – “SINCON”
 ; ----------------------------------------------------------------------
@@ -3297,7 +3320,7 @@ ATNCON:	DEFB	$09		; number constants which follows
 	ASSERT $ == $1608, "Segment: Function Dispatch Table Should start at $1608"
 ; ----------------------------------------------------------------------
 ; 1608-164F - Function Dispatch Table
-;           - for functions stating at token $D7 (SGN) to $FA (MID$)
+;           - for TOKENS stating at $D7 (SGN) to $FA (MID$)
 ; ----------------------------------------------------------------------
 FUNDSP:
 	DEFW	FNSGN		; SGN() - ($D7)
@@ -3315,19 +3338,15 @@ FUNDSP:
 	DEFW	FNTAN		; TAN()
 	DEFW	ATAN		; ATAN()
 	DEFW	PEEK		; PEEK - ($E5)
-;
-; DISK IO FUNCTIONS (VECTORS) offset from base
-	DEFW	DVCVI		; CVI - ($E6)
-	DEFW	DVCVS		; CVS
-	DEFW	DVCVD		; CVD
-	DEFW	DVEOF		; EOF
-	DEFW	DVLOC		; LOC
-	DEFW	DVLOF		; LOF
-	DEFW	DVMKI		; MKI
-	DEFW	DVMKS		; MKS
-	DEFW	DVMKD		; MKD - ($EE)
-; END of DISK IO Functions
-;
+	DEFW	DVCVI		; CVI - Disk Basic Token - ($E6)
+	DEFW	DVCVS		; CVS - Disk Basic Token
+	DEFW	DVCVD		; CVD - Disk Basic Token
+	DEFW	DVEOF		; EOF - Disk Basic Token
+	DEFW	DVLOC		; LOC - Disk Basic Token
+	DEFW	DVLOF		; LOF - Disk Basic Token
+	DEFW	DVMKI		; MKI - Disk Basic Token
+	DEFW	DVMKS		; MKS - Disk Basic Token
+	DEFW	DVMKD		; MKD  - Disk Basic Token- ($EE)
 	DEFW	FRCINT		; CINT() - ($EF)
 	DEFW	FRCSNG		; CSNG()
 	DEFW	FRCDBL		; CDBL
@@ -3339,7 +3358,7 @@ FUNDSP:
 	DEFW	FNCHR		; CHR$
 	DEFW	FNLEFT		; LEFT$
 	DEFW	FNRGT		; RIGHT$
-	DEFW	FNMID		; MID$ - Disk Basic Token - ($FA)
+	DEFW	FNMID		; MID$ - ($FA)
 ;
 ; ----------------------------------------------------------------------
 ; 1650-1821 - Reserved key word list (in token order)
@@ -3349,6 +3368,10 @@ FUNDSP:
 ;	* table is broken into statments, followed by functions
 ; ----------------------------------------------------------------------
 RESLST:
+;
+; The following are Statements (80h-BBh)
+; Invoked by the Statement Dispatch Table (STMDSP)
+;
 	DEFB	$C5,"ND"	; END   - $80
 	DEFB	$C6,"OR"	; FOR   - $81
 	DEFB	$D2,"ESET"	; RESET - $82
@@ -3409,9 +3432,9 @@ RESLST:
 	DEFB	$C3,"LOAD"	; CLOAD
 	DEFB	$C3,"SAVE"	; CSAVE
 	DEFB	$CE,"EW"	; NEW   - $BB
-	;
-	; The following are Functions
-	;
+;
+; The following are General Purpose Tokens
+;
 #IFDEF BUGFIX7C
 	DEFB	$D4,"AB"	; TAB - without the (
 ELSE
@@ -3434,15 +3457,15 @@ ELSE
 	DEFB	$CE,"OT"	; NOT  - $CB
 	DEFB	$D3,"TEP"	; STEP - $CC
 ;
+; Arithmetic, Boolean and Logical Tokens
+;
 	DEFB	$AB		; + ($CD)
 	DEFB	$AD		; - ($CE)
 	DEFB	$AA		; *
 	DEFB	$AF		; /
 	DEFB	$DB		; [ - (up arrow)
-;
 	DEFB	$C1,"ND"	; AND - $D2
 	DEFB	$CF,"R"		; OR  - $D3
-;
 	DEFB	$BE		; > ($D4)
 	DEFB	$BD		; =
 	DEFB	$BC		; < ($D6)
@@ -3489,7 +3512,7 @@ ELSE
 ;
 	DEFB	$A7		; ' (REM)- $FB
 ;
-	DEFB	80h		; TERMINATOR.
+	DEFB	80h		; END OF TABLE TERMINATOR.
 ;
 	DEFS	$1822 - $	; Padding to account for BUGFIX7C
 ;
@@ -3839,6 +3862,7 @@ ERRESM:	ld	bc,ERRMOR	;19ab - ret addr - continuation address after reinit
 ; 19AE - ALTERNATE ENTRY TO BASIC "READY"
 ; This will work with both the Model I and the Model III
 ; To use this routine, load the BC with 1A18H, then JP the 19AE
+; On the model 1 (and Enhanced Model 3) A simple JP 06CCH will work
 ; ----------------------------------------------------------------------
 ERESET:	ld	hl,(SAVSTK)	;19ae
 	jp	STKERR		;19b1
@@ -5818,13 +5842,13 @@ LPOPER:	push	de		;233a
 	ld	c,$01		;233b
 	call	GETSTK		;233d
 	call	EVAL		;2340
-	ld	(TEMP2),hl	;2343
-RETAOP:	ld	hl,(TEMP2)	;2346
+	ld	(TEMP2),hl	;2343 - Save the BASIC program pointer
+RETAOP:	ld	hl,(TEMP2)	;2346 - Restore the BASIC program pointer
 TSTOP:	pop	bc		;2349
-	ld	a,(hl)		;234a
-	ld	d,$00		;234b
-LOPREL:	sub	TKGT		;234d - greatr than > Token
-	jr	c,ENDREL	;234f
+	ld	a,(hl)		;234a - the character at current program pointer
+	ld	d,0		;234b - assume no relational operations
+LOPREL:	sub	TKGT		;234d
+	jr	c,ENDREL	;234f - Less than a > token
 	cp	$03		;2351
 	jr	nc,ENDREL	;2353
 	cp	$01		;2355
@@ -5841,7 +5865,7 @@ ENDREL:	ld	a,d		;2364
 	jp	nz,FINREL	;2366
 	ld	a,(hl)		;2369
 	ld	(TEMP3),hl	;236a
-	sub	TKPLUS		;236d - plus token
+	sub	TKPLUS		;236d - subtract PLUS token, start of Arithmetic Tokens
 	ret	c		;236f
 	cp	$07		;2370
 	ret	nc		;2372
@@ -6158,7 +6182,7 @@ NTVARP:	cp	TKUSR		;24ff - USR Function
 	jp	z,STRNGS	;251f
 	cp	TKFN		;2522
 	jp	z,DVFN		;2524 - FN Handler
-	sub	ONEFUN		;2527 - Is a function starting at SGN
+	sub	TKSGN		;2527 - Is a function starting at SGN
 	jp	nc,ISFUN	;2529 - Jump if is a SGN to MID$ token
 ; ----------------------------------------------------------------------
 ; 252CH – Other Function Routine – If we pass through to here, the only
@@ -6178,6 +6202,9 @@ DOMIN:	ld	d,$7D		;2532
 	ld	hl,(TEMP2)	;2537
 	push	hl		;253a
 	call	VNEG		;253b
+; ----------------------------------------------------------------------
+; 253E - Return Site for Functions executed via Function Dispatch Table
+; ----------------------------------------------------------------------
 LABBCK:	pop	hl		;253e
 	ret			;253f
 ; ----------------------------------------------------------------------
@@ -6196,7 +6223,9 @@ RETVAR:	push	hl		;2543
 	pop	hl		;254c
 	ret			;254d
 ; ----------------------------------------------------------------------
-; 254E – This routine processes an expression for SNG( to MID$( – “ISFUN”
+; 254E – This routine processes an expression for a Function Call – “ISFUN”
+;   Function Calls are dispatched via the Function Dispatch table
+;   and apply to tokens in the range SNG( to MID$(
 ; ----------------------------------------------------------------------
 ISFUN:	ld	b,$00		;254e
 	rlca			;2550 - Set A to be 2 * (token – D7H)
@@ -6204,7 +6233,7 @@ ISFUN:	ld	b,$00		;254e
 	push	bc		;2552
 	GETCHR			;2553 - rst 10h
 	ld	a,c		;2554
-	;2555 - Test the adjusted token to see if it is past 2 * LASNUM – 2 * ONEFUN + 1
+	;2555 - Test the adjusted token to see if it is past 2 * LASNUM – 2 * TKSGN + 1
 	cp	$41
 	jr	c,OKNORM	;2557 - Jump if the token is SGN( to CHR$(.
 	call	FRMPRN		;2559 - If not, it is a LEFT$ – MID$
@@ -6225,29 +6254,29 @@ OKNORM:	call	PARCHK		;256f
 ; ----------------------------------------------------------------------
 	ld	a,l		;2573
 	;2574 - Check to see if the operator token in Register A is one less than SQR - $0C
-	cp	(TKSQR-ONEFUN)*2
+	cp	(TKSQR-TKSGN)*2
 	jr	c,NOTFRF	;2576 - Jump to avoid forcing the argument if is SGN to SQR
 	;2578 - Check to see if the operator token in Register A is bigger than ATN() - $1B
-	cp	(TKATN-ONEFUN)*2+1
+	cp	(TKATN-TKSGN)*2+1
 	push	hl		;257a
 	call	c,FRCSNG	;257b
 	pop	hl		;257e
-NOTFRF:	ld	de,LABBCK	;257f
-	push	de		;2582
-FINGO:	ld	bc,FUNDSP	;2583
-DISPAT:	add	hl,bc		;2586
-	ld	c,(hl)		;2587
+NOTFRF:	ld	de,LABBCK	;257f - address for once the function is executed
+	push	de		;2582 - push address to stack for the RET in function
+FINGO:	ld	bc,FUNDSP	;2583 - Base of the Function Dispatch Table
+DISPAT:	add	hl,bc		;2586 - adding it to the function offset
+	ld	c,(hl)		;2587 - load the address from the table
 	inc	hl		;2588
 	ld	h,(hl)		;2589
-	ld	l,c		;258a
-	jp	(hl)		;258b
+	ld	l,c		;258a - transferring the final address into hl
+	jp	(hl)		;258b - JUMP to the Functions Code
 ; ----------------------------------------------------------------------
 ; 258C – Part of the Formula Evaluation Code – “STRCMP”
 ;   this routine will compare two strings, one with the description in
 ;   Register DE and the other in FACLO/FACLO+1. On exit:
 ;     A = 0 if the strings are equal
-;     A = 377 if BCDE > FACLO
-;     A = 1 if BCDE < FACLO
+;     A = 377 if BC:DE > FACLO
+;     A = 1 if BC:DE < FACLO
 ; ----------------------------------------------------------------------
 STRCMP:	call	FRESTR		;258c
 	ld	a,(hl)		;258f
