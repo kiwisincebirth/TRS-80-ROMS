@@ -40,6 +40,7 @@ There are several enhanced features:
 
 Bug Fixes Applied
 * `#DEFINE BUGFIX1` - Fix Error 1 - 04F6H - 32 Character Mode Line Length
+* `#DEFINE BUGFIX2` - Fix Error 2 - 153EH - Random Number Overrun
 * `#DEFINE BUGFIX5` - Fix Error 5 - 08A7H - INT(DoubleValue) rounding issue
 * `#DEFINE BUGFIX7` - Fix Error 7 - 0EF2H - Space after type declaration tag
 * `#DEFINE BUGFIX7C` - Fix Error 7C - 213DH - Space after TAB token

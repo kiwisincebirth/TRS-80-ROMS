@@ -7,6 +7,7 @@
 ; DEFINES USED INTERNALLY
 ;
 ; BUGFIX1 - Dependancy on DSPLINLTH (provided externally)
+; BUGFIX2 - Dependancy on RND0FIX (provided externally)
 ; BUGFIX5 - No Dependancies
 ; BUGFIX7 - Dependancy on INFINEFIX (provided externally)
 ; BUGFIX7C - Dependancy on TABERFIX (provided externally)
@@ -3188,7 +3189,11 @@ RND02:	dec	l		;1516 - dec the main bit loop counter
 	ld	(hl),b		;153a - Save the exponent into FAC
 	ld	c,a		;153b - normalize BC:DE to hold the single
 	ld	b,$00		;153c - removing the value of any overflow.
+#IFDEF BUGFIX2
+	jp	RND0FIX 	; Apply Bugfix 2 on the result of RND(0)
+#ELSE
 	jp	NORMAL		;153e
+#ENDIF
 ;
 ; ======================================================================
 ; 1541 – LEVEL II BASIC COS - FUNCTION "FNCOS"
@@ -3691,6 +3696,9 @@ CONSTR:	sub	$00		;4080 (FDIVC) - Note Argument is set into working RAM
 	DEFW	FCERR		;408E (USRTAB) - Vector for to USR(0) routine
 	DEFB	$40, $E6, $4D	;4090 (MULTR) - Random number seed
 ;
+;	For BUGFIX2 we also attempted the following change which improved the outcome
+;	DEFB	$42, $E6, $4D	;4090 (MULTR) - Random number Multipliers 3x 1byte numbers
+
 	in	a,($00)		;4093 (STAINP) - Input Port Routine. Arg Set in RAM
 	ret			;4095
 	out	($00),a		;4096 (OUTWRD) - Output port routine. Arg Set in RAM

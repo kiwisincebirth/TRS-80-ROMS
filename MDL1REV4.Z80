@@ -20,6 +20,7 @@
 ;
 ; Rom Bug Fixes
 #DEFINE BUGFIX1 ; Fix Error 1 - 04F6H - 32 Character Mode Line Length
+#DEFINE BUGFIX2 ; Fix Error 2 - 153EH - Random Number Overrun
 #DEFINE BUGFIX5 ; Fix Error 5 - 08A7H - INT(DoubleValue) rounding
 #DEFINE BUGFIX7 ; Fix Error 7 - 0EF2H - Space after Type declaration Tag
 #DEFINE BUGFIX7C ; Fix Error 7C - 213DH - Space after TAB keyword
@@ -700,6 +701,44 @@ DSPLINLTH:
 	DEFC 	BUGFIX1_BYTES = $ - DSPLINLTH
 	PUBLIC 	BUGFIX1_BYTES
 #ENDIF
+;
+; ----------------------------------------------------------------------
+; BUGFIX2 - Random Number Overrun
+; ----------------------------------------------------------------------
+;
+#IFDEF BUGFIX2
+;
+RND0FIX:
+	call	NORMAL		; Call normalise then apply fixes
+;
+	LD	HL,FACLO+2	; test the LSB's of the ACC
+	ld	a,(hl)		; get MSB of the Single
+	cp	$7F		; Compare with a Positive all 1's number
+	ret	nz		; Not 7F - all ok RET
+	dec	hl		; FACLO + 1
+	ld	a,(hl)		; get the Next MSB of the Single
+	inc	a		; Inc from FF->00
+	ret	nz		; Not FF - all ok RET
+	dec	hl		; FACLO
+	LD	a,(hl)		; get the LSB of the Single
+	and	$F0		; zero out the lower 4 bits
+	LD	(hl),a		; write the updated value
+	ret
+;
+;	A smaller version (11 bytes) but less precision.
+;	LD	HL,(FACLO)	; test the LSB's of the ACC
+;	inc	h		; test for FF (-> 00) in Higher MSB
+;	ret	NZ		; wasnt FF (00) so all ok dont worry.
+;	LD	a,$0F		; a Mask for the higher 4 bits
+;	and	l		; mask out the lower 4 bits
+;	LD	(FACLO),a	; write the updated value
+; ----------------------------------------------------------------------
+	DEFC 	BUGFIX2_ENABLED = 1
+	PUBLIC 	BUGFIX2_ENABLED
+	DEFC 	BUGFIX2_BYTES = $ - RND0FIX
+	PUBLIC 	BUGFIX2_BYTES
+#ENDIF
+;
 ; ----------------------------------------------------------------------
 ; BUGFIX7 - Space after Type declaration Tag
 ; ----------------------------------------------------------------------

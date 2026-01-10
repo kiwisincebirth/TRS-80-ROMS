@@ -49,6 +49,101 @@ The following test program should display numbers without line breaks
 20 FOR X = 12345 TO 12360:PRINT X;:NEXT
 ```
 
+### Error 2 - Random Number Overrun
+
+A problem exists with random number generation, where it is possible to overrun
+and produce a value out of bounds. The following produces `257`.
+
+```
+10 POKE 16554,2: POKE 16555,15: POKE 16556,226
+20 PRINT RND(256)
+```
+
+**NOTE:** that the POKE's setup a random number seed which could take
+several million iterations to obverse the bug. This is **highly dependant**
+on the **number seed** setup during startup, which is based on Z80 R register
+
+The actual problem exists in the function `RND(0)`, which `RND(n)` is derived from. 
+The following produces a result of `1` which violates the rule that: `0 < result < 1`
+
+```
+10 POKE 16554,2: POKE 16555,15: POKE 16556,226
+20 PRINT RND(0)
+```
+
+#### Investigation
+
+Debugging the execution of `RND(0)` (using basic program above) the result 
+after `RND(0)` has completed (in the ACCumulator at `$4121`) has the bytes `FF FF 7F 80` 
+which translates to a SINGLE value of `0.99999988`
+
+This looks correct, but something else is clearly not.
+e.g. The following code also exhibits the same issue.
+
+```
+10 X=0.99999988
+20 PRINT X
+```
+This warrants further investigation. Another **ERROR 13** has been raised on this. 
+The handling of numbers with large mantissa's is likely an underlying cause.
+
+However, truncating this number (while debugging) by removing the last 4 bits
+of the signed number i.e. `F0 FF 7F 80` corrects the issue, and a valid numer is
+printed in BASIC
+
+#### Resolution
+
+To resolve this issue a **workaround** was implemented. As stated The scope of the (actual) issue
+is probably further reaching, and this could be **revisited latter**
+
+The last line of the RND(0) function at address `153E`, is a `jp 0765H` instruction to
+a routine (NORMAL) which completes the generation of the number, before returning.
+So to fix, replace with a JUMP to the following code:
+
+```
+ 	call NORMAL	    ; Call normalise then apply fixes
+	LD	HL,FACLO+2	; test the LSB's of the ACC
+	ld	a,(hl)		; get MSB of the Single
+	cp	$7F		    ; Compare with a Positive all 1's number
+	ret	nz		    ; Not 7F - all ok RET
+	dec	hl		    ; FACLO + 1
+	ld	a,(hl)		; get the Next MSB of the Single
+	inc	a		    ; Inc from FF->00
+	ret	nz		    ; Not FF - all ok RET
+	dec	hl		    ; FACLO
+	LD	a,(hl)		; get the LSB of the Single
+	and	$F0		    ; zero out the lower 4 bits
+	LD	(hl),a		; write the updated value
+	ret
+```
+
+#### Test Program
+
+The following test program is a good candidate for stress test the RND(n) funtion
+to see if it will break over time.
+
+```
+5 I=0
+10 FOR L% = 1 to 5000 : X%=RND(256)
+20 IF X%<1 OR X%>256 THEN PRINT X%,I,L%:STOP
+30 NEXT L%
+40 I=I+5000
+50 PRINT USING "###,###,###";I
+60 GOTO 10
+```
+
+And the following is a graphical sanity check for the distribution of numbers
+to ensure any changes haven't broken a random distribution
+
+```
+5 CLS
+10 DIM Z%(128)
+20 X%=RND(128)-1
+30 Z%(X%) = Z%(X%) + 1
+40 SET (X%,Z%(X%))
+60 GOTO 20
+```
+
 ### Error 5 - INT(DoubleValue) rounding issue
 
 INT(value) should produce a result equal to or less than value.
