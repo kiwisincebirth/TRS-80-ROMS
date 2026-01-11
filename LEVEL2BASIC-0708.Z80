@@ -56,7 +56,7 @@ FADD:	ld	a,b		;0716
 	ret	z		;0718
 	ld	a,(FAC)		;0719
 	or	a		;071c
-	jp	z,MOVFR		;071d
+	jp	z,MOVFR		;071d - Move single in BC:DE into ACC
 	sub	b		;0720
 	jr	nc,FADD1	;0721
 	cpl			;0723
@@ -64,7 +64,7 @@ FADD:	ld	a,b		;0716
 	ex	de,hl		;0725
 	call	PUSHF		;0726
 	ex	de,hl		;0729
-	call	MOVFR		;072a
+	call	MOVFR		;072a - Move single in BC:DE into ACC
 	pop	bc		;072d
 	pop	de		;072e
 FADD1:	cp	$19		;072f
@@ -78,16 +78,13 @@ FADD1:	cp	$19		;072f
 	ld	hl,FACLO	;073c
 	jp	p,FADD3		;073f
 	call	FADDA		;0742
-	jp	nc,ROUND	;0745
+	jp	nc,ROUND	;0745 - Round a Single Number
 	inc	hl		;0748
 	inc	(hl)		;0749
 	jp	z,OVERR		;074a
 	ld	l,$01		;074d
 	call	SHRADD		;074f
-	jr	ROUND		;0752
-; ----------------------------------------------------------------------
-; 0754H-077CH – SINGLE PRECISION MATH ROUTINE – “FADD3”
-; ----------------------------------------------------------------------
+	jr	ROUND		;0752 - Round a Single Number
 FADD3:	xor	a		;0754
 	sub	b		;0755
 	ld	b,a		;0756
@@ -166,7 +163,7 @@ ROUNDB:	ld	hl,FAC		;0797
 	and	$80		;07a1
 	xor	c		;07a3
 	ld	c,a		;07a4
-	jp	MOVFR		;07a5
+	jp	MOVFR		;07a5 - Save the number into the ACCumulator
 ; ----------------------------------------------------------------------
 ; 07A8H-07B6H – SINGLE PRECISION MATH SUPPORT ROUTINE – “ROUNDA”
 ;   This is a subroutine within the ROUND round. This will add one to C/D/E.
@@ -370,11 +367,6 @@ FMULT5:	rra			;0881
 	jr	nz,FMULT4	;088e
 POPHRT:	pop	hl		;0890
 	ret			;0891
-; ----------------------------------------------------------------------
-; 0892H-0896H – SINGLE PRECISION MATH ROUTINE – “FMULT3”
-;   This is accomplished by a circular shift of BC:DE one byte
-;   B is lost, C is replaced by A
-; ----------------------------------------------------------------------
 FMULT3:	ld	b,e		;0892
 	ld	e,d		;0893
 	ld	d,c		;0894
@@ -498,7 +490,7 @@ MULDIV:	ld	a,b		;0914
 	jp	p,MULDV1	;0922
 	add	a,$80		;0925
 	ld	(hl),a		;0927
-	jp	z,POPHRT	;0928
+	jp	z,POPHRT	;0928 - Routine to Pop HL and Return
 	call	UNPACK		;092b
 	ld	(hl),a		;092e
 DCXHRT:	dec	hl		;092f
@@ -519,18 +511,18 @@ MULDV2:	pop	hl		;0937
 ; 093EH-0954H – SINGLE PRECISION MATH ROUTINE – “MUL10”
 ;   This routine multiplies the ACCumulator by 10. Every register is modified.
 ; ----------------------------------------------------------------------
-MUL10:	call	MOVRF		;093e
-	ld	a,b		;0941
+MUL10:	call	MOVRF		;093e - loads the SINGLE in ACC into BC:DE
+	ld	a,b		;0941 - exponent
 	or	a		;0942
-	ret	z		;0943
-	add	a,$02		;0944
-	jp	c,OVERR		;0946
-	ld	b,a		;0949
-	call	FADD		;094a
-	ld	hl,FAC		;094d
-	inc	(hl)		;0950
-	ret	nz		;0951
-	jp	OVERR		;0952
+	ret	z		;0943 - RET if exponent is 0, nothing to do
+	add	a,$02		;0944 - multiply exponent by 4
+	jp	c,OVERR		;0946 - OV error if too big
+	ld	b,a		;0949 - Put back
+	call	FADD		;094a - Multiply by 5, by adding 4X valuse back
+	ld	hl,FAC		;094d - exponent register
+	inc	(hl)		;0950 - inc the exponent -> Multiply by 2
+	ret	nz		;0951 - RET
+	jp	OVERR		;0952 - otherwise overflow
 ; ----------------------------------------------------------------------
 ; 0955H-0963H – SINGLE DOUBLE MATH ROUTINE – “SIGN” (Accumulator)
 ;   Puts the SIGN of the ACCumulator into Register A.
@@ -610,7 +602,7 @@ CONIA:	ld	l,a		;098d
 	rla			;098e
 	sbc	a,a		;098f
 	ld	h,a		;0990
-	jp	MAKINT		;0991
+	jp	MAKINT		;0991 - Move INT in HL into the ACCumulator
 ;
 ; ----------------------------------------------------------------------
 ; 0994H – MATH COMPARE ROUTINE – “VSIGN” (Accumulator)
@@ -814,9 +806,6 @@ FCOMP:	ld	a,b		;0a0c
 FCOMPD:	rra			;0a23
 	xor	c		;0a24
 	ret			;0a25
-; ----------------------------------------------------------------------
-; 0A26H-0A38H – Part of the single precision comparison routine – “FCOMP2”
-; ----------------------------------------------------------------------
 FCOMP2:	inc	hl		;0a26
 	ld	a,b		;0a27
 	cp	(hl)		;0a28
@@ -949,10 +938,10 @@ FRCINT:	GETYPE			;0a7f - RST 20 - check the current number type
 ;   This routine will convert a single precision number to an integer.
 ;   Every register is affected.
 ; ----------------------------------------------------------------------
-CONIS:	ld	a,(FAC)		;0a8e
-	cp	$90		;0a91
-	jr	nc,CONIS2	;0a93
-	call	QINT		;0a95
+CONIS:	ld	a,(FAC)		;0a8e - the exponent for the single precision value
+	cp	$90		;0a91 - more than 16 bits of precision
+	jr	nc,CONIS2	;0a93 - make sure that it isn't because it is -32768
+	call	QINT		;0a95 - Actually convert it
 	ex	de,hl		;0a98
 CONIS1:	pop	de		;0a99
 ; ----------------------------------------------------------------------
@@ -963,21 +952,21 @@ CONIS1:	pop	de		;0a99
 ;   of HL into the ACCumulator so it is ACCumulator = (HL)
 ;   with VALTYPE set accordingly
 ; ----------------------------------------------------------------------
-MAKINT:	ld	(FACLO),hl	;0a9a
+MAKINT:	ld	(FACLO),hl	;0a9a - Save the INT into the ACCumulator
 ; ----------------------------------------------------------------------
 ; 0A9DH - Set NTF to INTEGER
 ; ----------------------------------------------------------------------
 VALINT:	ld	a,VTINT		;0a9d - Value type INTeger
-CONISD:	ld	(VALTYP),a	;0a9f
+CONISD:	ld	(VALTYP),a	;0a9f - save to value type for ACC
 	ret			;0aa2
 ; ----------------------------------------------------------------------
 ; 0AA3H – MATH CONVERSION ROUTINE – “CONIS2”
 ;   This routine’s purpose is to check to see if a number from the FIN routine is -32768.
 ; ----------------------------------------------------------------------
 CONIS2:	ld	bc,$9080	;0aa3
-	ld	de,$0000	;0aa6
-	call	FCOMP		;0aa9
-	ret	nz		;0aac
+	ld	de,$0000	;0aa6 - BC:DE single precision constant = -32768
+	call	FCOMP		;0aa9 - compare with value in ACC
+	ret	nz		;0aac - IF the number can NOT be converted into Int
 	ld	h,c		;0aad
 	ld	l,d		;0aae
 	jr	CONIS1		;0aaf
@@ -989,9 +978,9 @@ CONIS2:	ld	bc,$9080	;0aa3
 ;   Every register is affected.
 ; ----------------------------------------------------------------------
 FRCSNG:	GETYPE			;0ab1 - RST 20 - check the current number type
-	ret	po		;0ab2
-	jp	m,CONSI		;0ab3
-	jp	z,TMERR		;0ab6
+	ret	po		;0ab2 - we already have SINGLE PRECISION number
+	jp	m,CONSI		;0ab3 - If integer Convert It
+	jp	z,TMERR		;0ab6 - If String then Error Out
 ;
 ; ----------------------------------------------------------------------
 ; 0AB9 – MATH CONVERSION ROUTINE – “CONSD”
@@ -1006,7 +995,7 @@ CONSD:	call	MOVRF		;0ab9 - Move the HIGH ORDER/MSB's into Register Pair BC:DE
 	call	UNPACK		;0ac2 - turn on the MSB of the single in the ACCumulator
 	ld	hl,FACLO-1	;0ac5 - chop off the MSB of double double precision
 	ld	b,(hl)		;0ac8 - chopped number, the ROUND routine expects
-	jp	ROUND		;0ac9 - round the chopped number up and RETurn
+	jp	ROUND		;0ac9 - round the chopped number up, store in ACC and RETurn
 ;
 ; ----------------------------------------------------------------------
 ; 0ACCH-0ADAH - MATH CONVERSION ROUTINE – “CONSI”
@@ -1088,24 +1077,21 @@ QINT:	ld	b,a		;0afb
 	or	a		;0aff
 	ret	z		;0b00
 	push	hl		;0b01
-	call	MOVRF		;0b02
-	call	UNPACK		;0b05
+	call	MOVRF		;0b02 - Get SINGLE in ACC into BC:DE
+	call	UNPACK		;0b05 -
 	xor	(hl)		;0b08
 	ld	h,a		;0b09
-	call	m,QINTA		;0b0a
-	ld	a,$98		;0b0d
-	sub	b		;0b0f
+	call	m,QINTA		;0b0a - If negative, -1 from low order/LSB
+	ld	a,$98		;0b0d - maximum exponent
+	sub	b		;0b0f - subtract the exponent
 	call	SHIFTR		;0b10
 	ld	a,h		;0b13
 	rla			;0b14
 	call	c,ROUNDA	;0b15
-	ld	b,$00		;0b18
+	ld	b,0		;0b18
 	call	c,NGER		;0b1a
 	pop	hl		;0b1d
 	ret			;0b1e
-; ----------------------------------------------------------------------
-; 0B1FH-0B25H – MATH ROUTINE – “QINTA”
-; ----------------------------------------------------------------------
 QINTA:	dec	de		;0b1f
 	ld	a,d		;0b20
 	and	e		;0b21
@@ -1179,7 +1165,7 @@ DINT1:	dec	hl		;0b6b
 	jr	nz,DINT1	;0b6e
 	or	a		;0b70
 	ld	hl,$8000	;0b71
-	jp	z,MAKINT	;0b74
+	jp	z,MAKINT	;0b74 - Move INT in HL into the ACCumulator
 	ld	a,c		;0b77
 DINT2:	cp	$B8		;0b78
 	ret	nc		;0b7a
@@ -1306,7 +1292,7 @@ IADDS:	ld	b,a		;0bd5
 ; ----------------------------------------------------------------------
 IMULT:	ld	a,h		;0bf2
 	or	l		;0bf3
-	jp	z,MAKINT	;0bf4
+	jp	z,MAKINT	;0bf4 - Move INT in HL into the ACCumulator
 	push	hl		;0bf7
 	push	de		;0bf8
 	call	IMULDV		;0bf9
@@ -1358,7 +1344,7 @@ FMULTT:	pop	bc		;0c32
 IMULT4:	ld	a,b		;0c37
 	or	a		;0c38
 	pop	bc		;0c39
-	jp	m,MAKINT	;0c3a
+	jp	m,MAKINT	;0c3a - Move INT in HL into the ACCumulator
 	push	de		;0c3d
 	call	CONSIH		;0c3e
 	pop	de		;0c41
@@ -1375,7 +1361,7 @@ IMULDV:	ld	a,h		;0c45
 	ex	de,hl		;0c4b
 INEGH:	ld	a,h		;0c4c
 INEGA:	or	a		;0c4d
-	jp	p,MAKINT	;0c4e
+	jp	p,MAKINT	;0c4e - Move INT in HL into the ACCumulator
 ; ----------------------------------------------------------------------
 ; Negate HL routine. This routine changes the sign of the HL Register Pair
 ; and stores it in the ACC. (HL=ACCumulator=-HL) The result is returned
@@ -1388,7 +1374,7 @@ INEGHL:	xor	a		;0c51
 	ld	a,c		;0c55
 	sbc	a,h		;0c56
 	ld	h,a		;0c57
-	jp	MAKINT		;0c58
+	jp	MAKINT		;0c58 - Move INT in HL into the ACCumulator
 ; ----------------------------------------------------------------------
 ; 0C5BH-0C6FH – MATH ROUTINE – “INEG”
 ;   Integer Negation Routine. All registers are altered.
@@ -1835,23 +1821,26 @@ FINDBL:	call	ZERO		;0e65
 ;   to the proper value.
 ; ----------------------------------------------------------------------
 FIN:	xor	a		;0e6c - Z FLAG SET
-	ex	de,hl		;0e6d
-	ld	bc,$00FF	;0e6e
+	ex	de,hl		;0e6d - DE -> pointer to basic program
+	ld	bc,$00FF	;0e6e - init; B decimal point location; C will be a flag.
 	ld	h,b		;0e71
-	ld	l,b		;0e72
-	call	z,MAKINT	;0e73
-	ex	de,hl		;0e76
-	ld	a,(hl)		;0e77
-	cp	'-'		;0e78
-	push	af		;0e7a
-	jp	z,FINC		;0e7b
-	cp	'+'		;0e7e
-	jr	z,FINC		;0e80
-	dec	hl		;0e82
+	ld	l,b		;0e72 - zero HL
+	call	z,MAKINT	;0e73 - Move INT 0 into the ACCumulator
+	ex	de,hl		;0e76 - HL -> pointer to basic program
+	ld	a,(hl)		;0e77 - get next char
+	cp	'-'		;0e78 - check negative sign
+	push	af		;0e7a - save the negative sign
+	jp	z,FINC		;0e7b - skip pas next check
+	cp	'+'		;0e7e - check for +
+	jr	z,FINC		;0e80 - skip past bext
+	dec	hl		;0e82 - revert the program pointe if not + or -
+; ----------------------------------------------------------------------
+; Top of the loop starts here
+; ----------------------------------------------------------------------
 FINC:	GETCHR			;0e83 - rst 10h
-	jp	c,FINDIG	;0e84
+	jp	c,FINDIG	;0e84 - was it a digit
 	cp	'.'		;0e87
-	jp	z,FINDP		;0e89
+	jp	z,FINDP		;0e89 - was it a decimal point
 	cp	'E'		;0e8c
 	jr	z,FINEX		;0e8e
 	cp	'%'		;0e90
@@ -1862,10 +1851,10 @@ FINC:	GETCHR			;0e83 - rst 10h
 	jp	z,FINSNF	;0e9c
 	cp	'D'		;0e9f
 	jr	nz,FINE		;0ea1
-	or	a		;0ea3
-FINEX:	call	FINFRC		;0ea4
+	or	a		;0ea3 - flags for next operation
+FINEX:	call	FINFRC		;0ea4 - Convert the ACC to single or double
 	push	hl		;0ea7
-	ld	hl,FINEC	;0ea8
+	ld	hl,FINEC	;0ea8 - return address
 	ex	(sp),hl		;0eab
 	GETCHR			;0eac - rst 10h
 	dec	d		;0ead
@@ -1888,35 +1877,36 @@ FINEC:	GETCHR			;0ebd - rst 10h
 	sub	e		;0ec5
 	ld	e,a		;0ec6
 FINE:	push	hl		;0ec7
-	ld	a,e		;0ec8
-	sub	b		;0ec9
-FINE2:	call	p,FINMUL	;0eca
-	call	m,FINDIV	;0ecd
-	jr	nz,FINE2	;0ed0
-	pop	hl		;0ed2
-	pop	af		;0ed3
-	push	hl		;0ed4
-	call	z,VNEG		;0ed5
-	pop	hl		;0ed8
-	GETYPE			;0ed9 - RST 20 - check the current number type
-	ret	pe		;0eda
-	push	hl		;0edb
-	ld	hl,POPHRT	;0edc
-	push	hl		;0edf
-	call	CONIS2		;0ee0
-	ret			;0ee3
+	ld	a,e		;0ec8 - value of the exponent
+	sub	b		;0ec9 - work out how many time x10 reqd
 ; ----------------------------------------------------------------------
-; 0EE4 – MATH ROUTINE – “FINDP”
-;   This routine checks to see if we have seen TWO decimal points and to set
-;   the decimal point flag. We jumped here when we found a single decimal point.
+; multiply or divide by 10 the correct number of times. If A=0 the number is an integer.
+; ----------------------------------------------------------------------
+FINE2:	call	p,FINMUL	;0eca - multiply by 10
+	call	m,FINDIV	;0ecd - divide by 10
+	jr	nz,FINE2	;0ed0 - loop back if necessary
+	pop	hl		;0ed2 - restore program input buffer
+	pop	af		;0ed3 - sign value
+	push	hl		;0ed4 - save program pointer
+	call	z,VNEG		;0ed5 - convert number to negative
+	pop	hl		;0ed8 - restore program input buffer
+	GETYPE			;0ed9 - RST 20 - check the current number type
+	ret	pe		;0eda - Return if Not a Single precision
+	push	hl		;0edb - save program pointer
+	ld	hl,POPHRT	;0edc - Routine to Pop HL and Return
+	push	hl		;0edf - save as return address
+	call	CONIS2		;0ee0
+	ret			;0ee3 - THE MAIN RETURN OF FIN
+; ----------------------------------------------------------------------
+; ----------------------------------------------------------------------
+; This routine checks to see if we have seen TWO decimal points and to set
+; the decimal point flag. We jumped here when we found a single decimal point.
 ; ----------------------------------------------------------------------
 FINDP:	GETYPE			;0ee4 - RST 20 - check the current number type
-	inc	c		;0ee5
-	jr	nz,FINE		;0ee6
-	call	c,FINFRC	;0ee8
-	jp	FINC		;0eeb
-; ----------------------------------------------------------------------
-; 0EEE – MATH ROUTINE – “FININT”
+	inc	c		;0ee5 - adjust Flag
+	jr	nz,FINE		;0ee6 - if found a SECOND DP
+	call	c,FINFRC	;0ee8 - convert to Single precision
+	jp	FINC		;0eeb - and back to main loop
 ; ----------------------------------------------------------------------
 FININT:	GETYPE			;0eee - RST 20 - check the current number type
 	jp	p,SNERR		;0eef
@@ -1936,7 +1926,6 @@ FINDBF:	or	a		;0ef5
 FINSNF:	call	FINFRC		;0ef6
 	jr	INFINE		;0ef9
 ; ----------------------------------------------------------------------
-; 0EFB – MATH ROUTINE – “FINFRC”
 ;   This routine will force the ACCumulator to be either single precision
 ;   or double precision based on the Z FLAG. Z FLAG = Force to single precision;
 ;   NZ FLAG = Force to double precision.
@@ -1962,11 +1951,11 @@ FINMUL:	ret	z		;0f0a
 FINMLT:	push	af		;0f0b
 	GETYPE			;0f0c - RST 20 - check the current number type
 	push	af		;0f0d
-	call	po,MUL10	;0f0e
+	call	po,MUL10	;0f0e - SINGLE Multiply by 10
 	pop	af		;0f11
-	call	pe,DMUL10	;0f12
+	call	pe,DMUL10	;0f12 - DOUBLE Multiply by 10
 	pop	af		;0f15
-DCRART:	dec	a		;0f16
+DCRART:	dec	a		;0f16 - dec the exponent
 	ret			;0f17
 ; ----------------------------------------------------------------------
 ; 0F18 – MATH ROUTINE – “FINDIV”
@@ -1992,37 +1981,37 @@ FINDIV:	push	de		;0f18
 ;   To do this, the ACCumulator is multipled by ten to shift everything
 ;   over and make room for the digit, and then the digit is added in.
 ; ----------------------------------------------------------------------
-FINDIG:	push	de		;0f29
+FINDIG:	push	de		;0f29 - save the exponent
 	ld	a,b		;0f2a
 	adc	a,c		;0f2b
 	ld	b,a		;0f2c
 	push	bc		;0f2d
 	push	hl		;0f2e
-	ld	a,(hl)		;0f2f
-	sub	$30		;0f30
-	push	af		;0f32
+	ld	a,(hl)		;0f2f - get the number at program pointer
+	sub	'0'		;0f30 - ascii number into biary
+	push	af		;0f32 - save the binary digit
 	GETYPE			;0f33 - RST 20 - check the current number type
-	jp	p,FINDGV	;0f34
+	jp	p,FINDGV	;0f34 - if anything outer than integer
 	ld	hl,(FACLO)	;0f37
-	ld	de,$0CCD	;0f3a - 3277 to see if we will overflow
-	CPDEHL			;0f3d
+	ld	de,$0CCD	;0f3a - 3277 to see if x10 will overflow
+	CPDEHL			;0f3d - compare
 	jr	nc,FINDG2	;0f3e
 	ld	d,h		;0f40
 	ld	e,l		;0f41
-	add	hl,hl		;0f42
-	add	hl,hl		;0f43
-	add	hl,de		;0f44
-	add	hl,hl		;0f45
-	pop	af		;0f46
-	ld	c,a		;0f47
-	add	hl,bc		;0f48
-	ld	a,h		;0f49
-	or	a		;0f4a
-	jp	m,FINDG1	;0f4b
-	ld	(FACLO),hl	;0f4e
-FINDGE:	pop	hl		;0f51
-	pop	bc		;0f52
-	pop	de		;0f53
+	add	hl,hl		;0f42 - multiply by 2
+	add	hl,hl		;0f43 - now multiplied by 4
+	add	hl,de		;0f44 - now multiplied by 5
+	add	hl,hl		;0f45 - now multiplied by 10
+	pop	af		;0f46 - get the binary digit back
+	ld	c,a		;0f47 - assign it to c
+	add	hl,bc		;0f48 - add it to main number in HL
+	ld	a,h		;0f49 -
+	or	a		;0f4a - MSB of the integer
+	jp	m,FINDG1	;0f4b - if we have overflowed
+	ld	(FACLO),hl	;0f4e - store the integer in ACC
+FINDGE:	pop	hl		;0f51 - restore input buffer
+	pop	bc		;0f52 - restore deciml point info
+	pop	de		;0f53 - restore the exponent
 	jp	FINC		;0f54
 ; ----------------------------------------------------------------------
 ; 0F57 – MATH ROUTINE – “FINDG1”
@@ -2085,7 +2074,7 @@ FINEDG:	ld	a,e		;0f94
 	add	a,e		;0f9b
 	rlca			;0f9c
 	add	a,(hl)		;0f9d
-	sub	$30		;0f9e
+	sub	'0'		;0f9e
 	ld	e,a		;0fa0
 ;
 	DEFB	JPMNN		;0fa1 - Z80 Trick - JP M,nnnn - skip next 2 bytes
@@ -2110,7 +2099,7 @@ INPRT:	push	hl		;0fa7
 ;   the current cursor position on the video screen. The space for
 ;   the sign at the beginning of a line is removed. All registers are affected.
 ; ----------------------------------------------------------------------
-LINPRT:	call	MAKINT		;0faf
+LINPRT:	call	MAKINT		;0faf - Move INT in HL into the ACCumulator
 	xor	a		;0fb2
 	call	FOUINI		;0fb3
 	or	(hl)		;0fb6
@@ -2136,33 +2125,33 @@ FOUT:	xor	a		;0fbd - Zero Register A so that the format is set for free output
 ;   a PRINT USING statement had been invoked. The format modes that can
 ;   be specified are selected by loading the A, B, and C registers
 ; ----------------------------------------------------------------------
-PUFOUT:	call	FOUINI		;0fbe
-	and	$08		;0fc1
-	jr	z,FOUT1		;0fc3
+PUFOUT:	call	FOUINI		;0fbe - save format spec, and init buffer HL
+	and	$08		;0fc1 - check to see if a plus sign is required
+	jr	z,FOUT1		;0fc3 - skip over printing of + sign
 	ld	(hl),'+'	;0fc5
 FOUT1:	ex	de,hl		;0fc7
-	call	VSIGN		;0fc8
+	call	VSIGN		;0fc8 - Check he sign of the number
 	ex	de,hl		;0fcb
-	jp	p,FOUT2		;0fcc
-	ld	(hl),'-'	;0fcf
+	jp	p,FOUT2		;0fcc - A positive number so skip over negative
+	ld	(hl),'-'	;0fcf - print a negative sign
 	push	bc		;0fd1
 	push	hl		;0fd2
-	call	VNEG		;0fd3
+	call	VNEG		;0fd3 - Negate the number
 	pop	hl		;0fd6
 	pop	bc		;0fd7
 	or	h		;0fd8
-FOUT2:	inc	hl		;0fd9
-	ld	(hl),$30	;0fda
-	ld	a,(TEMP3)	;0fdc
+FOUT2:	inc	hl		;0fd9 - inc to next char (after -) in the buffer
+	ld	(hl),'0'	;0fda
+	ld	a,(TEMP3)	;0fdc - format specification
 	ld	d,a		;0fdf
 	rla			;0fe0
-	ld	a,(VALTYP)	;0fe1
+	ld	a,(VALTYP)	;0fe1 - value type of number
 	jp	c,FOUTFX	;0fe4
 	jp	z,FOUTZR	;0fe7
 	cp	VTSNG		;0fea - compare with Single Precsion
-	jp	nc,FOUFRV	;0fec - Not single or Double precision
-	ld	bc,$0000	;0fef
-	call	FOUTCI		;0ff2
+	jp	nc,FOUFRV	;0fec - jump if single or Double precision
+	ld	bc,$0000	;0fef -
+	call	FOUTCI		;0ff2 - IntToASCII store string in HL bufferL
 FOUTZS:	ld	hl,FBUFFR	;0ff5
 	ld	b,(hl)		;0ff8
 	ld	c,SPACE		;0ff9
@@ -2221,8 +2210,8 @@ FOTZS3:	ld	a,e		;102d
 ;   to ASCII Conversion Routine (at 0FBEH) and by the BINARY to ASCII
 ;   Conversion Routine (at 0FAFH)
 ; ----------------------------------------------------------------------
-FOUINI:	ld	(TEMP3),a	;1034
-	ld	hl,FBUFFR	;1037
+FOUINI:	ld	(TEMP3),a	;1034 - save the format specifiction
+	ld	hl,FBUFFR	;1037 - print buffer at 4130
 	ld	(hl),SPACE	;103a
 	ret			;103c
 ; ----------------------------------------------------------------------
@@ -2232,16 +2221,16 @@ FOUINI:	ld	(TEMP3),a	;1034
 ;   or Double Precision. This will print a single or double precision
 ;   number in free format
 ; ----------------------------------------------------------------------
-FOUFRV:	cp	$05		;103d
+FOUFRV:	cp	$05		;103d - CARRY will be set if double precision number.
 	push	hl		;103f
 	sbc	a,$00		;1040
-	rla			;1042
-	ld	d,a		;1043
-	inc	d		;1044
-	call	FONTINV		;1045
+	rla			;1042 - number type x2; 08H -> SINGLE; 0AH -> DOUBLE
+	ld	d,a		;1043 - Get adjusted number type into D
+	inc	d		;1044 - 09H -> SINGLE; 0BH -> DOUBLE
+	call	FONTINV		;1045 - scale (normalize) the current value in ACCumulator
 	ld	bc,$0300	;1048 - B=3 (decimal point count), C=0 (comma count)
 	add	a,d		;104b
-	jp	m,FOFRS1	;104c
+	jp	m,FOFRS1	;104c - D is less than .01 then we will need E Notation
 	inc	d		;104f
 	cp	d		;1050
 	jr	nc,FOFRS1	;1051
@@ -2252,7 +2241,7 @@ FOFRS1:	sub	$02		;1057
 	pop	hl		;1059
 	push	af		;105a
 	call	FOUTED		;105b
-	ld	(hl),$30	;105e
+	ld	(hl),'0'	;105e
 	call	z,INXHRT	;1060
 	call	FOUTCV		;1063
 FOFRS2:	dec	hl		;1066
@@ -2439,8 +2428,8 @@ FFXSFX:	ld	bc,$B60E	;1124 - Load Register Pair BC:DE with 1e16
 ; 1124 – MATH ROUTINE – “FFXSDC”
 ;   This routine will print a SINGLE or DOUBLE number in fixed format/point notation
 ; ----------------------------------------------------------------------
-FFXSDC:	call	SIGN		;1132
-	call	nz,FONTINV	;1135
+FFXSDC:	call	SIGN		;1132 - check for ZERO in the ACCumulator
+	call	nz,FONTINV	;1135 - not zero, so normalise the number
 	pop	hl		;1138
 	pop	bc		;1139
 	jp	m,FFXXVS	;113a
@@ -2530,14 +2519,14 @@ FFXIFL:	push	hl		;11a3
 ;   fixed format/floating point notation.
 ; ----------------------------------------------------------------------
 FFXFLV:	jp	z,FFXSFL	;11aa
-	ld	e,$10		;11ad - maximum length of a double
+	ld	e,16		;11ad - maximum length of a double
 ;
 	DEFB	LDBCNN		;11af - Z80 Trick - LD BC,nnnn - skip 2 byte instruction
 ;
-FFXSFL:	ld	e,$06		;11b0 - maximum length of a single precision value
-	call	SIGN		;11b2
+FFXSFL:	ld	e,6		;11b0 - maximum length of a single precision value
+	call	SIGN		;11b2 - check to see if we have a zero in the ACCumulator
 	scf			;11b5
-	call	nz,FONTINV	;11b6
+	call	nz,FONTINV	;11b6 - not zero, so normalise the number
 	pop	hl		;11b9
 	pop	bc		;11ba
 	push	af		;11bb
@@ -2571,7 +2560,7 @@ FFXLV3:	cpl			;11de
 	inc	a		;11e1
 	add	a,d		;11e2
 	ld	b,a		;11e3
-	ld	c,$00		;11e4
+	ld	c,0		;11e4
 	call	FOUTCV		;11e6
 	pop	af		;11e9
 	call	p,FOTZNC	;11ea
@@ -2589,47 +2578,51 @@ FFXLV2:	push	bc		;11f8
 	pop	de		;11fd
 	jp	FOUTTS		;11fe
 ; ----------------------------------------------------------------------
-; 1201 – Test the magnitude of SP and DP numbers,
-;        and clear the times the value was scaled – “FOUTNV”
+; 1201 – Normalise Number in Accumulator – “FOUTNV”
+;   This routine will scale (normalize) the number in the accumulator
+;   so that all the digits are in the integer part
+;   (i.e., between 99,999 and 999,999).
+;   The signed base 10 exponent is returned in Register A.
+;   Registers D and E are unchanged.
 ; ----------------------------------------------------------------------
 FONTINV: push	de		;1201
-	xor	a		;1202
-	push	af		;1203
+	xor	a		;1202 - init the exponent value being returned.
+	push	af		;1203 -
 	GETYPE			;1204 - RST 20 - check the current number type
-	jp	po,FOUNDB	;1205
+	jp	po,FOUNDB	;1205 - If we have a SINGLE PRECISION number
+; ----------------------------------------------------------------------
 FORBIG:	ld	a,(FAC)		;1208
 	cp	$91		;120b
 	jp	nc,FOUNDB	;120d
-	ld	de,TENTEN	;1210
+	ld	de,TENTEN	;1210 - pointer to DOUBLE 10,000,000,000
 	ld	hl,ARGLO	;1213
 	call	VMOVE		;1216
 	call	DMULT		;1219
 	pop	af		;121c
 	sub	$0A		;121d
 	push	af		;121f
-	jr	FORBIG		;1220
+	jr	FORBIG		;1220 - LOOP BACK UP
 ; ----------------------------------------------------------------------
-; 1222 – MATH ROUTINE – “FOUNDB”
-; ----------------------------------------------------------------------
-FOUNDB:	call	FOUNVC		;1222
+FOUNDB:	call	FOUNVC		;1222 - compare the ACCumulator to 999999.5
 FOUNDV1: GETYPE			;1225 - RST 20 - check the current number type
-	jr	nc,FOUNDV4	;1226
+	jr	nc,FOUNDV4	;1226 - If we Have DOUBLE or STRING(not logical),
 	ld	bc,$9143	;1228
-	ld	de,$4FF9	;122b
-	call	FCOMP		;122e
+	ld	de,$4FF9	;122b - BC:DE equal to Single value of 99,999.999 ( **** Alternately $5000!!!!)
+	call	FCOMP		;122e - compare with value in accumulator
 	jr	FOUNDV5		;1231
-FOUNDV4: ld	de,FOUTDL	;1233
-	call	DCOMPD		;1236
-FOUNDV5: jp	p,FOUNDV3	;1239
-	pop	af		;123c
-	call	FINMLT		;123d
-	push	af		;1240
-	jr	FOUNDV1		;1241
-FOUNDVV: pop	af		;1243
-	call	FINDIV		;1244
-	push	af		;1247
-	call	FOUNVC		;1248
-FOUNDV3: pop	af		;124b
+FOUNDV4: ld	de,FOUTDL	;1233 - pointer to DOUBLE 999,999,999,999,999.95
+	call	DCOMPD		;1236 - Compare with value in Accumulator
+FOUNDV5: jp	p,FOUNDV3	;1239 - If the number is big enough EXIT ROUTINE
+	pop	af		;123c - Get exponent
+	call	FINMLT		;123d - multiply by 10, exponent in A is adjusted
+	push	af		;1240 - Save exponent
+	jr	FOUNDV1		;1241 - LOOP BACK UP
+; ----------------------------------------------------------------------
+FOUNDVV: pop	af		;1243 - number too big, get exponent off stack
+	call	FINDIV		;1244 - Divide a number by 10
+	push	af		;1247 - exponent back on stack
+	call	FOUNVC		;1248 - compare the ACCumulator to 999999.5
+FOUNDV3: pop	af		;124b - exponent off stack
 ;
 #IFDEF VER12
 	or	a		;124c
@@ -2645,16 +2638,16 @@ FOUNDV3: pop	af		;124b
 ;   This routine will see if the number in the ACCumulator is small enough yet
 ; ----------------------------------------------------------------------
 FOUNVC:	GETYPE			;124f - RST 20 - check the current number type
-	jp	pe,FONVC1	;1250
+	jp	pe,FONVC1	;1250 - If we have a DOUBLE
 	ld	bc,$9474	;1253 - the exponent and the MSB of a single precision
 	ld	de,$23F8	;1256 - BC and DE = (single precision) 999,999.5
-	call	FCOMP		;1259
+	call	FCOMP		;1259 - compare to accumulator
 	jr	FONVC2		;125c
-FONVC1:	ld	de,FOUTDU	;125e
-	call	DCOMPD		;1261
-FONVC2:	pop	hl		;1264
-	jp	p,FOUNDVV	;1265
-	jp	(hl)		;1268
+FONVC1:	ld	de,FOUTDU	;125e - address of double = 9,999,999,999,999,999.5
+	call	DCOMPD		;1261 - Double Compare
+FONVC2:	pop	hl		;1264 - GET return address off stack
+	jp	p,FOUNDVV	;1265 - the number in the ACCumulator bigger than
+	jp	(hl)		;1268 - number not big enough, RET by JP to (HL)
 ; ----------------------------------------------------------------------
 ; 1269H – MATH ROUTINE – “FOTZER”
 ;   This routine puts leading zeroes into the input buffer. The count is held in A
@@ -2664,7 +2657,7 @@ FONVC2:	pop	hl		;1264
 FOTZER:	or	a		;1269
 FOTZR1:	ret	z		;126a
 	dec	a		;126b
-	ld	(hl),$30	;126c
+	ld	(hl),'0'	;126c
 	inc	hl		;126e
 	jr	FOTZR1		;126f
 ; ----------------------------------------------------------------------
@@ -2675,7 +2668,7 @@ FOTZR1:	ret	z		;126a
 FOTZNC:	jr	nz,FOTZEC	;1271
 FOTZRC:	ret	z		;1273
 	call	FOUTED		;1274
-FOTZEC:	ld	(hl),$30	;1277
+FOTZEC:	ld	(hl),'0'	;1277
 	inc	hl		;1279
 	dec	a		;127a
 	jr	FOTZRC		;127b
@@ -2777,7 +2770,7 @@ FOUTCS:	push	bc		;12ea
 	call	FADDH		;12ec
 	inc	a		;12ef
 	call	QINT		;12f0
-	call	MOVFR		;12f3
+	call	MOVFR		;12f3 - Move single in BC:DE into ACC
 FOUCDC:	pop	hl		;12f6
 	pop	bc		;12f7
 	xor	a		;12f8
@@ -2817,7 +2810,7 @@ FOUCS2:	inc	b		;130a
 	jr	nc,FOUCS2	;1318
 	call	FADDA		;131a
 	inc	hl		;131d
-	call	MOVFR		;131e
+	call	MOVFR		;131e - Move single in BC:DE into ACC
 	ex	de,hl		;1321
 	pop	hl		;1322
 	ld	(hl),b		;1323
@@ -2880,7 +2873,7 @@ FOUCI2:	inc	b		;1348
 ;
 ; ----------------------------------------------------------------------
 ; 1364-136B – DOUBLE PRECISION CONSTANT STORAGE LOCATION – “TENTEN”
-; A double precision constant equal to 10000000000
+; A double precision constant equal to 10,000,000,000
 ; ----------------------------------------------------------------------
 TENTEN:	DEFB	$00, $00, $00, $00, $F9, $02, $15, $A2
 ;
@@ -3214,9 +3207,9 @@ FNCOS:	ld	hl,PI2		;1541
 ;   Single-precision only.(ACCumulator = SIN(ACCumulator)).
 ; ----------------------------------------------------------------------
 FNSIN:	call	PUSHF		;1547
-	ld	bc,$8349	;154a -exponent and the MSB of a single precision constant
-	ld	de,$0FDB	;154d -NMSB and the LSB of a single precision constant
-	call	MOVFR		;1550
+	ld	bc,$8349	;154a - exponent and the MSB of a single precision constant
+	ld	de,$0FDB	;154d - NMSB and the LSB of a single precision constant
+	call	MOVFR		;1550 - Move single in BC:DE into ACC
 	pop	bc		;1553
 	pop	de		;1554
 	call	FDIV		;1555
@@ -3274,7 +3267,7 @@ FNTAN:	call	PUSHF		;15a8
 	pop	hl		;15af
 	call	PUSHF		;15b0
 	ex	de,hl		;15b3
-	call	MOVFR		;15b4
+	call	MOVFR		;15b4 - Move single in BC:DE into ACC
 	call	FNCOS		;15b7
 	jp	FDIVT		;15ba
 ;
@@ -3971,15 +3964,19 @@ READY:	call	FINLPT		;1a19 - set the current output device to the video display
 ; ======================================================================
 ; 1A33-1A5F – MAIN LEVEL II BASIC INTERPRETER ENTRY – “MAIN”
 ;
-;   If the jump here was from an AUTO call, (40E4H) will have the increment
-;   number, (40E1H) will be 0 if no AUTO and non-zero if AUTO, and (40E2H)
-;   will have the starting line number.
+;    Handle normal command prompt and AUTO Processing
 ; ----------------------------------------------------------------------
 MAIN:	ld	hl,$FFFF	;1a33
 	ld	(CURLIN),hl	;1a36
 	ld	a,(AUTFLG)	;1a39
 	or	a		;1a3c
-	jr	z,NTAUTO	;1a3d
+	jr	z,NTAUTO	;1a3d - for normal User Prompt ump Down
+; ----------------------------------------------------------------------
+; Auto processing continues here
+;   If the jump here was from an AUTO call, (40E4H) will have the increment
+;   number, (40E1H) will be 0 if no AUTO and non-zero if AUTO, and (40E2H)
+;   will have the starting line number.
+; ----------------------------------------------------------------------
 	ld	hl,(AUTLIN)	;1a3f
 	push	hl		;1a42
 	call	LINPRT		;1a43
@@ -3996,9 +3993,6 @@ AUTELN:	call	OUTDO		;1a51
 AUTRES:	xor	a		;1a5a
 	ld	(AUTFLG),a	;1a5b
 	jr	READY		;1a5e
-; ----------------------------------------------------------------------
-; 1A60H-1A73 – Part of the AUTO command – “AUTGOD”
-; ----------------------------------------------------------------------
 AUTGOD:	ld	hl,(AUTINC)	;1a60
 	add	hl,de		;1a63
 	jr	c,AUTRES	;1a64
@@ -4011,33 +4005,34 @@ AUTGOD:	ld	hl,(AUTINC)	;1a60
 	or	$FF		;1a71
 	jp	EDITRT		;1a73
 ; ----------------------------------------------------------------------
-; 1A76H-1AF7 – Part of the AUTO command – “NTAUTO”
+; 1A76H-1AF7 – NOT AN AUTO – “NTAUTO”
+;   Command entry comes here if we are not in an Auto Command
 ; ----------------------------------------------------------------------
 NTAUTO:	ld	a,'>'		;1a76
-	call	OUTDO		;1a78
-	call	INLIN		;1a7b
-	jp	c,MAIN		;1a7e
+	call	OUTDO		;1a78 - Display the > Prompt
+	call	INLIN		;1a7b - Read a Line
+	jp	c,MAIN		;1a7e - loop back if BREAK pressed
 	GETCHR			;1a81 - rst 10h
-	inc	a		;1a82
-	dec	a		;1a83
-	jp	z,MAIN		;1a84
+	inc	a		;1a82 - sets the status flags but saves the carry flag
+	dec	a		;1a83 - so we can test for an end of statement
+	jp	z,MAIN		;1a84 - if we have an end of (or blank) statement
 	push	af		;1a87
-	call	LINGET		;1a88
-BAKSP:	dec	hl		;1a8b
-	ld	a,(hl)		;1a8c
-	cp	SPACE		;1a8d
-	jr	z,BAKSP		;1a8f
-	inc	hl		;1a91
-	ld	a,(hl)		;1a92
+	call	LINGET		;1a88 - convert line pointer to Integer
+BAKSP:	dec	hl		;1a8b - back pointer up
+	ld	a,(hl)		;1a8c - get the character
+	cp	SPACE		;1a8d - was it a space
+	jr	z,BAKSP		;1a8f - Loop back over any space characters
+	inc	hl		;1a91 - finally pushing pointer to first space.
+	ld	a,(hl)		;1a92 - get the character
 	cp	SPACE		;1a93
 	call	z,INXHRT	;1a95
 EDENT:	push	de		;1a98
-	call	CRUNCH		;1a99
+	call	CRUNCH		;1a99 - TOKENIZE THE INPUT
 	pop	de		;1a9c
 	pop	af		;1a9d
-	ld	(SAVTXT),hl	;1a9e
-	call	DIRDO		;1aa1 - Check to see if DOS should be taking this over
-	jp	nc,GONE1	;1aa4
+	ld	(SAVTXT),hl	;1a9e - Save the command txt pointer
+	call	DIRDO		;1aa1 - DOS EXIT - Give a DOS chance to process
+	jp	nc,GONE1	;1aa4 - IF The was a DIRECT STATEMENT
 	push	de		;1aa7
 	push	bc		;1aa8
 	xor	a		;1aa9
@@ -4048,7 +4043,7 @@ EDENT:	push	de		;1a98
 	ex	de,hl		;1ab0
 	ld	(DOT),hl	;1ab1
 	ex	de,hl		;1ab4
-	call	FNDLIN		;1ab5
+	call	FNDLIN		;1ab5 - Search for a Line Number from DE
 	push	bc		;1ab8
 	call	c,DELDEL	;1ab9
 	pop	de		;1abc
@@ -4061,7 +4056,7 @@ EDENT:	push	de		;1a98
 	pop	bc		;1ac6
 	add	hl,bc		;1ac7
 	push	hl		;1ac8
-	call	BLTU		;1ac9
+	call	BLTU		;1ac9 - check for enough memory for the new BASIC line
 	pop	hl		;1acc
 	ld	(VARTAB),hl	;1acd
 	ex	de,hl		;1ad0
@@ -4625,19 +4620,22 @@ GONE4:	ld	a,(hl)		;1d36
 	call	OUTDO		;1d55
 	pop	de		;1d58
 NOTTRC:	ex	de,hl		;1d59
+; ----------------------------------------------------------------------
+; Jumped here if user entered a DIRECT Statement
+; ----------------------------------------------------------------------
 GONE1:	GETCHR			;1d5a - rst 10h
 	ld	de,NEWSTT	;1d5b
 	push	de		;1d5e
-GONE3:	ret	z		;1d5f
+GONE3:	ret	z		;1d5f - Return If an END OF LINE delimiter
 GONE2:	sub	TKOFF		;1d60 - Check for a token >= 80H
-	jp	c,LET		;1d62 - this must be a LET so jump to 1F21H
+	jp	c,LET		;1d62 - NOT a Token, so must be a LET. JUMP
 	cp	TKTAB-TKOFF	;1d65 - if the token is below the TAB( token
 	jp	nc,ISMID	;1d67 - If the token >= TAB token
 	rlca			;1d6a - Multiply the token value in Register A by two
 	ld	c,a		;1d6b
 	ld	b,$00		;1d6c - address offset into BC
 	ex	de,hl		;1d6e - save the BASIC program pointer DE into HL
-	ld	hl,STMDSP	;1d6f - list of BASIC execution addresses (Statement Dispatch Table)
+	ld	hl,STMDSP	;1d6f - Statement Dispatch Table- list of Addresses
 	add	hl,bc		;1d72 - add the offset
 	ld	c,(hl)		;1d73 - get low order byte
 	inc	hl		;1d74
@@ -5365,9 +5363,9 @@ PRINTD:	ld	a,(hl)		;20A5 Reload next element from code string
 #ENDIF
 ;
 	GETYPE			;20bd - RST 20 - check the current number type
-	jr	z,STRDON	;20be
-	call	FOUT		;20c0
-	call	STRLIT		;20c3
+	jr	z,STRDON	;20be - Output a String
+	call	FOUT		;20c0 - convert number to string in the print buffer
+	call	STRLIT		;20c3 - String for the ascii number
 	call	EXDSKL		;20c6
 	ld	hl,(FACLO)	;20c9
 	ld	a,(PRTFLG)	;20cc - Get the output device type flag into A
@@ -6030,7 +6028,6 @@ APPLOP:	pop	bc		;2406
 	push	bc		;2436
 	ret			;2437
 ; ----------------------------------------------------------------------
-; 2438 – Part of the Evaluation Routine – “STKDBL”
 ;   at this point we know
 ;   the STACK operand is double precision, so the number in the ACC
 ;   must be forced into double precision, then moved into ARG and the
@@ -6044,7 +6041,7 @@ STKDBL:	call	FRCDBL		;2438
 	ld	(DFACLO),hl	;2443
 SNGDBL:	pop	bc		;2446
 	pop	de		;2447
-	call	MOVFR		;2448
+	call	MOVFR		;2448 - Move single in BC:DE into ACC
 SETDBL:	call	FRCDBL		;244b
 	ld	hl,DBLDSP	;244e - Double Precision Math Table
 DODSP:	ld	a,(DORES)	;2451
@@ -6062,7 +6059,7 @@ DODSP:	ld	a,(DORES)	;2451
 ; ----------------------------------------------------------------------
 ; 2460H – Part of the Evaluation Routine – “FACDBL”
 ;   at this point the ACCumulator
-;   holds a double precision numbe, and the STACK holds either an integer
+;   holds a double precision number, and the STACK holds either an integer
 ;   or a single precision number, so we need to convert it.
 ; ----------------------------------------------------------------------
 FACDBL:	push	bc		;2460
@@ -6120,13 +6117,13 @@ INTDIV:	push	hl		;2490
 ; 249F – Evaluate a Variable, Constant, or Function Call – “EVAL”
 ; ----------------------------------------------------------------------
 EVAL:	GETCHR			;249f - rst 10h
-	ld	e,ERRMO		;24a0
-	jp	z,ERROR		;24a2
-	jp	c,FIN		;24a5
-	call	ISLET		;24a8
+	ld	e,ERRMO		;24a0 - Missing Operand Error
+	jp	z,ERROR		;24a2 - a ERROR if we are at the end of the string
+	jp	c,FIN		;24a5 - char is numeric -> ASCII TO BINARY
+	call	ISLET		;24a8 - char is alphabetic, assumed variable name
 	jp	nc,ISVAR	;24ab
 	cp	TKPLUS		;24ae - + token
-	jr	z,EVAL		;24b0
+	jr	z,EVAL		;24b0 - ignore any + token, jump back and keep parsing.
 	cp	'.'		;24b2
 	jp	z,FIN		;24b4
 	cp	TKMNUS		;24b7 - - token
@@ -6167,7 +6164,7 @@ VARRET:	SYNTAX	(')')		;24f1 - rst 08h
 	ld	a,h		;24f5
 	or	l		;24f6
 	jp	z,FCERR		;24f7
-	call	MAKINT		;24fa
+	call	MAKINT		;24fa - Move INT in HL into the ACCumulator
 	pop	hl		;24fd
 	ret			;24fe
 ; ----------------------------------------------------------------------
@@ -6810,8 +6807,8 @@ FNPOS:
 	ld	a,(TTYPOS)	;27f5 - Load A with the current cursor line position.
 SNGFLT:	ld	l,a		;27f8 - Load Value into L
 	xor	a		;27f9 - Zero A
-GIVINT:	ld	h,a		;27fa - HL now contains the Value
-	jp	MAKINT		;27fb - Convert the value to an unsigned Int
+GIVINT:	ld	h,a		;27fa - HL now contains the INT Value
+	jp	MAKINT		;27fb - Move INT in HL into the ACCumulator
 ; ----------------------------------------------------------------------
 ; 27FE-2818 – LEVEL II BASIC USR(x) ROUTINE – “USRFN”
 ; ----------------------------------------------------------------------
@@ -6819,8 +6816,8 @@ USRFN:	call	USROUT		;27fe - dos usr n handling
 	GETCHR			;2801 - rst 10h
 	call	PARCHK		;2802
 	push	hl		;2805
-	ld	hl,POPHRT	;2806
-	push	hl		;2809
+	ld	hl,POPHRT	;2806 - Routine to Pop HL and Return
+	push	hl		;2809 - Save as return address
 	ld	a,(VALTYP)	;280a
 	push	af		;280d
 	cp	VTSTR		;280e - Compare value type - is it a String
