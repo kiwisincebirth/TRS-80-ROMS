@@ -14,7 +14,7 @@
 ;
 ; Rom Bug Fixes
 #DEFINE BUGFIX1  ; Fix Error 1 - 0573H - 32 Character Mode Line Length
-#DEFINE BUGFIX2  ; Fix Error 2 - 153EH - Random Single Precision Number Overrun
+#DEFINE BUGFIX2  ; Fix Error 2 - 153EH - Random Number Single Precision Overrun
 #DEFINE BUGFIX5  ; Fix Error 5 - 08A7H - INT(DoubleValue) rounding
 #DEFINE BUGFIX7  ; Fix Error 7 - 0EF2H - Space after Type declaration Tag
 #DEFINE BUGFIX7C ; Fix Error 7C - 213DH - Space after TAB keyword
@@ -109,7 +109,7 @@ rst00:	di			;0000
 	JP 	JT_BOOTS	;0002 - Go to the Boostrap/Initialization routine at 3015H
 ;
 ; The BDOS (Basic Disk Operating System) entry point address in most CP/M systems
-; Having this here may be coincidental, and may be UNUSED
+; Having this here may be coincidental, or this may never called
 	jp	mRST1		;0005
 ;
 ; ======================================================================
@@ -278,9 +278,9 @@ _PRT:	ld	de,mPDCB	;003b
 ; ----------------------------------------------------------------------
 KBLINE:
 _KEYIN:	jp	KEYIN		;0040
-	ret			;0043 - UNUSED
-	nop			;0044 - UNUSED
-	nop			;0045 - UNUSED
+	ret			;0043 - unsure of the purpose of these instructions
+	nop			;0044
+	nop			;0045
 ;
 ; ----------------------------------------------------------------------
 ; 0046H-0048H – DRIVER ENTRY ROUTINE – Part 2 – "CIOJ"
@@ -358,7 +358,8 @@ ROUTE:
 ; ----------------------------------------------------------------------
 ; Alternative entry point to BASIC. See 06CCH or 1A19 for more details
 ; ----------------------------------------------------------------------
-	jp	RESETR		;0072 - jump to Level II BASIC READY routine
+	ASSERT	$ == $0072, "Segment: Alternate BASIC Entry Point Should start at $0072"
+	jp	RESETR		;0072 - Jump to Level II BASIC READY routine
 ;
 ; ----------------------------------------------------------------------
 ; 0075H-0104H – INITIALIZATION ROUTINE – "INIT2"
@@ -2429,12 +2430,13 @@ DSPLINLTH:
 ;
 RND0FIX:
 	call	NORMAL		;153e - Call normalise - then apply fixes
+				; Fall through, and RET
 ;
 SINGLEFIX:
 	GETYPE			; check the type in ACCumulator
 	ret	nc		; ignore a double value
 	ld	a,(FACLO)	; Get LSB byte from Single
-	and	$F8		; truncate the LSB bits off the SINGLE mantissa
+	and	$F0		; truncate the LSB bits off the SINGLE mantissa
 	ld	(FACLO),a	; Store it back
 	ret
 ;

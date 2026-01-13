@@ -74,7 +74,7 @@ The following produces a result of `1` which violates the rule that: `0 < result
 #### Investigation
 
 You should refer to [Error 13](#error-13---display-of-single-precision-numbers) (below)
-for a in-depth discussion of the underlying problem.
+for an in-depth discussion of the underlying problem.
 
 Debugging the execution of `RND(0)` (using basic program above) the result 
 after `RND(0)` has completed (in the ACCumulator at `$4121`) has the bytes `FF FF 7F 80` 
@@ -114,7 +114,7 @@ SINGLEFIX:
 	GETYPE          ; gettype in accumulator
 	ret	nc		    ; ignore doubles
 	ld	a,(FACLO)   ; the LSB's of the ACC
-	and	$F8		    ; zero out the lower 3 bits
+	and	$F0		    ; zero out the lower 4 bits
 	ld	(FACLO),a   ; write the updated value
 	ret
 ```
@@ -306,7 +306,7 @@ beginning of the field, the ROM prints an asterisk instead of a space after a
 positive number.
 
 ```
-PRINT USING "**####-";1234
+PRINT USING "**####-";-1234
 ```
 
 Produces `**1234*` instead of `**1234-`
@@ -317,12 +317,11 @@ Address 1009 Change instruction `LD B,C` to a `NOP`
 
 ### Error 11 - Overflow on Integer FOR loop
 
-`FOR NEXT` loops with valid integer values should complete without error 
-i.e. The following should not produce an overflow error.
+`FOR NEXT` loops with valid integer values should complete normally 
+without producing an `?OV Error` 
 
 ```
 FOR J% = 0 TO 30000 STEP 5000 : PRINT J%; : NEXT J%
-?OV Error
 ```
 
 #### Resolution
