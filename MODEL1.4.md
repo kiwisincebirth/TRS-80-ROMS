@@ -54,12 +54,13 @@ There are several enhanced features:
 
 Bug Fixes Applied
 * `#DEFINE BUGFIX1` - Fix Error 1 - 04F6H - 32 Character Mode Line Length
-* `#DEFINE BUGFIX2` - Fix Error 2 - 153EH - Random Number Overrun
+* `#DEFINE BUGFIX2` - Fix Error 2 - 153EH - Random Number Single Precision Overrun
 * `#DEFINE BUGFIX5` - Fix Error 5 - 08A7H - INT(DoubleValue) rounding
 * `#DEFINE BUGFIX7` - Fix Error 7 - 0EF2H - Space after type declaration tag
 * `#DEFINE BUGFIX7C` - Fix Error 7C - 213DH - Space after TAB token
 * `#DEFINE BUGFIX8` - Fix Error 8 - 1009H - PRINT USING, - sign at end of field
 * `#DEFINE BUGFIX11` - Fix Error 11 - 2301H - Overflow on Integer FOR loop
+* `#DEFINE BUGFIX13` - Fix Error 13 - 1222H - Display of Single Precision Numbers
 
 The base ROM can also be customised to hardware.
 * `#DEFINE EACA80` - (OPTIONAL) uncomment to enable Dick Smith System-80 (EACA) hardware support.
