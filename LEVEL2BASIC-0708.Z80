@@ -1124,17 +1124,17 @@ FNFIX:	GETYPE			;0b26 - RST 20 - check the current number type
 ;   it is rounded up before truncation. The integer portion is left in A
 ; ----------------------------------------------------------------------
 FNINT:	GETYPE			;0b37 - RST 20 - check the current number type
-	ret	m		;0b38
-	jr	nc,DINT		;0b39
-	jr	z,TMERR		;0b3b
-	call	CONIS		;0b3d
-IINT:	ld	hl,FAC		;0b40
-	ld	a,(hl)		;0b43
-	cp	$98		;0b44
+	ret	m		;0b38 - Already integer Just Return
+	jr	nc,DINT		;0b39 - Its a Double so use DOUBLE -> Int
+	jr	z,TMERR		;0b3b - IF its a String then TM ERR
+	call	CONIS		;0b3d - THE Conversion Routine
+IINT:	ld	hl,FAC		;0b40 - The Exponent address
+	ld	a,(hl)		;0b43 - get the exponent
+	cp	$98		;0b44 - test for fractional bits
 	ld	a,(FACLO)	;0b46
 	ret	nc		;0b49
 	ld	a,(hl)		;0b4a
-	call	QINT		;0b4b
+	call	QINT		;0b4b - A secont attempt to convert to int
 	ld	(hl),$98	;0b4e
 	ld	a,e		;0b50
 	push	af		;0b51
@@ -1917,6 +1917,10 @@ INFINE:	JP	INFINEFIX	; Fixes Bug - Replaces Code Below
 ;
 #ELSE
 ;
+; In BASIC spaces have no significance (except in messages to be printed).
+; When processing a statement with a type declaration tag after a number
+; and a space before. This code does not account for additional spaces
+; and requires additional steps (included above) to discard spaces.
 INFINE:	inc	hl		;0ef2
 	jr	FINE		;0ef3
 ;
@@ -3167,11 +3171,11 @@ RND02:	dec	l		;1516 - dec the main bit loop counter
 	dec	h		;151d - dec the multiplier loop counter
 	jp	nz,RND00	;151e - LOOP BACK if not finished, 3 times
 	pop	hl		;1521 - Remove the Multiplier address from the stack.
-	ld	hl,$B065	;1522 - re Seed the random number seed
+	ld	hl,$B065	;1522 - A Constant added to the Seed
 	add	hl,de		;1525 - add the current value to this Seed
 	ld	(RNDX),hl	;1526 - Write it back into Seed for latter
 	call	VALSNG		;1529 - set the current number type to single precision
-	ld	a,5		;152c
+	ld	a,$05		;152c - A Constant added to the Seed
 	adc	a,c		;152e - Add 5 and the MSB of the random number in C
 	ld	(RNDX+2),a	;152f - Write it back into Seed for latter
 	ex	de,hl		;1532 - the result is now in A/DE
@@ -3687,7 +3691,7 @@ CONSTR:	sub	$00		;4080 (FDIVC) - Note Argument is set into working RAM
 	ret			;408D
 ;
 	DEFW	FCERR		;408E (USRTAB) - Vector for to USR(0) routine
-	DEFB	$40, $E6, $4D	;4090 (MULTR) - Random number seed
+	DEFB	$40, $E6, $4D	;4090 (MULTR) - Random number Multipliers 3x 1byte numbers
 ;
 ;	For BUGFIX2 we also attempted the following change which improved the outcome
 ;	DEFB	$42, $E6, $4D	;4090 (MULTR) - Random number Multipliers 3x 1byte numbers

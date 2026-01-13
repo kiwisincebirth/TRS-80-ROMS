@@ -154,7 +154,7 @@ to single-precision first, then performs the INT function. e.g.
 PRINT INT(2.9999999) 
 3
 ```
-Should produces `2`. It is cased because single precision rounding, rounds up.
+Should produce `2`. It is cased because single precision rounding, rounds up.
 
 #### Resolution
 
