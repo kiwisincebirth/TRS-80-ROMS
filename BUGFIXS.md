@@ -73,47 +73,49 @@ The following produces a result of `1` which violates the rule that: `0 < result
 
 #### Investigation
 
+You should refer to [Error 13](#error-13---display-of-single-precision-numbers) (below)
+for a in-depth discussion of the underlying problem.
+
 Debugging the execution of `RND(0)` (using basic program above) the result 
 after `RND(0)` has completed (in the ACCumulator at `$4121`) has the bytes `FF FF 7F 80` 
-which translates to a SINGLE value of `0.99999988`
+which clearly extends past the formal 6 digits, leaving a large remaining fraction
 
-This looks correct, but something else is clearly not.
-e.g. The following code also exhibits the same issue.
+Truncating this number (while debugging) by removing the last 3 bits
+of the signed number i.e. `F8 FF 7F 80` corrects the issue, and a valid 
+random numer `0.999999` is printed in BASIC
+
+This Test program was used to understand the numerical rounding aspects
 
 ```
-10 X=0.99999988
-20 PRINT X
+30 POKE 16554,2: POKE 16555,15: POKE 16556,226
+40 Z! = RND(0)
+41 Y#=Z!
+42 X!=Y#
+48 PRINT
+49 PRINT "= RND(0)"," -> DBL",," -> SNG"
+50 PRINT Z!   ,Y#   ,X!
+51 PRINT Z!/9!;"(/9)",Y#/9#,X!/9!;""
+52 PRINT
+60 POKE 16554,2: POKE 16555,15: POKE 16556,226
+69 PRINT "= RND(256)"
+70 PRINT RND(256)," ( RND(256) -> CINT(RND(0)*256)+1 )"
+99 PRINT
 ```
-This warrants further investigation. Another **ERROR 13** has been raised on this. 
-The handling of numbers with large mantissa's is likely an underlying cause.
-
-However, truncating this number (while debugging) by removing the last 4 bits
-of the signed number i.e. `F0 FF 7F 80` corrects the issue, and a valid numer is
-printed in BASIC
 
 #### Resolution
 
-To resolve this issue a **workaround** was implemented. As stated The scope of the (actual) issue
-is probably further reaching, and this could be **revisited latter**
-
-The last line of the RND(0) function at address `153E`, is a `jp 0765H` instruction to
+The last line of the RND(0) function at address `153Eh`, is a `jp 0765H` instruction to
 a routine (NORMAL) which completes the generation of the number, before returning.
 So to fix, replace with a JUMP to the following code:
 
 ```
  	call NORMAL	    ; Call normalise then apply fixes
-	LD	HL,FACLO+2	; test the LSB's of the ACC
-	ld	a,(hl)		; get MSB of the Single
-	cp	$7F		    ; Compare with a Positive all 1's number
-	ret	nz		    ; Not 7F - all ok RET
-	dec	hl		    ; FACLO + 1
-	ld	a,(hl)		; get the Next MSB of the Single
-	inc	a		    ; Inc from FF->00
-	ret	nz		    ; Not FF - all ok RET
-	dec	hl		    ; FACLO
-	LD	a,(hl)		; get the LSB of the Single
-	and	$F0		    ; zero out the lower 4 bits
-	LD	(hl),a		; write the updated value
+SINGLEFIX:
+	GETYPE          ; gettype in accumulator
+	ret	nc		    ; ignore doubles
+	ld	a,(FACLO)   ; the LSB's of the ACC
+	and	$F8		    ; zero out the lower 3 bits
+	ld	(FACLO),a   ; write the updated value
 	ret
 ```
 
@@ -245,7 +247,7 @@ There is one issue:
 
 When an existing program is loaded (pre-tokenised) form there will be an issue
 with trailing `)`. Thus the program read would be interpreted as
-`_TAB_10_)_` when in-fact the previous intention it shoudl have been `_TAB(_10_)_`
+`TAB 10 ) ` when in-fact the previous intention it shoudl have been ` TAB( 10 )`
 This is a result of the brackets not matching, ie the is an implicit `(` in the
 TAB token.
 
@@ -368,6 +370,95 @@ The following test program should not fail with `OV Error`
 10 FOR J% = 0 TO 30000 STEP 5000
 20 PRINT J%;
 30 NEXT J%
+```
+
+### Error 13 - Display of Single Precision Numbers
+
+In base 10, rounding to k-digits examines digit k+1. If digit k+1 is 5 through 9, 
+then digit k is adjusted up by one and carries to the most significant digit, if necessary. 
+If digit k+1 is less than 5, then digit k is not adjusted. 
+This should not get muddled with the conversion of base 2 to base 10. e.g.
+
+```
+PRINT 4/9
+```
+
+Four divided by nine should be: `.444444` and not `.444445`
+
+#### Investigation
+
+Debugging the execution of the program, the printing of the value has to call the 
+Floating Point to ASCII conversion routine (0FBEh). 
+
+This routine is quite long as it deals with a multitude of different number formatting
+but eventually arrives down at a shared routine (1201h) – Normalise Number in Accumulator.
+
+This routine seems responsible for shifting the number to be in range 100,000 to 999,999 i.e. 
+Six digits in positive integer range. To do this routine FINMLT (multiply by 10) at 0F0Bh is used. 
+The multiply routine uses addition by sequence 1x+1x, 2x+2x, 4x+1x, 5x+5x, to arrive at 10x. 
+
+When this routine is called the value (in the ACCumulator at `$4121`) has the
+bytes `39 8E 63 7F`. Noting the `39` indicating a `1` bit in the least significant bit.
+
+Noting: Any of the 3 lowest bits are not required and should be truncated, i.e.
+changing the number in the accumulator to `38 8E 63 7F` ( `39 AND F8` ), 
+
+To test this a Breakpoint was set at `1222h` (after a SINGLE value is detected), 
+the value (in the ACCumulator at `$4121`) changed to `38` then when the display routine 
+completes the display of the number correctly shows as:
+
+```
+ .444444
+```
+
+#### Underlying Cause
+
+Single precision numbers in Level 2 BASIC occupy 3 bytes for the mantissa, of which one bit is the sign.
+Thus there are 23 bits available where only 20 bits are actually required. The extra three bits are
+still stored and used in computation and display purposes. 
+
+Issues seem to relate to the handling of these extra bits, specifically as it relates to
+the extra bits causing rounding issues during any computation.
+
+As already seen the display routines themselves truncate with rounding Single Prevision values
+
+#### Resolution
+
+At 1222h replace the `call FOUNVC` with a `jp FOUNDBFIX` - to the routine below
+
+```
+FOUNDBFIX:
+	call	SINGLEFIX	; apply the fix - See BUGFIX 2 for this routine
+	call	FOUNVC		;1222 - compare the ACCumulator to 999999.5
+	jp	    FOUNDV1		; continue
+```
+
+#### Test Program
+
+A test program shows the issues
+
+``` 
+10 D#=4#/9#
+11 S!=D#
+12 R#=S!
+19 CLS
+20 PRINT "= 4/9#              -> SNG    -> DBL"
+21 PRINT D#   ;S!   ;R#
+22 PRINT D#/4#;S!/4!;R#/4#;" (/4)
+30 S5$= "0.99999!"
+31 S6$= "0.999999!"
+32 S7$= "0.9999999!"
+34 D8$= "0.99999999#"
+35 D9$= "0.999999999#"
+39 PRINT
+40 PRINT "String Input","VAL(str)","CSNG(val)","INT(val)"
+41 PRINT S5$,VAL(S5$),,INT(VAL(S5$)); " SNG"
+42 PRINT S6$,VAL(S6$),,INT(VAL(S6$)); " SNG"
+43 PRINT S7$,VAL(S7$); " (*1)",,INT(VAL(S7$)); " SNG" 
+44 PRINT D8$,VAL(D8$),CSNG(VAL(D8$)) ; " (*2)",INT(VAL(D8$)); " DBL"
+45 PRINT D9$,VAL(D9$),CSNG(VAL(D9$)) ; " (*2)",INT(VAL(D9$)); " DBL"
+50 PRINT "      *1 rounded up during display"
+51 PRINT "      *2 rounded up during conversion to Single"
 ```
 
 ## Model III

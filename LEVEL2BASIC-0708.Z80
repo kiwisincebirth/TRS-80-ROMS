@@ -6,13 +6,14 @@
 ;
 ; DEFINES USED INTERNALLY
 ;
-; BUGFIX1 - Dependancy on DSPLINLTH (provided externally)
-; BUGFIX2 - Dependancy on RND0FIX (provided externally)
+; BUGFIX1 - Dependency on DSPLINLTH (provided externally)
+; BUGFIX2 - Dependency on RND0FIX (provided externally)
 ; BUGFIX5 - No Dependancies
-; BUGFIX7 - Dependancy on INFINEFIX (provided externally)
-; BUGFIX7C - Dependancy on TABERFIX (provided externally)
-; BUGFIX8 - No Dependancies
-; BUGFIX11 - Dependancy on INTNXTOVER (provided externally)
+; BUGFIX7 - Dependency on INFINEFIX (provided externally)
+; BUGFIX7C - Dependency on TABERFIX (provided externally)
+; BUGFIX8 - No Dependencies
+; BUGFIX11 - Dependency on INTNXTOVER (provided externally)
+; BUGFIX13 - Dependency on FOUNDBFIX (provided externally)
 ;
 ; VER12 - Downgrade Model 1 from Rev 1.3 to Revision 1.2
 ; EACA80 - Applies Dick Smith System 80 Changes (minor)
@@ -2607,7 +2608,15 @@ FORBIG:	ld	a,(FAC)		;1208
 	push	af		;121f
 	jr	FORBIG		;1220 - LOOP BACK UP
 ; ----------------------------------------------------------------------
+;
+#IFDEF BUGFIX13
+FOUNDB:	jp	FOUNDBFIX	; Jump out to corrected routine
+#ELSE
+	;
+
 FOUNDB:	call	FOUNVC		;1222 - compare the ACCumulator to 999999.5
+#ENDIF
+;
 FOUNDV1: GETYPE			;1225 - RST 20 - check the current number type
 	jr	nc,FOUNDV4	;1226 - If we Have DOUBLE or STRING(not logical),
 	ld	bc,$9143	;1228

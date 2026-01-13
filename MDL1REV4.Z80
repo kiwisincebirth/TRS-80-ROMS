@@ -26,6 +26,7 @@
 #DEFINE BUGFIX7C ; Fix Error 7C - 213DH - Space after TAB keyword
 #DEFINE BUGFIX8 ; Fix Error 8 - 1009H - PRINT USING, - sign at end of field
 #DEFINE BUGFIX11 ; Fix Error 11 - 2301H - Overflow on Integer FOR loop
+#DEFINE BUGFIX13 ; Fix Error 13 - 1222H - Display of Single Precision Numbers
 ;
 ; Rom Additional Features
 #DEFINE LOWCASE ; Disable Alpha Character Translation (0471h)
@@ -709,29 +710,18 @@ DSPLINLTH:
 #IFDEF BUGFIX2
 ;
 RND0FIX:
-	call	NORMAL		; Call normalise then apply fixes
+	call	NORMAL		;153e - Call normalise - then apply fixes
+				; Fall through, and RET
 ;
-	LD	HL,FACLO+2	; test the LSB's of the ACC
-	ld	a,(hl)		; get MSB of the Single
-	cp	$7F		; Compare with a Positive all 1's number
-	ret	nz		; Not 7F - all ok RET
-	dec	hl		; FACLO + 1
-	ld	a,(hl)		; get the Next MSB of the Single
-	inc	a		; Inc from FF->00
-	ret	nz		; Not FF - all ok RET
-	dec	hl		; FACLO
-	LD	a,(hl)		; get the LSB of the Single
-	and	$F0		; zero out the lower 4 bits
-	LD	(hl),a		; write the updated value
+SINGLEFIX:
+	; NOTING This routine is also used by BugFix 13
+	GETYPE			; check the type in ACCumulator
+	ret	nc		; ignore a double value
+	ld	a,(FACLO)	; Get LSB byte from Single
+	and	$F8		; truncate the LSB bits off the SINGLE mantissa
+	ld	(FACLO),a	; Store it back
 	ret
 ;
-;	A smaller version (11 bytes) but less precision.
-;	LD	HL,(FACLO)	; test the LSB's of the ACC
-;	inc	h		; test for FF (-> 00) in Higher MSB
-;	ret	NZ		; wasnt FF (00) so all ok dont worry.
-;	LD	a,$0F		; a Mask for the higher 4 bits
-;	and	l		; mask out the lower 4 bits
-;	LD	(FACLO),a	; write the updated value
 ; ----------------------------------------------------------------------
 	DEFC 	BUGFIX2_ENABLED = 1
 	PUBLIC 	BUGFIX2_ENABLED
@@ -794,6 +784,23 @@ INTNXTOVER:
 	PUBLIC 	BUGFIX11_ENABLED
 	DEFC 	BUGFIX11_BYTES = $ - INTNXTOVER
 	PUBLIC 	BUGFIX11_BYTES
+#ENDIF
+;
+; ----------------------------------------------------------------------
+; BUGFIX13 - Display of Single Precision Numbers
+; ----------------------------------------------------------------------
+;
+#IFDEF BUGFIX13
+;
+FOUNDBFIX:
+	call	SINGLEFIX	; apply the fix - See BUGFIX 2 for this routine
+	call	FOUNVC		;1222 - compare the ACCumulator to 999999.5
+	jp	FOUNDV1		; continue
+; ----------------------------------------------------------------------
+	DEFC 	BUGFIX13_ENABLED = 1
+	PUBLIC 	BUGFIX13_ENABLED
+	DEFC 	BUGFIX13_BYTES = $ - FOUNDBFIX
+	PUBLIC 	BUGFIX13_BYTES
 #ENDIF
 ;
 ; ----------------------------------------------------------------------
