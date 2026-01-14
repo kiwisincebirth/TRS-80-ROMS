@@ -57,13 +57,6 @@
 ;   • MOD III ROM COMMENTED - 1981 - Soft Sector Marketing
 ;
 ; ======================================================================
-;
-#IFDEF FREHDBT
-	DEFC 	FREHDBT_ENABLED = 1
-	PUBLIC 	FREHDBT_ENABLED
-#ENDIF
-;
-; ======================================================================
 ; CONSTANTS
 ; ======================================================================
 ;
@@ -460,8 +453,9 @@ USEDEF:	dec	hl		;00e7 - minus 1
 	ld	(STKTOP),hl	;00f6 - start of string space pointer MEMSIZE-32
 	call	SCRTCH		;00f9 - init the Level II variables and pointers
 	ld	hl,HDGMSG	;00fc - Radio Shack L2 Basic - Message
-	CALL 	VDLINE		;37eb - Print
 	jp	COPYWR		;00ff - print the message copywr msg
+;
+	jp	READY		;0102 - UNUSED - A hangover from Model 1
 ;
 ; ----------------------------------------------------------------------
 ; 0105H-012CH – MESSAGE STORAGE
@@ -471,12 +465,13 @@ MEMMSG:	DEFB	"Memory Size",0		   		; Memory Size Message
 
 #IFDEF MSGSTART
 HDGMSG:	DEFB	CHOME, CLRKEY				; CLS
-	DEFB	"Enhanced Model III BASIC",$0D,0	; Enhanced Message
+	DEFB	"Enhanced Model III BASIC",ENTER	; Enhanced  Message V1.4
 #ELSE
-HDGMSG:	DEFB	"R/S Model III BASIC Rev 1.4",$0D	; RS L2 Basic
+HDGMSG:	DEFB	"R/S Model III BASIC Rev 1.4",ENTER	; Model III Message V1.4
 #ENDIF
 ;
-;	DEFB	"Radio Shack Model III Basic",$0D	; RS L2 Basic
+	DEFS	$012D - $
+;	DEFB	"Radio Shack Model III Basic",ENTER	; Model III Message V1.3
 ;
 ; ----------------------------------------------------------------------
 ; 012DH – ?L3 ERROR ENTRY POINT – "L3ERR"
@@ -662,7 +657,7 @@ CT3:
 ; 01F8 - Turn Off The Cassette Motor - "$CSOFF"
 ; -------------------------------------------------------
 CTOFF:
-	NOP3
+	jp JT_CTOFF		;01f8 - jump to extended rom routine
 ;
 ; -------------------------------------------------------
 ; 01FB-0201 - DELAY ROUTINE - "$DELAY" - ACTUAL ROUTINE
@@ -682,7 +677,7 @@ DELAY2:
 COPYMSG:
 	; potentially consider getting a 239 (decimal) copywrite symbol
 	DEFB	"(c) 80 Tandy - " ;0202 Copyright Designed for appending -> Release 1.4
-	DEFB	ETX
+	DEFB	ETX		; Have EXT Since dont want an new line at this point
 #ELSE
 COPYMSG:
 	DEFB	"(c) '80 Tandy" ;0202 Copyright message storage area.
@@ -729,8 +724,6 @@ VDLINE:
 ;
 ; -------------------------------------------------------
 ; 022E - READY but Enable Interrupts before returning.
-;
-ASSERT $ == $022E, "Segment: READY at $022E"
 ; -------------------------------------------------------
 READYE:
 	ei			;022e
@@ -738,6 +731,10 @@ READYE:
 ;
 ; -------------------------------------------------------
 ;
+	; UNUSED REGION of about 52 BYTES
+	; should proably add this as a formal Region
+	; noting there are proably another 16 byes just
+	; below this wohich could also be recovered.
 	DEFS	$0266 - $
 ;
 ; -------------------------------------------------------
@@ -956,28 +953,6 @@ FOUNDBFIX:
 	PUBLIC 	BUGFIX13_ENABLED
 	DEFC 	BUGFIX13_BYTES = $ - FOUNDBFIX
 	PUBLIC 	BUGFIX13_BYTES
-#ENDIF
-;
-; ----------------------------------------------------------------------
-; BUGFIX27 Untokenize Code Moved here to allow reinstatement of the missing 0677 Entry Point
-; ----------------------------------------------------------------------
-;
-#IFDEF BUGFIX27
-;
-UNTOKEN5A:			; Original Code MOVED here
-	cp 	'E'		;06c9 - Test for an E
-	ret 	nz		;06cb - no then Skip
-	dec 	bc		;06cc
-	ld 	a,(bc)		;06cd - get 1 character back
-	cp 	'R'		;06ce - Test for an R
-	ret 	nz		;06d0 - no then Skip
-	dec 	bc		;06d1
-	JP	UNTOKEN5B	; JMP back to Untokenize
-;
-	DEFC 	BUGFIX27_ENABLED = 1
-	PUBLIC 	BUGFIX27_ENABLED
-	DEFC 	BUGFIX27_BYTES = $ - UNTOKEN5A
-	PUBLIC 	BUGFIX27_BYTES
 #ENDIF
 ;
 ; ======================================================================
@@ -2093,6 +2068,31 @@ MLOOP:	ld	a,(de)		;2be8
 ; ROM REGION 2 ( 2BF5 - 2CA5 ) CLOAD CSAVE
 ; ======================================================================
 ;
+; ----------------------------------------------------------------------
+; FREHDBOOT - FreHD HD bootup routine
+; ----------------------------------------------------------------------
+#IFDEF FREHDBT
+;
+FREHDBOOT:
+	jp	nz,NONDISK	; (348f) - non-disk Jump
+;
+	; call	CLS		;0069 - Clear Screen
+	; call	DELAY		;006c - pause for a few seconds
+	ld	a,ROM_MODEL_3
+	out	(WRITEROM),a	; Send Instruction
+	in	a,(READROM)	; Read a Byte
+	cp	$FE		; IS Valid
+	ret	nz		; Not Valid then Exit
+	ld	hl,ROM_LOAD	; Address $5000 to load bootstrap
+	ld	bc,READROM	; B=0 C=Read IO Address
+	inir			; Read 256 Bytes from FreHD into RAM
+	jp	ROM_LOAD	; Jump to the FreHD BootLoader
+; ----------------------------------------------------------------------
+	DEFC 	FREHDBT_ENABLED = 1
+	PUBLIC 	FREHDBT_ENABLED
+	DEFC 	FREHDBT_BYTES = $ - FREHDBOOT
+	PUBLIC 	FREHDBT_BYTES
+#ENDIF
 ;
 ; ======================================================================
 	DEFC	R2FREE	= $2CA5 - $
@@ -2342,19 +2342,6 @@ KEYENTRY4:
 ; 338EH - Jump Point for Keyboard Input
 ; ----------------------------------------------------------------------
 KEYINPUT:
-#IFDEF FREHDBT
-	jr	KEYENTRY	; Skip the M4 code, insert the following
-hd_boot2:
-	ld	a,ROM_MODEL_3
-	out	(WRITEROM),a	; Send Instruction
-	in	a,(READROM)	; Read a Byte
-	cp	$FE		; IS Valid
-	ret	nz		; Not Valid then Exit
-	ld	hl,ROM_LOAD	; Address $5000 to load bootstrap
-	ld	bc,READROM	; B=0 C=Read IO Address
-	jp	hd_boot3	; Continue Latter
-	nop			; UNUSED
-#ELSE
 	call 	GETVERSION	;338e - Hard Coded to 1 In this Code Base. Model 4=0
 	jr 	nz,KEYENTRY	;3391 - Jump Forward for Model 3, Model 3
 	ld   bc,kbdmatrix+$80	;3393
@@ -2366,7 +2353,6 @@ hd_boot2:
 	ld 	(hl),e		;339e
 	and 	e		;339f
 	jp 	nz,CAPSLOCK	;33a0 - toggle caps lock
-#ENDIF
 KEYENTRY:
 	ld 	a,$FF		;33a3 - set up for a FLAG = 0FFH = NO CONTROL
 	ld   hl,kbdmatrix+$40	;33a5 - start a check for a DOWN ARROW.
@@ -2435,17 +2421,6 @@ KEYPRESS:
 	ld 	a,e		;3410
 KEYPRESS1:
 	rrca			;3411 - D = 8* ROW # + KEY #
-;
-#IFDEF FREHDBT
-	jr	c,frehd6	; (3412)
-	inc	d		; (3414)
-	jr	KEYPRESS1	; (3415)
-hd_boot3:
-	inir			; Read 256 Bytes from FreHD into RAM
-	jp	ROM_LOAD	; Jump to the FreHD BootLoader
-	DEFB	0, 0		; UNUSED
-frehd6:	ld   a,(kbdmatrix+$80)
-#ELSE
 	jr 	c,KEYPRESS2	;3412
 	inc 	d		;3414
 	jr 	KEYPRESS1	;3415
@@ -2454,8 +2429,6 @@ KEYPRESS2:
 	ld   a,(kbdmatrix+$80)	;341a
 	jr 	nz,KEYPRESS3	;341d
 	and 	$01		;341f
-#ENDIF
-;
 KEYPRESS3:
 	and 	$03		;3421 - keep only Bits 0 and 1 to check for shifts
 	jr 	z,KEYPRESS4	;3423 - we have no shifts, skip
@@ -2474,22 +2447,6 @@ KEYPRESS5:
 	cp 	ARDOWN		;3437 - SHIFT DOWN ARROW
 	jp 	z,CAPSLOCK3	;3439 - then set caps lock
 	ld 	b,a		;343c - save character into B
-
-#IFDEF FREHDBT
-	or	a
-	jp	z,CAPSLOCK	; (3444) - toggle caps lock
-	ld	hl,KYBCTL	; (3447) - Get Control key flag
-	cp	'*'		; (344a) - check against a *
-	jr	nz,frehd7	; (344c)
-	ld	a,$1F		; (344e)
-	cp	(hl)		; (3450)
-	ld	a,b		; (3451)
-frehd7:	jp	KEYPRESS8	; (3452)
-
-hd_boot1:
-	jp	nz,NONDISK	; (348f) - non-disk Jump
-	jp	hd_boot2	; continue with FreHD
-#ELSE
 	call 	GETVERSION	;343d - get version number into A and sets flags
 	ld 	a,b		;3440 - get character back
 	jr 	z,KEYPRESS6	;3441 - Jump If (computer version) a Model III
@@ -2508,8 +2465,6 @@ KEYPRESS6:
 	ld 	a,b		;3451 - Put the character back into A
 KEYPRESS7:
 	jp 	KEYPRESS8	;3452 - Jump back to 30FDH to continue with a BREAK key check.
-
-#ENDIF
 ;
 ; ======================================================================
 ; INITIALISATION
@@ -2545,9 +2500,9 @@ BOOTSTP:
 	call 	CLS		;3489 - CLS
 	call 	KBBRK		;348c - Check for a BREAK key only
 #IFDEF FREHDBT
-	call	hd_boot1	;frehd boot extension
+	call	FREHDBOOT	;frehd boot extension
 #ELSE
-	jp 	nz,NONDISK	;348f
+	jp 	nz,NONDISK	;348f - non-disk Jump
 #ENDIF
 	in 	a,(fdccmdp)	;3492 - verify the disk controller
 	inc 	a		;3494 - turn a FFH into 00H
@@ -3218,12 +3173,34 @@ STARTMESSAGE:
 	ld	hl,FREMSG	; Free Bytes Message
 	call	STROUT		; print the message
 ;
-	jp	TIMEREADY
+	jr	TIMEREADY
 ; ----------------------------------------------------------------------
 	DEFC 	MESGSTART_ENABLED = 1
 	PUBLIC 	MESGSTART_ENABLED
 	DEFC 	MESGSTART_BYTES = $ - STARTMESSAGE
 	PUBLIC 	MESGSTART_BYTES;
+#ENDIF
+;
+; ----------------------------------------------------------------------
+; BUGFIX27 Untokenize Code Moved here to allow reinstatement of the missing 0677 Entry Point
+; ----------------------------------------------------------------------
+;
+#IFDEF BUGFIX27
+;
+UNTOKEN5A:			; Original Code MOVED here
+	cp 	'E'		;06c9 - Test for an E
+	ret 	nz		;06cb - no then Skip
+	dec 	bc		;06cc
+	ld 	a,(bc)		;06cd - get 1 character back
+	cp 	'R'		;06ce - Test for an R
+	ret 	nz		;06d0 - no then Skip
+	dec 	bc		;06d1
+	JP	UNTOKEN5B	; JMP back to Untokenize
+;
+	DEFC 	BUGFIX27_ENABLED = 1
+	PUBLIC 	BUGFIX27_ENABLED
+	DEFC 	BUGFIX27_BYTES = $ - UNTOKEN5A
+	PUBLIC 	BUGFIX27_BYTES
 #ENDIF
 ;
 ; ======================================================================
@@ -3268,10 +3245,12 @@ VERNUM:
 ASSERT $ = $37EB, "Compatibility called directly from $00FF"
 ; ----------------------------------------------------------------------
 COPYWR:
+	; On Entry HL equals HDGMSG --- Message 'Radio Shack Model III Basic'
+	CALL 	VDLINE		;37eb - Print
 	ld 	hl,COPYMSG	;37ee - Message '(C) "80 Tandy"'.
 	call 	VDLINE		;37f1 - Print
 #IFDEF MSGSTART
-	jp 	STARTMESSAGE	;37f4 - Update Time and Exit to READY prompt
+	jr 	STARTMESSAGE	;37f4 - Update Time and Exit to READY prompt
 #ELSE
 	jr 	TIMEREADY	;37f4 - Update Time and Exit to READY prompt
 #ENDIF

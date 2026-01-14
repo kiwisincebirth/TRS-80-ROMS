@@ -624,7 +624,7 @@ RANDOM:	ld	a,r		;01d3 - R (refresh) Reg - semi random number.
 	ret			;01d8
 ;
 ; ======================================================================
-; LEGACY CASSETTE ROUTINES FOR LEVEL 2 BASIC BACKWARS COMPATIBILITY
+; LEGACY CASSETTE ROUTINES FOR LEVEL 2 BASIC BACKWARDS COMPATIBILITY
 ; ======================================================================
 ;
 ; ----------------------------------------------------------------------
@@ -1634,7 +1634,7 @@ CLRAM:	ld	(de),a		;0687 - zero byte in memory starting at 4036h
 	jp	nz,INIT2	;0690 - Jump if the BREAK key was pressed
 ;
 #IFDEF FREHDBT
-	call	HDBOOT		; Call to the FreHD Boot routines.
+	call	FREHDBOOT		; Call to the FreHD Boot routines.
 #ELSE
 	ld	sp,TMPSTK	;0693 - $407D since Disk load will overite > $4200
 #ENDIF
@@ -1940,11 +1940,11 @@ STARTMESSAGE:
 #ENDIF
 ;
 ; ----------------------------------------------------------------------
-; HDBOOT - FreHD HD bootup routine
+; FREHDBOOT - FreHD HD bootup routine
 ; ----------------------------------------------------------------------
 #IFDEF FREHDBT
 ;
-HDBOOT:	call	CLS		;0069 - Clear Screen
+FREHDBOOT:	call	CLS		;0069 - Clear Screen
 	call	DELAY		;006c - pause for a few seconds
 	ld	a,ROM_MODEL_1	;00ff - ROM parameter to FreHD. 1 for Model1.
         out	(WRITEROM),a	;0101 - write the value
@@ -1958,7 +1958,7 @@ HDBOOT:	call	CLS		;0069 - Clear Screen
 ; ----------------------------------------------------------------------
 	DEFC 	FREHDBT_ENABLED = 1
 	PUBLIC 	FREHDBT_ENABLED
-	DEFC 	FREHDBT_BYTES = $ - HDBOOT
+	DEFC 	FREHDBT_BYTES = $ - FREHDBOOT
 	PUBLIC 	FREHDBT_BYTES
 #ENDIF
 ;
