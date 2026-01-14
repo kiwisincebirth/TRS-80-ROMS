@@ -639,14 +639,6 @@ CTON:	ld	a,(hl)		;01fe - char from BASIC program pointer
 	SYNTAX	(',')		;0208 - rst 08h - See if we have a Comma
 	ret			;021d
 ; ----------------------------------------------------------------------
-; CASSETTE ROUTINE (TURN ON CASSETTE AND WRITE LEADER) – “CWRTON”
-;   This Code was left over after removing all the unneeded code
-;   but still needed as it updates registers needed by caller
-; ----------------------------------------------------------------------
-CWRTON: call	CTON		;0284
-	ld	a,$A5		;028f - sync byte (A5H)      **NEEDED**
-	ret			;027d
-; ----------------------------------------------------------------------
 ;
 ; ======================================================================
 ; ROM REGION 1 - (01E9 - 02B1) - Cassette
