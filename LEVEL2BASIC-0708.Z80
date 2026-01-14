@@ -2106,10 +2106,10 @@ INPRT:	push	hl		;0fa7
 ; ----------------------------------------------------------------------
 LINPRT:	call	MAKINT		;0faf - Move INT in HL into the ACCumulator
 	xor	a		;0fb2
-	call	FOUINI		;0fb3
+	call	FOUINI		;0fb3 - init input buffer for ASCII conversion
 	or	(hl)		;0fb6
-	call	FOUT2		;0fb7
-	jp	STROUI		;0fba
+	call	FOUT2		;0fb7 - convert integer in ACC to ASCII string
+	jp	STROUI		;0fba - display string pointed to by HL
 ;
 ; ----------------------------------------------------------------------
 ; 0FBDH-1363H – BINARY TO ASCII CONVERSION ROUTINE – “FOUT”
@@ -2129,6 +2129,19 @@ FOUT:	xor	a		;0fbd - Zero Register A so that the format is set for free output
 ;   converted from binary to ASCII, it is formatted as it would be if
 ;   a PRINT USING statement had been invoked. The format modes that can
 ;   be specified are selected by loading the A, B, and C registers
+;
+;    A=0 means do not edit; this is a binary to ASCII conversion
+;    A=X means edit as follows:
+;    	Bit 7=1 AS PER RULES BELOW (MUST BE 1)
+;    	Bit 6=1 Print commas every third digit,
+;    	Bit 5=1 Include leading asterisks,
+;    	Bit 4=1 Print a leading $,
+;    	Bit 3=1 Print a Plus + Sign,
+;    	Bit 2=1 Sign Follows Value,
+;    	Bit 1   UNUSED
+;    	Bit 0=1 Exponential Notation
+;    B = The number of digits to the left of the decimal point.
+;    C = The number of digits after the decimal point.
 ; ----------------------------------------------------------------------
 PUFOUT:	call	FOUINI		;0fbe - save format spec, and init buffer HL
 	and	$08		;0fc1 - check to see if a plus sign is required
@@ -6793,11 +6806,11 @@ MEM:	xor	a		;27c9
 ; 27D4-27F4 – LEVEL II BASIC FRE ROUTINE – “FNFRE”
 ; ----------------------------------------------------------------------
 FNFRE:	ld	hl,(STREND)	;27d4
-	ex	de,hl		;27d7
+	ex	de,hl		;27d7 - start of free memory pointer in DE
 	ld	hl,$0000	;27d8
-	add	hl,sp		;27db
+	add	hl,sp		;27db - STACK pointer is now in HL
 	GETYPE			;27dc - RST 20 - check the current number type
-	jr	nz,GIVDBL	;27dd
+	jr	nz,GIVDBL	;27dd - Not String - MEM call
 ; ----------------------------------------------------------------------
 ; 27DF - Get number of bytes free string space to ACCUM (TAS)
 ; ----------------------------------------------------------------------

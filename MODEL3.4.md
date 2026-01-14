@@ -74,9 +74,6 @@ and replaced with code to perform the translation
 
 The build output has a listing of the available free space in the ROMS.
 
-__TBD__
-
-As at 7/Jan/26 there were 330 bytes free (easily available) in the ROM after cassette removal and
-patches applied, split into 3 main sections. Plus another 35 bytes in much smaller sections
-which could be utilised with some additional effort
+As at 14/Jan/26 there were 26 bytes free in the ROM the Printer Translation 
+table has been removed. Cassette removal will add considerably to this.
 

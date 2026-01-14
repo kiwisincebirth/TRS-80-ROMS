@@ -96,11 +96,11 @@ The Model I Rom has 3 large regions of usage space left over from cassette remov
 
 | Region | Address        | Capacity  | Available | Formally             |
 |--------|----------------|-----------|-----------|----------------------|
-| 1      | $01E9 - $02B1  | 200 bytes | 200 bytes | Cassette IO Routines |
-| 2      | $02D7 - $0329  | 82 bytes  | 31 bytes  | SYSTEM Tape Loader   |
+| 1      | $01E9 - $02B1  | 201 bytes | 201 bytes | Cassette IO Routines |
+| 2      | $02D7 - $0329  | 82 bytes  | 8 bytes   | SYSTEM Tape Loader   |
 | 3      | $2BF5 - $2CA4  | 175 bytes | 98 bytes  | CLOAD CSAVE          |
 
-As at 7/Jan/26 there were 330 bytes free (easily utilised) in the ROM.
+As at 14/Jan/26 there were 307 bytes free (easily utilised) in the ROM.
 Plus another 53 bytes (4 very small regions) which could be utilised 
 with some additional effort. (9,10,7,27)
 
