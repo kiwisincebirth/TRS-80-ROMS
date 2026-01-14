@@ -29,10 +29,11 @@
 #DEFINE BUGFIX13 ; Fix Error 13 - 1222H - Display of Single Precision Numbers
 ;
 ; Rom Additional Features
+#DEFINE NEWBOOT ; New diskette? startup routine. (06C0)
 #DEFINE LOWCASE ; Disable Alpha Character Translation (0471h)
 #DEFINE FREHDBT ; Enable FreHD Auto boot at startup (069Ch)
 #DEFINE NMIHARD ; Set NMI Reset as always hard reset. (0066h)
-#DEFINE NEWBOOT ; New diskette? startup routine. (06C0)
+#DEFINE MSGSTART ; Enhanced Startup Message (0102)
 ;
 ; Rom 1.3 Features (can be disabled to save space)
 #DEFINE KEYBOUNCE ; Enable 1.3 Keyboard Debounce (03FBh)
@@ -441,20 +442,27 @@ USEDEF:	dec	hl		;00e7 - minus 1
 	call	SCRTCH		;00f9 - init the Level II variables and pointers
 	ld	hl,HDGMSG	;00fc - Radio Shack L2 Basic - Message
 	call	STROUT		;00ff - print the message
+;
+#IFDEF MSGSTART
+	jp	STARTMESSAGE	; Enhanced Startup Message, and then READY
+#ELSE
 	jp	READY		;0102 - Level II BASIC READY routine
+#ENDIF
 ;
 ; ----------------------------------------------------------------------
 ; 0105H-011BH – MESSAGE STORAGE
 ; ----------------------------------------------------------------------
 ;
-#IFDEF EACA80
-MEMMSG:	DEFB	"MEM SIZE",0			     	; Mem Size Message
-HDGMSG:	DEFB	"TRS-80 Level II BASIC Rev 1.4",ENTER,0 ; L2 Basic Message
+MEMMSG:	DEFB	"Memory Size",0				; Mem Size Message V1.4
+
+#IFDEF MSGSTART
+HDGMSG:	DEFB	CHOME, CLRKEY				; CLS
+	DEFB	"Enhanced Level II BASIC", ENTER, 0	; L2 Basic Message V1.4
 #ELSE
-MEMMSG:	DEFB	"MEMORY SIZE",0			     ; RS Mem Size Message V1.2
 HDGMSG:	DEFB	"R/S Level II BASIC Rev 1.4",ENTER,0 ; RS L2 Basic Message V1.4
 #ENDIF
 ;
+;	DEFB	"MEMORY SIZE",0			     ; RS Mem Size Message V1.2
 ; 	DEFB	"RADIO SHACK LEVEL II BASIC",ENTER,0 ; RS L2 Basic Message V1.2
 ;
 	DEFS	$012D - $	; Padding (also checks for overrun)
@@ -1914,6 +1922,30 @@ MLOOP:	ld	a,(de)		;2be8
 ; ======================================================================
 ; ROM REGION 3 - (2BF5 - 2CA4) - Cload Csave
 ; ======================================================================
+;
+; ----------------------------------------------------------------------
+; ENHANCED START MESSAGE - Before we print the ready prompt
+; ----------------------------------------------------------------------
+#IFDEF MSGSTART
+;
+STARTMESSAGE:
+	ld	hl,RELMSG	; Release 1.4 Message
+	call	STROUT		; print the message
+	call	MEM		; get free bytes in ACC - noting HL is affected
+	ld	a,$C0		; insert commas
+	ld	bc,$500		; 5 digits, 0 decimals
+	call	PUFOUT		; convert to ascii
+	call	STROUI		; print the free bytes
+	ld	hl,FREMSG	; Free Bytes Message
+	call	STROUT		; print the message
+;
+	jp	READY		;0102 - Level II BASIC READY routine
+; ----------------------------------------------------------------------
+	DEFC 	MESGSTART_ENABLED = 1
+	PUBLIC 	MESGSTART_ENABLED
+	DEFC 	MESGSTART_BYTES = $ - STARTMESSAGE
+	PUBLIC 	MESGSTART_BYTES;
+#ENDIF
 ;
 ; ----------------------------------------------------------------------
 ; HDBOOT - FreHD HD bootup routine

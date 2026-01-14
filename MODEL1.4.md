@@ -50,6 +50,7 @@ There are several enhanced features:
 * `#DEFINE LOWCASE` - Disable Alpha character translation of letters A-Z,a-z to the values on range 00h to 1Fh.
   This is useful when a lower case mod is installed, but an alternate video driver has not been installed,
   or where the font rom on the machine has the alternate characters in the 00h 1Fh range (0471h)
+* `#DEFINE MSGSTART` - Enhanced startup message showing Free Bytes available to BASIC
 * `#DEFINE KEYBOUNCE` - Enables the Keyboard debounce routines that where introduced in rev1.3
 
 Bug Fixes Applied
@@ -109,6 +110,5 @@ The build output has a listing of the available free space in the ROMS.
 | Region | Contents                         |
 |--------|----------------------------------|
 | 1      | -nil-                            |
-| 2      | BUGFIX1 thru BUGFIX11, KEYBOUNCE |
-| 3      | FREHDBT, NEWBOOT                 |
-
+| 2      | BUGFIX1 thru BUGFIX13, KEYBOUNCE |
+| 3      | MSGSTART, FREHDBT, NEWBOOT       |

@@ -5563,6 +5563,14 @@ INPUT:	call	ERRDIR		;219a - Check to see if there is an illegal direct
 ;
 	ld	e,ERRFD		; ?FD ERROR - bad data file error
 	jp	ERROR		; If input device is cassette
+;
+; ----------------------------------------------------------------------
+; ADDITIONAL MESSAGE STORAGE - FOR ENHANCED ROMS's WITHOUT CASSETTE SUPPORT
+; ----------------------------------------------------------------------
+;
+RELMSG:	DEFB	"Release 1.4",ENTER,0 		; Startup Release
+FREMSG:	DEFB	" Free Bytes",ENTER,0		; Free Bytes
+;
 	DEFS	$21C9 - $	; Pad UNUSED black above previously cassette code
 ;
 #ELSE
