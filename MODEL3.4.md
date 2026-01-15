@@ -52,6 +52,9 @@ Bug Fixes Applied
 * `#DEFINE BUGFIX30` - Fix Error 30 - 034BH - 32 char Mode, Incompatible Model I code
 * `#DEFINE BUGFIX40` - Fix Error 40 - 05D1H - Broken "RON" Printer Status Routine
 
+And some smaller improvements
+* `#DEFINE MSGSTART` - Enhanced Startup Message
+
 The base ROM can also be customised to hardware.
 * `#DEFINE VIDEO50` - (OPTIONAL) Enable 50Hz Video Support (Affects RTC)
 
@@ -65,15 +68,42 @@ See [BugFixes](BUGFIXS.md)
 
 ## Cassette Support
 
-Will be removed in future as space for new features is required.
+Cassette support has been removed to make way for new features
+
+The following has been changed / removed
+* CLOAD - loadig program from cassette will cause `SN Error`
+* CSAVE - saving program to cassette will cause `SN Error`
+* SYSTEM - binary file loading will cause `SN Error`, only `/nnnnn` is supported
+* PRINT #-1 - writing to cassette will silently fail, it will be skipped.
+* INPUT #-1 - reading from cassette will cause `FD Error`
+* Cassette? startup prompt has been removed
+
+Machine language programs that use any cassette routines will fail
+and potentially cause a system crash.
+
+These changes have been tested on TRS-DOS disk basic without issue
 
 ## Free Space
 
-To provide additional space the Printer Translation table has been removed,
-and replaced with code to perform the translation
+The Model III ROM has 5 main regions of usage space left over from cassette removal
+
+| Region | Address       | Capacity  | Available | Formally             |
+|--------|---------------|-----------|-----------|----------------------|
+| 0      | $0232 - $0266 | 52 bytes  | 52 bytes  | Misc Cassette        |
+| 1      | $02D7 - $032A | 83 bytes  | 27 bytes  | SYSTEM Tape Loader   |
+| 2      | $2BF5 - $2CA4 | 176 bytes | 153 bytes | CLOAD CSAVE          |
+| 3      | $3145 - $338D | 489 bytes | 489 bytes | Cassette IO Routines |
+| 4      | $37AF - $37DC | 45 bytes  | 5 bytes   | Cassette?            |
+
+As at 14/Jan/26 there were 672 bytes free (easily utilised) in the ROM.
+Future removal of the Printer Translation table could free an additional 96 bytes.
 
 The build output has a listing of the available free space in the ROMS.
 
-As at 14/Jan/26 there were 26 bytes free in the ROM the Printer Translation 
-table has been removed. Cassette removal will add considerably to this.
-
+| Region | Contents              |
+|--------|-----------------------|
+| 0      | -nil-                 |
+| 1      | BUGFIX1 thru BUGFIX13 |
+| 2      | FREHDBOOT             | 
+| 3      | -nil-                 |
+| 4      | MSGSTART, BUGFIX27    | 

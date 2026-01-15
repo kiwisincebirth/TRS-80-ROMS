@@ -12,6 +12,7 @@
 #DEFINE	GETYPE		rst 20h
 #DEFINE NOP2		nop\ nop
 #DEFINE NOP3		nop\ nop\ nop
+#DEFINE RET3		ret\ ret\ ret
 ;
 ; ----------------------------------------------------------------------
 ;   Z-80 TRICKS - these are 1 byte opcode for multibyte instructions

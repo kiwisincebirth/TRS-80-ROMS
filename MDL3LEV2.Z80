@@ -118,7 +118,7 @@ rst00:	di			;0000
 	JP 	JT_BOOTS	;0002 - Go to the Boostrap/Initialization routine at 3015H
 ;
 ; The BDOS (Basic Disk Operating System) entry point address in most CP/M systems
-; Having this here may be coincidental, and may be UNUSED
+; Having this here may be coincidental, or this may never called
 	jp	mRST1		;0005
 ;
 ; ======================================================================
@@ -287,9 +287,9 @@ _PRT:	ld	de,mPDCB	;003b
 ; ----------------------------------------------------------------------
 KBLINE:
 _KEYIN:	jp	KEYIN		;0040
-	ret			;0043 - UNUSED
-	nop			;0044 - UNUSED
-	nop			;0045 - UNUSED
+	ret			;0043 - unsure of the purpose of these instructions
+	nop			;0044
+	nop			;0045
 ;
 ; ----------------------------------------------------------------------
 ; 0046H-0048H – DRIVER ENTRY ROUTINE – Part 2 – "CIOJ"
@@ -367,7 +367,8 @@ ROUTE:
 ; ----------------------------------------------------------------------
 ; Alternative entry point to BASIC. See 06CCH or 1A19 for more details
 ; ----------------------------------------------------------------------
-	jp	RESETR		;0072 - jump to Level II BASIC READY routine
+	ASSERT	$ == $0072, "Segment: Alternate BASIC Entry Point Should start at $0072"
+	jp	RESETR		;0072 - Jump to Level II BASIC READY routine
 ;
 ; ----------------------------------------------------------------------
 ; 0075H-0104H – INITIALIZATION ROUTINE – "INIT2"
@@ -3733,7 +3734,7 @@ SETCAS3:
 TIMEREADY:
 	ld 	hl,JT_DATTIM	;37dc - JP Vector for TIME$ routine
 	ld 	(DVTIME+1),hl	;37df - write to 4177H the disc basic function exit
-	jp 	READYE		;37e2 - Jump to READY Prompt Emabling Interrupts
+	jp 	READYE		;37e2 - Jump to READY Prompt Enabling Interrupts
 ;
 	DEFB	$AA, $AA, $AA	;37E5 - 37E7 - UNUSED
 ;
@@ -3747,6 +3748,8 @@ TIMEREADY:
 ; 37EA - Computer Version Number
 ; 1 = Model 3
 ; 0 = Model 4
+;
+ASSERT $ = $37EA, "General Compatibility with Constant Storage"
 ; ----------------------------------------------------------------------
 VERNUM:
 	DEFB	1		;37ea computer version number
@@ -3767,6 +3770,8 @@ COPYWR:
 ;
 ; ----------------------------------------------------------------------
 ; Cass ? Message
+;
+ASSERT $ = $37F6, "General Compatibility with Message Storage"
 ; ----------------------------------------------------------------------
 CASMSG:
 	DEFB	CURON		; cursor on

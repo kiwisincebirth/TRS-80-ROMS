@@ -77,7 +77,7 @@ See [BugFixes](BUGFIXS.md)
 
 ## Cassette Support
 
-Cassette support ahs been removed to make way for new features
+Cassette support has been removed to make way for new features
 
 The following has been changed / removed
 * CLOAD - loadig program from cassette will cause `SN Error`
