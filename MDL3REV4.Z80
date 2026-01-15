@@ -676,7 +676,7 @@ DELAY2:
 #IFDEF MSGSTART
 COPYMSG:
 	; potentially consider getting a 239 (decimal) copywrite symbol
-	DEFB	"(c) 80 Tandy - " ;0202 Copyright Designed for appending -> Release 1.4
+	DEFB	"c 1980 Tandy - " ;0202 Copyright Designed for appending -> Release 1.4
 	DEFB	ETX		; Have EXT Since dont want an new line at this point
 #ELSE
 COPYMSG:
@@ -731,11 +731,20 @@ READYE:
 ;
 ; -------------------------------------------------------
 ;
-	; UNUSED REGION of about 52 BYTES
-	; should proably add this as a formal Region
-	; noting there are proably another 16 byes just
-	; below this wohich could also be recovered.
+; ======================================================================
+; ROM REGION 0 ( 0232 - 0266 )
+;
+; noting there are probably another 16 byes just
+; below this which could also be recovered.
+; ======================================================================
+;
+;
+;
+; ======================================================================
+	DEFC	R0FREE	= $0266 - $
+	PUBLIC	R0FREE
 	DEFS	$0266 - $
+; ======================================================================
 ;
 ; -------------------------------------------------------
 ; 0266 - Storage location for TIME related constants
@@ -975,7 +984,7 @@ OUTDO:	push	bc		;032a
 	ld	a,c		;0333
 	pop	bc		;0334
 	ret	m		; If cassette skip the write return immediately
-	NOP2
+	NOP2			; padding to align with next instruction
 	jr	nz,OUTLPT	;0338 - if it is Printer
 ; ----------------------------------------------------------------------
 ; 033AH-0347H – OUTPUT ROUTINE – “OUT2D”
@@ -1133,13 +1142,21 @@ PRTDRV2:
 	cp	$80		;03e5 - is it a graphic
 	jr 	nc,PRTDRV6	;03e7 - handle the graphics character.
 ;
-; Remove use of PRTABLE translation table, freeing 96 bytes
+	ld 	b,0		;03e9 - set MSB to 0
+	sub 	SPACE		;03eb - adjust A character to print table offset $20
+	ld 	c,a		;03ed - load to C. BC now has character offset
+	ld 	hl,PRTABLE	;03ee - the printer character table
+	add 	hl,bc		;03f1 - add the offset
+	ld 	c,(hl)		;03f2 - load the print char
+	jr 	PRTDRV5		;03f3 - print it.
 ;
- 	cp    	BQUOTE		; is it a back quote
- 	jr    	nz,PRTDRV5	; no just print it, C already contains the char
- 	ld	c,'@'		; translate to '@'
-	jr	PRTDRV5		; print it
-	DEFS	($03F5 - $)	; fill - 4 bytes unused
+; Below - Potential Removal of use of PRTABLE translation table, freeing 96 bytes
+;
+; 	cp    	BQUOTE		; is it a back quote
+; 	jr    	nz,PRTDRV5	; no just print it, C already contains the char
+; 	ld	c,'@'		; translate to '@'
+;	jr	PRTDRV5		; print it
+;	DEFS	($03F5 - $)	; fill - 4 bytes unused
 ;
 PRTCR:
 	ld 	a,(ix+5)	;03f5 - num chars printer
@@ -2324,8 +2341,19 @@ KEYENTRY4:
 	ld 	a,(RPTROW)	;3141 - repeating row being pressed
 	ret			;3144
 ;
+; ----------------------------------------------------------------------
+; 3145 - Printer Character Translation Table of ASCII codes 32-127.
+; ----------------------------------------------------------------------
+PRTABLE:
+	DEFB	$20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $2A, $2B, $2C, $2D, $2E, $2F
+	DEFB	$30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $3A, $3B, $3C, $3D, $3E, $3F
+	DEFB	$40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $4A, $4B, $4C, $4D, $4E, $4F
+	DEFB	$50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $5A, $5B, $5C, $5D, $5E, $5F
+	DEFB	$40, $61, $62, $63, $64, $65, $66, $67, $68, $69, $6A, $6B, $6C, $6D, $6E, $6F
+	DEFB	$70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $7A, $7B, $7C, $7D, $7E, $7F
+;
 ; ======================================================================
-; ROM REGION 3
+; ROM REGION 3 ( 31A5 - 338E )
 ; ======================================================================
 ;
 ; ======================================================================
@@ -2677,10 +2705,10 @@ HRTBEAT1:
 	inc 	hl		;356f - Bump HL one more time, to 421CH.
 	ld 	a,(hl)		;3570 - Get the month and put it into A.
 	dec 	hl		;3571 - Decrease HL back to to 421BH.
-	dec 	a		;3572 - Decrease A by one (to the previous month).
-	add 	a,e		;3573 -
-	ld 	e,a		;3574
-	ld 	a,(de)		;3575 - Poll the number of days in a month
+	dec 	a		;3572 - Decrease A by one (zero offset month).
+	add 	a,e		;3573 - add month to LSB of TIMEDATA
+	ld 	e,a		;3574 - put back it into DE (noting no rollover to D)
+	ld 	a,(de)		;3575 - The number of days in the month
 	cp 	(hl)		;3576 -
 	ret 	nc		;3577
 	ld 	a,(hl)		;3578
@@ -3158,30 +3186,6 @@ DATETIME:
 ; ======================================================================
 ;
 ; ----------------------------------------------------------------------
-; ENHANCED START MESSAGE - Before we print the ready prompt
-; ----------------------------------------------------------------------
-#IFDEF MSGSTART
-;
-STARTMESSAGE:
-	ld	hl,RELMSG	; Release 1.4 Message
-	call	VDLINE		; print the message
-	call	MEM		; get free bytes in ACC - noting HL is affected
-	ld	a,$C0		; insert commas
-	ld	bc,$500		; 5 digits, 0 decimals
-	call	PUFOUT		; convert to ascii
-	call	STROUI		; print the free bytes
-	ld	hl,FREMSG	; Free Bytes Message
-	call	STROUT		; print the message
-;
-	jr	TIMEREADY
-; ----------------------------------------------------------------------
-	DEFC 	MESGSTART_ENABLED = 1
-	PUBLIC 	MESGSTART_ENABLED
-	DEFC 	MESGSTART_BYTES = $ - STARTMESSAGE
-	PUBLIC 	MESGSTART_BYTES;
-#ENDIF
-;
-; ----------------------------------------------------------------------
 ; BUGFIX27 Untokenize Code Moved here to allow reinstatement of the missing 0677 Entry Point
 ; ----------------------------------------------------------------------
 ;
@@ -3201,6 +3205,32 @@ UNTOKEN5A:			; Original Code MOVED here
 	PUBLIC 	BUGFIX27_ENABLED
 	DEFC 	BUGFIX27_BYTES = $ - UNTOKEN5A
 	PUBLIC 	BUGFIX27_BYTES
+#ENDIF
+;
+; ----------------------------------------------------------------------
+; ENHANCED START MESSAGE - Before we print the ready prompt
+; ----------------------------------------------------------------------
+#IFDEF MSGSTART
+;
+STARTMESSAGE:
+	ld 	hl,$3C40
+	ld	(hl),239	; (c) Symbol
+	ld	hl,RELMSG	; Release 1.4 Message
+	call	VDLINE		; print the message
+	call	MEM		; get free bytes in ACC - noting HL is affected
+	ld	a,$C0		; insert commas
+	ld	bc,$500		; 5 digits, 0 decimals
+	call	PUFOUT		; convert to ascii
+	call	STROUI		; print the free bytes
+	ld	hl,FREMSG	; Free Bytes Message
+	call	STROUT		; print the message
+;
+	jr	TIMEREADY
+; ----------------------------------------------------------------------
+	DEFC 	MESGSTART_ENABLED = 1
+	PUBLIC 	MESGSTART_ENABLED
+	DEFC 	MESGSTART_BYTES = $ - STARTMESSAGE
+	PUBLIC 	MESGSTART_BYTES;
 #ENDIF
 ;
 ; ======================================================================

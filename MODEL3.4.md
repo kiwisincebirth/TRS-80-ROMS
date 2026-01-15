@@ -85,26 +85,24 @@ These changes have been tested on TRS-DOS disk basic without issue
 
 ## Free Space
 
-The Model III ROM has 4 main regions of usage space left over from cassette removal
+The Model III ROM has 5 main regions of usage space left over from cassette removal
 
 | Region | Address       | Capacity  | Available | Formally             |
 |--------|---------------|-----------|-----------|----------------------|
-| -      | $0232 - $0266 | 52 bytes  | 52 bytes  | Misc Cassette        |
+| 0      | $0232 - $0266 | 52 bytes  | 52 bytes  | Misc Cassette        |
 | 1      | $02D7 - $032A | 83 bytes  | 27 bytes  | SYSTEM Tape Loader   |
 | 2      | $2BF5 - $2CA4 | 176 bytes | 153 bytes | CLOAD CSAVE          |
-| 3      | $3145 - $338D | 585 bytes | 585 bytes | Cassette IO Routines |
+| 3      | $3145 - $338D | 489 bytes | 489 bytes | Cassette IO Routines |
 | 4      | $37AF - $37DC | 45 bytes  | 5 bytes   | Cassette?            |
 
-Also Note: The Printer Translation table has also been removed,
-and replaced with code to perform the translation
-
-As at 14/Jan/26 there were 820 bytes free (easily utilised) in the ROM.
+As at 14/Jan/26 there were 672 bytes free (easily utilised) in the ROM.
+Future removal of the Printer Translation table could free an additional 96 bytes.
 
 The build output has a listing of the available free space in the ROMS.
 
 | Region | Contents              |
 |--------|-----------------------|
-| -      | -nil-                 |
+| 0      | -nil-                 |
 | 1      | BUGFIX1 thru BUGFIX13 |
 | 2      | FREHDBOOT             | 
 | 3      | -nil-                 |
