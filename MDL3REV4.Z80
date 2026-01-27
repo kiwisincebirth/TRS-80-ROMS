@@ -690,7 +690,8 @@ DELAY2:
 #IFDEF MSGSTART
 COPYMSG:
 	; potentially consider getting a 239 (decimal) copywrite symbol
-	DEFB	"c 1980 Tandy - " ;0202 Copyright Designed for appending -> Release 1.4
+	DEFB	TOGTAB,239,TOGTAB ; Copyright Symbol
+	DEFB	" 80 Tandy - " 	; 0202 Copyright Designed for appending -> Release 1.4
 	DEFB	ETX		; Have EXT Since dont want an new line at this point
 #ELSE
 COPYMSG:
@@ -1488,7 +1489,7 @@ DSPCTL:
 	cp 	CUROFF		;0537 - is it cursor off
 	jr 	z,DSPCOF	;0539
 ;
-	sub 	$15		;053b
+	sub 	TOGTAB		;053b
 	jr 	z,TABALT	;053d - $15 TAB and Alternate Control Characters
 	dec 	a		;053f
 	jr 	z,SPECALT	;0540 - $16 Special and Alternative Characters
@@ -3247,8 +3248,8 @@ UNTOKEN5A:			; Original Code MOVED here
 #IFDEF MSGSTART
 ;
 STARTMESSAGE:
-	ld 	hl,$3C40
-	ld	(hl),239	; (c) Symbol
+;	ld 	hl,$3C40
+;	ld	(hl),239	; (c) Symbol
 	ld	hl,RELMSG	; Release 1.4 Message
 	call	VDLINE		; print the message
 	call	MEM		; get free bytes in ACC - noting HL is affected

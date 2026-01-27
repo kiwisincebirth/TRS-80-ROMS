@@ -1447,7 +1447,7 @@ DSPCTL:
 	cp 	CUROFF		;0537 - is it cursor off
 	jr 	z,DSPCOF	;0539
 ;
-	sub 	$15		;053b
+	sub 	TOGTAB		;053b
 	jr 	z,TABALT	;053d - $15 TAB and Alternate Control Characters
 	dec 	a		;053f
 	jr 	z,SPECALT	;0540 - $16 Special and Alternative Characters
