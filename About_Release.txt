@@ -90,7 +90,7 @@ https://github.com/kiwisincebirth/TRS-80/blob/main/MODEL3.md
 
 Patches Included Are:
 * Bug Fixes 5, 8
-* Bug Fixes 28, 30, 40 (specific to Model III)
+* Bug Fixes 28, 30, 32, 40 (specific to Model III)
 
 
 ### Enhanced Model III Level 2
