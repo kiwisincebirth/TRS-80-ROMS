@@ -150,6 +150,7 @@ DEFC	ENTER	= $0D	; (ENTER Key) - Return
 ; Following are special meaning CHR codes, not ASCII standard
 DEFC	CURON	= $0E	; turn on cursor.
 DEFC	CUROFF	= $0F 	; turn off cursor.
+DEFC	TOGTAB	= $15 	; (M3) toggles TAB and Alternate characters
 DEFC	MODE32	= $17	; select line size of 32 char/line.
 DEFC	ARLEFT	= $18	; (Shift-LEFT Arrow) backspace one character
 DEFC	ARIGHT	= $19	; (Shift-RIGHT Arrow) skip forward one character
