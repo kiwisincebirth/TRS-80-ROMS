@@ -513,6 +513,23 @@ Shack did not fix the code. And, Radio Shack made Logical Systems modify
 TRSDOS 6 to behave the same way! However, with LSDOS 6.3, someone should
 have had the guts to correct the code.
 
+### Error 32 - SET should place a graphic on screen
+
+The SET command builds a CHR$(xxx) graphic block, it doesn't actually 
+put a dot on the screen. 
+The ROM code checks to see if the character is not graphic or not graphic. 
+If its graphic, it builds on the character forming the dot pattern. 
+If it's not graphic, it resets it to a blank first, and then builds. 
+The problem is, to test for graphic or not it tests the value by 
+checking the M flag, which means its only going to properly reset 
+the character if the character is less than 128. 
+The ROM never checks to see if the character is more than 192, 
+so it just adds more bits to that character.
+
+```
+POKE 15360,192 : SET(0,0)
+```
+
 ### Error 40 - Printer Status Routine
 
 05D1H: The Printer Status Routine - carried over from Model I is broken
