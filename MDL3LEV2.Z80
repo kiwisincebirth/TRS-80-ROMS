@@ -23,6 +23,7 @@
 ; #DEFINE BUGFIX8  ; Uncomment to Fix Error 8 - 1009H - PRINT USING, - sign at end of field
 ; #DEFINE BUGFIX28 ; Uncomment to Fix Error 28 - 02B5H - Stack Init
 ; #DEFINE BUGFIX30 ; Uncomment to Fix Error 30 - 034BH - 32 Char Mode
+; #DEFINE BUGFIX32 ; Uncomment to Fix Error 32 - 0176H - SET(x,y) should place a graphic on screen
 ; #DEFINE BUGFIX40 ; Uncomment to Fix Error 40 - 05D1H - Printer Status
 ;
 ; Rom Additional Features
@@ -38,6 +39,7 @@
   #DEFINE BUGFIX8
   #DEFINE BUGFIX28
   #DEFINE BUGFIX30
+  #DEFINE BUGFIX32
   #DEFINE BUGFIX40
 #ENDIF
 ;
@@ -532,6 +534,13 @@ LOPMD3:	inc	d		;0152
 	pop	af		;015a
 	add	a,a		;015b
 	ld	e,a		;015c
+#IFDEF BUGFIX32
+	srl   	d
+	rr    	e
+	srl   	d
+	rr    	e
+	nop			; this routine saves 1 byte, used in following code
+#ELSE
 	ld	b,$02		;015d
 SHFTW:	ld	a,d		;015f
 	rra			;0160
@@ -540,6 +549,7 @@ SHFTW:	ld	a,d		;015f
 	rra			;0163
 	ld	e,a		;0164
 	djnz	SHFTW		;0165
+#ENDIF
 	ld	a,c		;0167
 	adc	a,a		;0168
 	inc	a		;0169
@@ -550,13 +560,36 @@ PWR2:	adc	a,a		;016d
 	djnz	PWR2		;016e
 	ld	c,a		;0170
 	ld	a,d		;0171
-	or	$3C		;0172
-	ld	d,a		;0174
-	ld	a,(de)		;0175
-	or	a		;0176
-	jp	m,FND4		;0177
-	ld	a,$80		;017a
-FND4:	ld	b,a		;017c
+	or	$3C		;0172 - Set the bits of the MSB of the video memory offset
+	ld	d,a		;0174 - revised MSB of the video memory pointer
+	ld	a,(de)		;0175 - the char at the location of the video memory pointer
+#IFDEF BUGFIX32
+	ld	b,$80		;017a - set graphic blank (assume at this point)
+	cp	64		; COMPARE
+	;
+	; It works because as signed values the graphics characters are -128 .. -65.
+	; Subtract 64 as the compare does and they will overflow due to the result
+	; (-192 .. -129) not fitting in a signed byte.
+	; The special characters are -64 .. -1 and don't overflow.
+	; And none of the ASCII characters from 0 .. 127 overflow either.
+	;
+	jp	nv,GFXFIX	; if Not Graphic then keep $80
+	ld	b,a		;017c - otherwise use he value in A as it is valid
+GFXFIX:
+#ELSE
+	;
+	; The following code is bugged. What it is supposed to do is see if the character
+	; on the screen in the location to be modified is already a graphic, to build upon,
+	; or not, to erase and then build. It does this by checking to see if the character
+	; is ≥128, which is fine for the Model I. But on the Model III, there are valid
+	; characters above 192, and if one of those is present, it thinks its a graphic
+	; character and just flips bits, changing the character but not actually putting up a graphic.
+	;
+	or	a		;0176 - set flags for char in vid memory location
+	jp	m,FND4		;0177 - sign bit HIGH, graphic character, skip next opcode
+	ld	a,$80		;017a - set graphic blank
+FND4:	ld	b,a		;017c - saving it into B
+#ENDIF
 	pop	af		;017d
 	or	a		;017e
 	ld	a,b		;017f

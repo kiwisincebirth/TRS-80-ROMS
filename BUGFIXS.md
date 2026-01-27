@@ -528,6 +528,8 @@ so it just adds more bits to that character.
 
 ```
 POKE 15360,192 : SET(0,0)
+or
+POKE 15360,192:FOR X=0 TO 47:SET(X,X):NEXT X
 ```
 
 ### Error 40 - Printer Status Routine
