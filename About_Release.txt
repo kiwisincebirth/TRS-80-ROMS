@@ -101,7 +101,7 @@ It is based of the Tandy 1.3 ROMS with many enhancements and fixes applied.
 Unlike other ROM's All features are enabled by default:
 * FreHd autoboot support included
 * Bug Fixes 1, 2, 5, 7, 7C, 8, 11, 13
-* Bug Fixes 27, 28, 29, 30, 31, 40 (specific to Model III)
+* Bug Fixes 27, 28, 29, 30, 31, 32, 40 (specific to Model III)
 
 See the following for further details
 https://github.com/kiwisincebirth/TRS-80/blob/main/MODEL3.4.md

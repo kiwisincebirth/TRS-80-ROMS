@@ -50,6 +50,7 @@ Bug Fixes Applied
 * `#DEFINE BUGFIX27` - Fix Error 27 - 06CCH - Basic Entry Point. Also Fixes 29, 31.
 * `#DEFINE BUGFIX28` - Fix Error 28 - 034BH - Stack Initialisation Problem
 * `#DEFINE BUGFIX30` - Fix Error 30 - 034BH - 32 char Mode, Incompatible Model I code
+* `#DEFINE BUGFIX32` - Fix Error 32 - 0176H - SET should place a graphic on screen
 * `#DEFINE BUGFIX40` - Fix Error 40 - 05D1H - Broken "RON" Printer Status Routine
 
 And some smaller improvements
