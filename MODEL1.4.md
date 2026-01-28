@@ -51,6 +51,8 @@ There are several enhanced features:
 * `#DEFINE LOWCASE` - Disable Alpha character translation of letters A-Z,a-z to the values on range 00h to 1Fh.
   This is useful when a lower case mod is installed, but an alternate video driver has not been installed,
   or where the font rom on the machine has the alternate characters in the 00h 1Fh range (0471h)
+* `#DEFINE FASTMEM` - Speed up startup memory size check by checking first byte of every 256 page,
+  rather than every byte.
 * `#DEFINE MSGSTART` - Enhanced startup message showing Free Bytes available to BASIC
 * `#DEFINE KEYBOUNCE` - Enables the Keyboard debounce routines that where introduced in rev1.3
 

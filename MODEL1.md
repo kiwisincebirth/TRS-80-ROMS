@@ -49,13 +49,15 @@ There are several optional features.
 * `#DEFINE LOWCASE` - Disable Alpha character translation of letters A-Z,a-z to the values on range 00h to 1Fh.
   This is useful when a lower case mod is installed, but an alternate video driver has not been installed,
   or where the font rom on the machine has the alternate characters in the 00h 1Fh range (0471h)
+* `#DEFINE FASTMEM` - Speed up startup memory size check by checking first byte of every 256 page,
+  rather than every byte.
 
 Bug Fixes can be applied
 * `#DEFINE BUGFIX5` - Fix Error 5 - 08A7H - INT(DoubleValue) rounding
 * `#DEFINE BUGFIX8` - Fix Error 8 - 1009H - PRINT USING, - sign at end of field
 
   And the following grouped define
-* `#DEFINE PATCH` - Includes `NMIHARD`, `LOWCASE`, `BUGFIX5`, and `BUGFIX8`
+* `#DEFINE PATCH` - Includes `NMIHARD`, `LOWCASE`, `FASTMEM`, BUGFIX5`, and `BUGFIX8`
 
 Some additional defines, which are build options rather than features
 * `#DEFINE SIZE16K` - Will pad the end of the rom with $FF to 16KB size. useful if want to append multiple ROM

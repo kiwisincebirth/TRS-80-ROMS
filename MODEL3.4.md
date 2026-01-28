@@ -55,6 +55,8 @@ Bug Fixes Applied
 
 And some smaller improvements
 * `#DEFINE MSGSTART` - Enhanced Startup Message
+* `#DEFINE FASTMEM` - Speed up startup memory size check by checking first byte of every 256 page,
+  rather than every byte.
 
 The base ROM can also be customised to hardware.
 * `#DEFINE VIDEO50` - (OPTIONAL) Enable 50Hz Video Support (Affects RTC)
