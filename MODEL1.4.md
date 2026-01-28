@@ -44,15 +44,15 @@ There are several enhanced features:
 * `#DEFINE FREHDBT` - Enables the FreHD auto boot feature, i.e. the Auto boot ROM. This requires version 1.3
   ROM as a base, please do NOT define `VER12` as it is not compatible (it will be ignored anyway)
   Consider also enabling NMIHARD to ensure reset (on non-floppy machine) will force a reset.
-* `#DEFINE SKIPMEMORY` - Skip user input of Memory Size? override at startup with `M` key. (Credit : John Swiderski)
+* `#DEFINE NOMEMSIZE` - Skip user input of Memory Size? override at startup with `M` key. (Credit : John Swiderski)
+* `#DEFINE FASTMEM` - Speed up startup memory size check by checking first byte of every 256 page,
+  rather than every byte.
 * `#DEFINE NMIHARD` - Set NMI (reset) as always perform a hard reset. Normally on non-floppy systems NMI performs
   a soft reset returning to the `READY>` prompt with the basic program intact. This is useful in system without
   floppy disk to force a full reset (0066h)
 * `#DEFINE LOWCASE` - Disable Alpha character translation of letters A-Z,a-z to the values on range 00h to 1Fh.
   This is useful when a lower case mod is installed, but an alternate video driver has not been installed,
   or where the font rom on the machine has the alternate characters in the 00h 1Fh range (0471h)
-* `#DEFINE FASTMEM` - Speed up startup memory size check by checking first byte of every 256 page,
-  rather than every byte.
 * `#DEFINE MSGSTART` - Enhanced startup message showing Free Bytes available to BASIC
 * `#DEFINE KEYBOUNCE` - Enables the Keyboard debounce routines that where introduced in rev1.3
 

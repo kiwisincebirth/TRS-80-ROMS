@@ -29,8 +29,9 @@
 ;
 ; Rom Additional Features
 #DEFINE FREHDBT ; Enable FreHD Auto boot at startup.
-#DEFINE MSGSTART ; Enhanced Startup Message
+#DEFINE NOMEMSIZE ; Skip Memory Size? prompt
 #DEFINE FASTMEM ; Fast Memory Size Check (00C4)
+#DEFINE MSGSTART ; Enhanced Startup Message
 ;
 ; Build Features
 ; #DEFINE SIZE16K ; Uncomment to build a $FF padded 16K Image for banked ROM
@@ -408,7 +409,11 @@ LOPRTS:	ld	(hl),OPRET	;00a1 - Store RET OpCode
 	ld	(hl),b		;00ab
 	ld	sp,SMPSTK	;00ac - STACK pointer to 41F8H, temporary until call STKINI
 	call	STKINI		;00af - Go initialize the Level II BASIC variables and pointers
+#IFDEF NOMEMSIZE
+	jp	SKIPMEMORY
+#ELSE
 	NOP3			;00b2 - UNUSED - On Model 1 was call to CLS
+#ENDIF
 ;
 MEMGET:	ld	hl,MEMMSG	;00b5 - MEMORY SIZE? message
 	call	STROUT		;00b8 - print it
@@ -2159,6 +2164,32 @@ FREHDBOOT:
 	PUBLIC 	FREHDBT_BYTES
 #ENDIF
 ;
+; ----------------------------------------------------------------------
+; Bypass Memory Size Prompt (CREDIT : JOHN SWIDERSKI)
+; ----------------------------------------------------------------------
+#IFDEF NOMEMSIZE
+;
+SKIPMEMORY:
+	ld	a,(kbdmatrix+$02) ; check BREAK or "M" while waiting
+	and	$20		; the BREAK key or M Key
+; Following worked on Model 1, but not model 3
+;	call	_KBD		; Read char from KBD into A
+;	cp	'M'		; was it the M key being pressed
+	jp	z,MEMTST	; If NOT "M" key SKIP Memory Size? - perform Mem test.
+	call	CLS		; clears the screen
+	jp	MEMGET		; ASK User for Memory Size ?
+;
+KBBRKM:
+	ld	a,(kbdmatrix+$42) ; check BREAK or "M" while waiting
+	and	$24		; the BREAK key or M Key
+	ret
+; ----------------------------------------------------------------------
+	DEFC 	NOMEMSIZE_ENABLED = 1
+	PUBLIC 	NOMEMSIZE_ENABLED
+	DEFC 	NOMEMSIZE_BYTES = $ - SKIPMEMORY
+	PUBLIC 	NOMEMSIZE_BYTES
+#ENDIF
+;
 ; ======================================================================
 	DEFC	R2FREE	= $2CA5 - $
 	PUBLIC	R2FREE
@@ -2574,12 +2605,19 @@ BOOTSTP:
 	ld 	bc,$40		;3484 - move 64 ($40) bytes
 	ldir			;3487 - DO MOVE
 	call 	CLS		;3489 - CLS
+;
+#IFDEF NOMEMSIZE
+	call	KBBRKM		; check for a Break or a M Key being pressed, set flags
+#ELSE
 	call 	KBBRK		;348c - Check for a BREAK key only
+#ENDIF
+;
 #IFDEF FREHDBT
 	call	FREHDBOOT	;frehd boot extension
 #ELSE
 	jp 	nz,NONDISK	;348f - non-disk Jump
 #ENDIF
+;
 	in 	a,(fdccmdp)	;3492 - verify the disk controller
 	inc 	a		;3494 - turn a FFH into 00H
 	jp 	z,NONDISK	;3495 - Z flag mean "Disk Controller Not Ready".

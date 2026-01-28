@@ -55,6 +55,7 @@ Bug Fixes Applied
 
 And some smaller improvements
 * `#DEFINE MSGSTART` - Enhanced Startup Message
+* `#DEFINE NOMEMSIZE` - Skip user input of Memory Size? override at startup with `M` key. (Credit : John Swiderski)
 * `#DEFINE FASTMEM` - Speed up startup memory size check by checking first byte of every 256 page,
   rather than every byte.
 

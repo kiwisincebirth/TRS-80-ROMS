@@ -105,6 +105,7 @@ This is modernised Level 2 Basic ROM for the Model III
 It is based of the Tandy 1.3 ROMS with many enhancements and fixes applied.
 Unlike other ROM's All features are enabled by default:
 * FreHd autoboot support included
+* Skips "Memory Size?" prompt unless M key pressed
 * Faster Memory Size? check during startup
 * Bug Fixes 1, 2, 5, 7, 7C, 8, 11, 13
 * Bug Fixes 27, 28, 29, 30, 31, 32, 40 (specific to Model III)
