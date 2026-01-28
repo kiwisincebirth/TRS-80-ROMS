@@ -30,6 +30,7 @@
 ;
 ; Rom Additional Features
 #DEFINE NEWBOOT ; New diskette? startup routine. (06C0)
+#DEFINE NOMEMSIZE ; Skip Memory Size? prompt
 #DEFINE LOWCASE ; Disable Alpha Character Translation (0471h)
 #DEFINE FREHDBT ; Enable FreHD Auto boot at startup (069Ch)
 #DEFINE NMIHARD ; Set NMI Reset as always hard reset. (0066h)
@@ -394,7 +395,11 @@ LOPRTS:	ld	(hl),OPRET	;00a1 - Store RET OpCode
 	ld	(hl),b		;00ab
 	ld	sp,SMPSTK	;00ac - STACK pointer to 41F8H, temporary until call STKINI
 	call	STKINI		;00af - Go initialize the Level II BASIC variables and pointers
+#IFDEF NOMEMSIZE
+	jp	SKIPMEMORY
+#ELSE
 	call	CLS		;00b2 - clears the screen, changes to 64 characters, and homes the screen)
+#ENDIF
 ;
 MEMGET:	ld	hl,MEMMSG	;00b5 - MEMORY SIZE? message
 	call	STROUT		;00b8 - print it
@@ -405,7 +410,7 @@ MEMGET:	ld	hl,MEMMSG	;00b5 - MEMORY SIZE? message
 	jr	nz,TYPMEM	;00c2 - was a response to the MEMORY SIZE?
 ;
 ; start testing RAM at 434CH towards FFFFH
-	ld	hl,MEMEND+$14C	;00c4 - starting address for the memory size check (434C)
+MEMTST:	ld	hl,MEMEND+$14C	;00c4 - starting address for the memory size check (434C)
 LOOPMM:	inc	hl		;00c7 - next ram location
 	ld	a,h		;00c8 - MSB of ram location
 	or	l		;00c9 - combine with LSB of ram location
@@ -1629,9 +1634,15 @@ CLRAM:	ld	(de),a		;0687 - zero byte in memory starting at 4036h
 ; ----------------------------------------------------------------------
 ;  Check for a manual override
 ; ----------------------------------------------------------------------
+#IFDEF NOMEMSIZE
+	ld	a,(kbdmatrix+$42) ; check BREAK or "M" while waiting
+	and	$24		; the BREAK key or M Key
+	jp	nz,INIT2	; if break, Level2 basic INIT
+#ELSE
 	ld	a,(kbdmatrix+$40);068b - value at keyboard BREAK KEY
 	and	$04		;068e - if the BREAK key is being pressed
 	jp	nz,INIT2	;0690 - Jump if the BREAK key was pressed
+#ENDIF
 ;
 #IFDEF FREHDBT
 	call	FREHDBOOT		; Call to the FreHD Boot routines.
@@ -1979,9 +1990,15 @@ NB_BOOTLP:
 	jp	BOOTRD		; EXIT and return to the main boot process
 ;
 NB_BOOTLP1:
+#IFDEF NOMEMSIZE
+	ld	a,(kbdmatrix+$42) ; check BREAK or "M" while waiting
+	and	$24		; the BREAK key or M Key
+	jp	nz,INIT2	; if break, Level2 basic INIT
+#ELSE
 	ld	a,(kbdmatrix+$40) ; check BREAK while waiting
 	and	$04		; the BREAK key
 	jp	nz,INIT2	; if break, Level2 basic INIT
+#ENDIF
 ;
 	dec	bc		; countdown until we restart BOOT
 	ld	a,b
@@ -2008,6 +2025,25 @@ DSKMSG:
 	PUBLIC 	NEWBOOT_ENABLED
 	DEFC 	NEWBOOT_BYTES = $ - NEWBOOTENTRY
 	PUBLIC 	NEWBOOT_BYTES
+#ENDIF
+;
+; ----------------------------------------------------------------------
+; Bypass Memory Size Prompt (CREDIT : JOHN SWIDERSKI)
+; ----------------------------------------------------------------------
+#IFDEF NOMEMSIZE
+;
+SKIPMEMORY:
+	call	_KBD		; Read char from KBD into A
+	cp	'M'		; was it the M key being pressed
+	jp	nz,MEMTST	; If NOT "M" key SKIP Memory Size? - perform Mem test.
+	call	CLS		; clears the screen
+	jp	MEMGET		; ASK User for Memory Size ?
+;
+; ----------------------------------------------------------------------
+	DEFC 	NOMEMSIZE_ENABLED = 1
+	PUBLIC 	NOMEMSIZE_ENABLED
+	DEFC 	NOMEMSIZE_BYTES = $ - SKIPMEMORY
+	PUBLIC 	NOMEMSIZE_BYTES
 #ENDIF
 ;
 ; ======================================================================

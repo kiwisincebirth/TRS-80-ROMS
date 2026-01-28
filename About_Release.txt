@@ -59,7 +59,8 @@ This is modernised Level 2 Basic ROM for the Model I, and Dick Smith System-80
 It is based of the Tandy 1.3 ROMS with many enhancements and fixes applied.
 Unlike other ROM's All features are enabled by default:
 * New "Diskette?" boot capability, similar to Model III
-* FreHD autoboot support
+* Skips "Memory Size?" prompt unless M key pressed
+* FreHD auto-boot support
 * Lower Case Support with no character translation
 * NMI Reset (button) forces full reset.
 * Bug Fixes 1, 2, 5, 7, 7C, 8, 11, 13
