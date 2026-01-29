@@ -6,13 +6,13 @@ This repository contains well documented, well-structured Source Code for the Ta
 Since the actual source code has not been published (in its original form), this code is based
 of disassembly and significant documentation published over the years.
 * Provides TRS-80 Model I and Model III ROM source code
-* Based of disassembly, and publicly available documentation.
+* Provides Traditional and Enhanched (improved) ROM versions.
 * Supports EACA clone (aka [Disk Smith System-80](https://www.classic-computers.org.nz/system-80/)) hardware
-* Assembled and verified against official ROM images
 * Provides [prebuilt ROM images](About_Release.txt) for common configurations
-* Provides common enhancements to the ROM images
 * Provides [fixes to known bugs](BUGFIXS.md) in the ROM images
-* Excellent level of source code quality  
+* Based of disassembly, and publicly available documentation.
+* Assembled and verified against official ROM images
+* Good source code quality, with reasonable comments.
 
 ## Source Code
 
