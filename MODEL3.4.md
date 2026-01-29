@@ -4,9 +4,8 @@
 ## Level 2 (Revision 1.4)
 
 This is modernised Level 2 Basic ROM for the Model III.
-It is based of the Tandy (V3 Rev C 1981) ROMS with several enhancements
-that can be applied. This should be considered
-a successor to the L2 ROM's, but does break some compatibility
+It is based of the Tandy (V3 Rev C 1981) ROMS an includes several enhancements.
+This should be considered a successor to the L2 ROM's, but does break some compatibility
 
 Source Code File : [MDL3REV4.Z80](./MDL3REV4.Z80)
 
@@ -22,13 +21,6 @@ Main Features
 
 Breaking Features
 * Cassette Support WILL (in future as required) be removed, in favour of newer features
-
-## Make Targets
-
-| Make Target | Description      | File           | Assembler Defines |
-|-------------|------------------|----------------|-------------------|
-| model34     | Model III        | MDL3REV4.bin   |                   |
-| model3450   | Model III (50Hz) | MDL3REV450.bin | VIDEO50           |
 
 ## Build Options
 
@@ -66,6 +58,13 @@ Some additional defines, which are build options rather than features
 * `#DEFINE SIZE16K` - (OPTIONAL) Will pad the end of the rom with $FF to 16KB size. useful if want to append multiple ROM
   images for used in large 16K paged rom
 
+## Make Targets
+
+| Make Target | Description      | File           | Assembler Defines |
+|-------------|------------------|----------------|-------------------|
+| model34     | Model III        | MDL3REV4.bin   |                   |
+| model3450   | Model III (50Hz) | MDL3REV450.bin | VIDEO50           |
+
 ## Bug Fixes
 
 See [BugFixes](BUGFIXS.md)
@@ -73,6 +72,13 @@ See [BugFixes](BUGFIXS.md)
 ## Cassette Support
 
 Cassette support has been removed to make way for new features
+
+Cassette was chosen for removal since many modern devices exist to provide mass storage,
+cassette would seem to be the least used medium.
+
+In an ideal world you would have Bank switched ROM, and could switch back to the traditional ROM
+when needing cassette. Otherwise the traditional ROM's, (with minimal fixes) still exist
+for cassette users
 
 The following has been changed / removed
 * CLOAD - loadig program from cassette will cause `SN Error`
@@ -89,17 +95,26 @@ These changes have been tested on TRS-DOS disk basic without issue
 
 ## Free Space
 
+One of the issues with traditional approaches to adding code to the ROMS's
+is tailoring code to fit into very small cracks, jumping between the cracks.
+This leads to code that is highly coupled and not very maintainable.
+
+By removing the cassette routines several large regions have opened up.
+
+Any fix/improvement can add its code (to these larger regions) without worrying
+about other code that may exist (or not). This makes it much simpler and easy to maintain
+
 The Model III ROM has 5 main regions of usage space left over from cassette removal
 
 | Region | Address       | Capacity  | Available | Formally             |
 |--------|---------------|-----------|-----------|----------------------|
 | 0      | $0232 - $0266 | 52 bytes  | 52 bytes  | Misc Cassette        |
 | 1      | $02D7 - $032A | 83 bytes  | 27 bytes  | SYSTEM Tape Loader   |
-| 2      | $2BF5 - $2CA4 | 176 bytes | 153 bytes | CLOAD CSAVE          |
+| 2      | $2BF5 - $2CA4 | 176 bytes | 133 bytes | CLOAD CSAVE          |
 | 3      | $3145 - $338D | 489 bytes | 489 bytes | Cassette IO Routines |
 | 4      | $37AF - $37DC | 45 bytes  | 5 bytes   | Cassette?            |
 
-As at 14/Jan/26 there were 672 bytes free (easily utilised) in the ROM.
+As at 31/Jan/26 there were 652 bytes free (easily utilised) in the ROM.
 Future removal of the Printer Translation table could free an additional 96 bytes.
 
 The build output has a listing of the available free space in the ROMS.
@@ -108,6 +123,6 @@ The build output has a listing of the available free space in the ROMS.
 |--------|-----------------------|
 | 0      | -nil-                 |
 | 1      | BUGFIX1 thru BUGFIX13 |
-| 2      | FREHDBOOT             | 
+| 2      | FREHDBOOT, NOMEMSIZE  | 
 | 3      | -nil-                 |
 | 4      | MSGSTART, BUGFIX27    | 

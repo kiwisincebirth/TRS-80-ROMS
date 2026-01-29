@@ -2078,7 +2078,7 @@ ASSERT $ == $2FFB, "Segment: Continuation at $2FFB"
 ; 2FFB - 2FFF - ROM VERSION STAMP - Previously unused
 	DEFB	0 		; Reserved for CRC injected here
 	DEFB	$01, $04	; Identifier Model 1 Rev (1.)4
-	DEFB	$26, $01	; DateStamp Year, Week
+	DEFB	$26, $05	; DateStamp Year, Week
 ;
 ; ======================================================================
 ; THE END OF THE LEVEL II BASIC ROMS

@@ -4,9 +4,8 @@
 ## Level 2 ( Revision 1.4 )
 
 This is modernised Level 2 Basic ROM for the Model I.
-It is based of the Tandy Rev 1.3 ROMS with several enhancements
-that can be applied. This should be considered 
-a successor to the L2 ROM's, but does break some compatibility
+It is based of the Tandy Rev 1.3 ROMS and includes several enhancements. 
+This should be considered a successor to the L2 ROM's, but does break some compatibility.
 
 Source Code File : [MDL1REV4.Z80](./MDL1REV4.Z80)
 
@@ -25,13 +24,6 @@ Main Features
 Breaking Features
 * Cassette Support has been removed, in favour of newer features
 * See section [Cassette Support](#cassette-support) below for more details.
-
-## Make Targets
-
-| Make Target | Description                  | File             | Assembler Defines |
-|-------------|------------------------------|------------------|-------------------|
-| model14     | Model I Rev 1.4 (Enhanced)   | MDL1REV4.bin     |                   |
-| model14eaca | System 80 Rev 1.4 (Enhanced) | MDL1REV4EACA.bin | EACA80            |
 
 ## Build Options
 
@@ -74,6 +66,13 @@ Some additional defines, which are build options rather than features
 * `#DEFINE SIZE16K` - (OPTIONAL) Will pad the end of the rom with $FF to 16KB size. useful if want to append multiple ROM
   images for used in large 16K paged rom
 
+## Make Targets
+
+| Make Target | Description                  | File             | Assembler Defines |
+|-------------|------------------------------|------------------|-------------------|
+| model14     | Model I Rev 1.4 (Enhanced)   | MDL1REV4.bin     |                   |
+| model14eaca | System 80 Rev 1.4 (Enhanced) | MDL1REV4EACA.bin | EACA80            |
+
 ## Bug Fixes
 
 See [BugFixes](BUGFIXS.md)
@@ -81,6 +80,13 @@ See [BugFixes](BUGFIXS.md)
 ## Cassette Support
 
 Cassette support has been removed to make way for new features
+
+Cassette was chosen for removal since many modern devices exist to provide mass storage, 
+cassette would seem to be the least used medium.
+
+In an ideal world you would have Bank switched ROM, and could switch back to the traditional ROM 
+when needing cassette. Otherwise the traditional ROM's, (with minimal fixes) still exist
+for cassette users
 
 The following has been changed / removed
 * CLOAD - loadig program from cassette will cause `SN Error`
@@ -96,22 +102,31 @@ These changes have been tested on TRS-DOS disk basic without issue
 
 ## Free Space
 
+One of the issues with traditional approaches to adding code to the ROMS's
+is tailoring code to fit into very small cracks, jumping between the cracks.
+This leads to code that is highly coupled and not very maintainable. 
+
+By removing the cassette routines several large regions have opened up.
+
+Any fix/improvement can add its code (to these larger regions) without worrying 
+about other code that may exist (or not). This makes it much simpler and easy to maintain
+
 The Model I Rom has 3 large regions of usage space left over from cassette removal
 
 | Region | Address        | Capacity  | Available | Formally             |
 |--------|----------------|-----------|-----------|----------------------|
 | 1      | $01E9 - $02B1  | 201 bytes | 201 bytes | Cassette IO Routines |
 | 2      | $02D7 - $0329  | 82 bytes  | 8 bytes   | SYSTEM Tape Loader   |
-| 3      | $2BF5 - $2CA4  | 175 bytes | 98 bytes  | CLOAD CSAVE          |
+| 3      | $2BF5 - $2CA4  | 175 bytes | 55 bytes  | CLOAD CSAVE          |
 
-As at 14/Jan/26 there were 307 bytes free (easily utilised) in the ROM.
+As at 29/Jan/26 there were 264 bytes free (easily utilised) in the ROM.
 Plus another 53 bytes (4 very small regions) which could be utilised 
 with some additional effort. (9,10,7,27)
 
 The build output has a listing of the available free space in the ROMS.
 
-| Region | Contents                         |
-|--------|----------------------------------|
-| 1      | -nil-                            |
-| 2      | BUGFIX1 thru BUGFIX13, KEYBOUNCE |
-| 3      | MSGSTART, FREHDBT, NEWBOOT       |
+| Region | Contents                              |
+|--------|---------------------------------------|
+| 1      | -nil-                                 |
+| 2      | BUGFIX1 thru BUGFIX13, KEYBOUNCE      |
+| 3      | MSGSTART, FREHDBT, NEWBOOT, NOMEMSIZE |
