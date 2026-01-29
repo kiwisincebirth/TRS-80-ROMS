@@ -1217,92 +1217,98 @@ CIORTN:	pop	de		;03dd - restore registers from the stack
 ;   This is the keyboard driver. It scans the keyboard and converts
 ;   the bit pattern obtained to ASCII and stores it in the A register.
 ; ----------------------------------------------------------------------
-KBDDRV:	ld	hl,KYBTSS	;03e3
+KBDDRV:	ld	hl,KYBTSS	;03e3 - keyboard work area's - saved KB rows
 	ld	bc,kbdmatrix+$01;03e6 - first keyboard matrix row
-	ld	d,$00		;03e9
-KEYLP:	ld	a,(bc)		;03eb
-	ld	e,a		;03ec
-	xor	(hl)		;03ed
-	ld	(hl),e		;03ee
-	and	e		;03ef
-	jr	nz,KEYDWN	;03f0
-	inc	d		;03f2
-	inc	l		;03f3
-	rlc	c		;03f4
-	jp	p,KEYLP		;03f6
+	ld	d,$00		;03e9 - track the keyboard Row
+KEYLP:	ld	a,(bc)		;03eb - get keyboard Row
+	ld	e,a		;03ec - save keyboard row
+	xor	(hl)		;03ed - compare with saved row
+	ld	(hl),e		;03ee - write new value to saved row
+	and	e		;03ef - mask the bits that were just observed
+	jr	nz,KEYDWN	;03f0 - we found a depressed key
+	inc	d		;03f2 - advance to nex row
+	inc	l		;03f3 - next saved KB row address
+	rlc	c		;03f4 - next KB matrix row
+	jp	p,KEYLP		;03f6 - Not reached Row 8 (bit 7) of Matrix
 	ret			;03f9
 ; ----------------------------------------------------------------------
-; 03FAH-040AH – Accept a KB Downstroke and Convert it to ASCII – “KEYDWN”
+; 03FAH – Accept a KB Down-stroke and Convert it to ASCII – “KEYDWN”
+;   On entry D contains the row counter
+;   and A contains the data from the keyboard matrix,
 ; ----------------------------------------------------------------------
-KEYDWN:	ld	e,a		;03fa
+KEYDWN:	ld	e,a		;03fa - column data from the matrix (redundant)
 ;
 #IFDEF VER13
         jp	KEYBOU		;03fb jump to the new keyboard debounce routine.
 KYDRES:				;03fe return address for keybounce
 ;
 #ELSE
-	ld	a,d		;03fb
+	ld	a,d		;03fb - initial row counter from the matrix
 	rlca			;03fc
 	rlca			;03fd
 #ENDIF
 ;
-	rlca			;03fe
-	ld	d,a		;03ff
-	ld	c,$01		;0400
-KEYDLP:	ld	a,c		;0402
-	and	e		;0403
-	jr	nz,KEYFND	;0404
-	inc	d		;0406
-	rlc	c		;0407
-	jr	KEYDLP		;0409
+	rlca			;03fe - multiply row counter by 8, gives row offset
+	ld	d,a		;03ff - save row counter
+	ld	c,1		;0400 - start comparison at column number 1
+KEYDLP:	ld	a,c		;0402 - contains the column bit for comparison
+	and	e		;0403 - compare with colum data from the matrix
+	jr	nz,KEYFND	;0404 - found matching colum
+	inc	d		;0406 - increment the main counter for next column
+	rlc	c		;0407 - shift the column bit to next column
+	jr	KEYDLP		;0409 - loop
 ; ----------------------------------------------------------------------
-; 040BH-0428H – Part of the Keyboard routine – “KEYFND”
+; 040BH – Part of the Keyboard routine – “KEYFND”
 ;   We now have identified the key. Next we need to see if it is shifted
+;   On entry D contains matrix character (0-63) ie. Row*8 + Column (0-7)
 ; ----------------------------------------------------------------------
-KEYFND:	ld	a,(kbdmatrix+$80);040b - value of the SHIFT key from 3880H
-	ld	b,a		;040e
-	ld	a,d		;040f
-	add	a,$40		;0410
-	cp	$60		;0412
-	jr	nc,KEYNAL	;0414
-	rrc	b		;0416
-	jr	nc,KEYRTN	;0418
-	add	a,$20		;041a
-	ld	d,a		;041c
+KEYFND:	ld	a,(kbdmatrix+$80);040b - Value from SHIFT Matrix Row 3880H
+	ld	b,a		;040e - Save the Shift Row
+	ld	a,d		;040f - Matrix Character in range ($00-$3F)
+	add	a,$40		;0410 - Offset it by 64 ($40-$7F)
+	cp	$60		;0412 - Check to see which half of the matrix
+	jr	nc,KEYNAL	;0414 - if in upper half of matrix Non-alpha
+	rrc	b		;0416 - Get saved Shift Key rotated into C flag
+	jr	nc,KEYRTN	;0418 - Shift not pressed, return alpha ($40-$5F)
+	add	a,$20		;041a - Convert to shifted Alpha ($60-$7F)
+	ld	d,a		;041c - save character
 	ld	a,(kbdmatrix+$40);041d - value at keyboard memory row six
-	and	$10		;0420
-	jr	z,KEYRT2	;0422
-	ld	a,d		;0424
-	sub	$60		;0425
-	jr	KEYRTN		;0427
+	and	$10		;0420 - Was it a Down Arrow
+	jr	z,KEYRT2	;0422 - Not Shift-Down, Ret Lower Case ($60-$7F)
+	ld	a,d		;0424 - get saved character ($60-$7F)
+	sub	$60		;0425 - Convert to CTRL Key ($00-$1F)
+	jr	KEYRTN		;0427 - Return the Control Key
 ; ----------------------------------------------------------------------
-; 0429H-043CH – Part of the Keyboard routine – “KEYNAL”
-;    If we are here, the character was not alphanumeric,
-;    so need to check for special and/or shift
+; 0429H – Part of the Keyboard routine – “KEYNAL”
+;    If we are here, the character was not alpha so need
+;    to check for numeric, shifted numeric, or special
+;    On Entry A contains ($60-$7F)
 ; ----------------------------------------------------------------------
-KEYNAL:	sub	$70		;0429
-	jr	nc,KEYSPL	;042b
-	add	a,$40		;042d
-	cp	$3C		;042f
-	jr	c,KEYINV	;0431
-	xor	$10		;0433
-KEYINV:	rrc	b		;0435
-	jr	nc,KEYRTN	;0437
-	xor	$10		;0439
-	jr	KEYRTN		;043b
+KEYNAL:	sub	$70		;0429 - Which half of Matrix Rows 5-6 or 7-8
+	jr	nc,KEYSPL	;042b - If Rows 7-8 then special character
+	add	a,$40		;042d - Re-Adjust A down to contain ($30-$3F)
+	cp	$3C		;042f - Check if one of the last 4 characters
+	jr	c,KEYINV	;0431 - skip if "0123456789" i.e. leave unchanged
+	xor	$10		;0433 - If ",-+/" then flip bit 4, align to ASCII
+KEYINV:	rrc	b		;0435 - Get saved Shift Key rotated into C flag
+	jr	nc,KEYRTN	;0437 - If not shifted then return ($30-$3F)
+	xor	$10		;0439 - Apply the Shift to the Character
+	jr	KEYRTN		;043b - If Shifted Return ($20-2F)
+				;noting Shift "0" returns a <space> $20
 ; ----------------------------------------------------------------------
-; 043DH-044AH – Part of the Keyboard routine – “KEYSPL”
-;   This routine does a special key conversion via a table
+; 043DH – Part of the Keyboard routine – “KEYSPL”
+;    This routine does a special key conversion via a table
+;    On Entry A contains ($00-$0F)
 ; ----------------------------------------------------------------------
-KEYSPL:	rlca			;043d
-	rrc	b		;043e
-	jr	nc,KEYNSF	;0440
-	inc	a		;0442
-KEYNSF:	ld	hl,KEYTAB	;0443
-	ld	c,a		;0446
+KEYSPL:	rlca			;043d - times 2, as each table row is 2 bytes
+	rrc	b		;043e - Get saved Shift Key rotated into C flag
+	jr	nc,KEYNSF	;0440 - If not Shifted skip next instruction
+	inc	a		;0442 - if shifted align to tables second Column
+KEYNSF:	ld	hl,KEYTAB	;0443 - Base Address of lookup table
+	ld	c,a		;0446 - get the offset address into BC
 	ld	b,$00		;0447
-	add	hl,bc		;0449
-	ld	a,(hl)		;044a
+	add	hl,bc		;0449 - and add it to the table base address
+	ld	a,(hl)		;044a - get the character to return from the table
 ; ----------------------------------------------------------------------
 ; 044BH-044BH – Part of the Keyboard routine – “KEYRTN”
 ;   This routine will debounce the keyboard downstroke and return
@@ -1313,7 +1319,7 @@ KEYRT2:	ld	bc,3500		;044c - delay count (3500)
 	ld	a,d		;0452 - restore value for the key pressed
 	cp	$01		;0453 - Check to see if the BREAK key was pressed
 	ret	nz		;0455 - Return if the BREAK key wasn’t pressed
-	rst	28h		;0456
+	rst	28h		;0456 - Disk Basic break Key handling
 	ret			;0457
 ;
 ; ======================================================================
