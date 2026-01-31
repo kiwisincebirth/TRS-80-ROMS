@@ -1004,7 +1004,12 @@ CIO:	push	hl		;03c2 - Save HL, IX, DE registers on the stack
 	and	b		;03cf - Isolate device code bits, using B parameter
 	cp	b		;03d0 - check for equality with passed device type
 	jp	nz,CIOSS	;03d1 - if not same - jump to DOS device Driver (4033)
-	cp	$02		;03d4 - clear status flags
+; ----------------------------------------------------------------------
+; 03D4H - Used by NewDos/80 - SYS0/SYS - to call a Driver defined by IX ($4B2F)
+;
+	ASSERT	$ == $03D4, "Segment: CIOJMP Entry Point should start at $03D4"
+; ----------------------------------------------------------------------
+CIOCON:	cp	$02		;03d4 - clear status flags
 	ld	l,(ix+1)	;03d6 - LSB of driver address
 	ld	h,(ix+2)	;03d9 - MSB of driver address
 	jp	(hl)		;03dc - Jump (and ret) to the driver address in HL
@@ -1022,11 +1027,11 @@ CIORTN:	pop	de		;03dd - restore registers from the stack
 ;   This is the keyboard driver. It scans the keyboard and converts
 ;   the bit pattern obtained to ASCII and stores it in the A register.
 ; ----------------------------------------------------------------------
-KBDDRV:	ld	hl,KYBTSS	;03e3 - keyboard work area's - saved KB rows
+KBDDRV:	ld	hl,KYBTSS	;03e3 - keyboard work area, Saved Rows (4036)
 	ld	bc,kbdmatrix+$01;03e6 - first keyboard matrix row
 	ld	d,$00		;03e9 - track the keyboard Row
 KEYLP:	ld	a,(bc)		;03eb - get keyboard Row
-	ld	e,a		;03ec - save keyboard row
+KEYLP2:	ld	e,a		;03ec - save keyboard row
 	xor	(hl)		;03ed - compare with saved row
 	ld	(hl),e		;03ee - write new value to saved row
 	and	e		;03ef - mask the bits that were just observed
@@ -1042,6 +1047,11 @@ KEYLP:	ld	a,(bc)		;03eb - get keyboard Row
 ;   and A contains the data from the keyboard matrix,
 ; ----------------------------------------------------------------------
 KEYDWN:	ld	e,a		;03fa - column data from the matrix (redundant)
+;
+; ----------------------------------------------------------------------
+; 03FBH - Used by TRSDOS 2.3 - SYS0/SYS - to CONTINUE from it own KB Driver ($43FB)
+	ASSERT	$ == $03FB, "Segment: Entry Point should start at $03FB"
+; ----------------------------------------------------------------------
 ;
 #IFDEF KEYBOUNCE
 ;
@@ -1065,8 +1075,11 @@ KEYDLP:	ld	a,c		;0402 - contains the column bit for comparison
 	jr	KEYDLP		;0409 - loop
 ; ----------------------------------------------------------------------
 ; 040BH – Part of the Keyboard routine – “KEYFND”
-;   We now have identified the key. Next we need to see if it is shifted
+;   Convert keyboard matrix code 0-63 (Row*8 + Column) into ASCII character
 ;   On entry D contains matrix character (0-63) ie. Row*8 + Column (0-7)
+;   On Exit A contains the ASCII value, or 0 if the kay cannot be identified
+;
+	ASSERT	$ == $040B, "Segment: KEYFND Entry Point should start at $040B"
 ; ----------------------------------------------------------------------
 KEYFND:	ld	a,(kbdmatrix+$80);040b - Value from SHIFT Matrix Row 3880H
 	ld	b,a		;040e - Save the Shift Row
@@ -1111,7 +1124,7 @@ KEYSPL:	rlca			;043d - times 2, as each table row is 2 bytes
 	jr	nc,KEYNSF	;0440 - If not Shifted skip next instruction
 	inc	a		;0442 - if shifted align to tables second Column
 KEYNSF:	ld	hl,KEYTAB	;0443 - Base Address of lookup table
-	ld	c,a		;0446 - get the offset address into BC
+KEYTRN:	ld	c,a		;0446 - get the offset address into BC
 	ld	b,$00		;0447
 	add	hl,bc		;0449 - and add it to the table base address
 	ld	a,(hl)		;044a - get the character to return from the table
@@ -1141,6 +1154,8 @@ KEYRT2:	ld	bc,3500		;044c - delay count (3500)
 ;   IX+3 = LSB of the Cursor Position, IX+4 = MSB of the Cursor Position,
 ;   IX+5 = Cursor Character, cursor on off flag
 ;   IX+6 = “D”, and IX+7=”O”
+;
+	ASSERT	$ == $0458, "Segment: DSPDRV Entry Point should start at $0458"
 ; ----------------------------------------------------------------------
 DSPDRV:
 	ld	l,(ix+3)	;0458 - LSB of the current cursor position

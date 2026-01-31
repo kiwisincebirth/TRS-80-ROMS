@@ -167,6 +167,7 @@ DEFC	SQUOTE	= $27	; A Single Quote ( ' )
 DEFC	SEMICO	= $3B	; Note ';' in code; was breaking some assemblers
 DEFC	UPARRW	= $5B	; (UP Arrow) Special Up Arrow ↑ Character in TRS Charset
 DEFC	BQUOTE	= $60	; A Back Quote ( ` )
+DEFC	BSLASH	= $5C	; A Back Slash ( \ )
 ;
 ; ----------------------------------------------------------------------
 ; Constants used by FreHD
