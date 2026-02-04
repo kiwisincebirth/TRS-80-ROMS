@@ -1241,7 +1241,7 @@ KEYLP2:	ld	e,a		;03ec - save keyboard row
 ;   On entry D contains the row counter
 ;   and A contains the data from the keyboard matrix,
 ; ----------------------------------------------------------------------
-KEYDWN:	ld	e,a		;03fa - column data from the matrix (redundant)
+KEYDWN:	ld	e,a		;03fa - column data from the matrix
 ;
 ; ----------------------------------------------------------------------
 ; 03FBH - Used by TRSDOS 2.3 - SYS0/SYS - to CONTINUE from it own KB Driver ($43FB)
@@ -1318,7 +1318,7 @@ KEYSPL:	rlca			;043d - times 2, as each table row is 2 bytes
 	jr	nc,KEYNSF	;0440 - If not Shifted skip next instruction
 	inc	a		;0442 - if shifted align to tables second Column
 KEYNSF:	ld	hl,KEYTAB	;0443 - Base Address of lookup table
-	ld	c,a		;0446 - get the offset address into BC
+KEYTRN:	ld	c,a		;0446 - get the key offset address into BC
 	ld	b,$00		;0447
 	add	hl,bc		;0449 - and add it to the table base address
 	ld	a,(hl)		;044a - get the character to return from the table
@@ -2265,7 +2265,7 @@ GETCHZ:	call	CASIN		;2c98
 ; ======================================================================
 ; ======================================================================
 ;
-; LEVEL 2 BASIC ROUTINES $2CA5 - $2B28
+; LEVEL 2 BASIC ROUTINES $2CA5 - $2FFA
 ;
 INCLUDE	"LEVEL2BASIC-2CA5.Z80"
 ;

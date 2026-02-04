@@ -379,6 +379,7 @@ ROUTE:
 ;  This is part of the Level II initialization procedure. It moves
 ;  several support routine from 18F7H to 191EH up to 4080H to 40A7H.
 ; ----------------------------------------------------------------------
+NONDISK:
 INIT2:	ld	de,FDIVC	;0075 - Ram location - of Level II BASIC support routines.
 	ld	hl,CONSTR	;0078 - Rom Location - of Level II BASIC support routines.
 	ld  bc,CONSTR2-CONSTR+1 ;007b - Size of the Routine(s) to move
@@ -629,6 +630,7 @@ TBIT:	and	c		;0192
 ;
 ; ----------------------------------------------------------------------
 ; 019DH-01C8H – LEVEL II BASIC INKEY$ ROUTINE – “INKEY”
+ASSERT $ = $019D, "Routine INKEY$ should have correct entry point"
 ; ----------------------------------------------------------------------
 INKEY:	GETCHR			;019d - rst 10h
 ; ----------------------------------------------------------------------
@@ -1074,6 +1076,7 @@ NT32PS:	and	$3F		;0355 - Mask cursor position for 64 character
 ;   Here is the routine to simulate the INKEY$ function. It performs exactly
 ;   the same function as 2BH but it restores all registers, whereas 2BH
 ;   destroys the DE Register Pair. This makes 35BH more useful than 2BH
+ASSERT $ = $0358, "Routine ISCHAR should have correct entry point"
 ; ----------------------------------------------------------------------
 ISCHAR:	call	EXINC		;0358
 	push	de		;035b
@@ -1189,6 +1192,7 @@ PRTFF:
 PRTDRV2:
 	cp	$80		;03e5 - is it a graphic
 	jr 	nc,PRTDRV6	;03e7 - handle the graphics character.
+;
 	ld 	b,0		;03e9 - set MSB to 0
 	sub 	SPACE		;03eb - adjust A character to print table offset $20
 	ld 	c,a		;03ed - load to C. BC now has character offset
@@ -1672,6 +1676,7 @@ PRTSTA_BROKEN:
 ;   if a carriage return or BREAK is typed.
 ;   Carry Set if break key was terminator, reset otherwise.
 ;   If the buffer is full, the A Register will contain the buffer size.
+ASSERT $ = $05D9, "Routine KEYIN should have correct entry point"
 ; ----------------------------------------------------------------------
 KEYIN:	push	hl		;05d9
 	ld	a,CURON		;05da - turn on the cursor character
@@ -2215,7 +2220,7 @@ GETCHZ:	call	CASIN		;2c98
 ; ======================================================================
 ; ======================================================================
 ;
-; LEVEL 2 BASIC ROUTINES $2CA5 - $2B28
+; LEVEL 2 BASIC ROUTINES $2CA5 - $2FFA
 ;
 INCLUDE	"LEVEL2BASIC-2CA5.Z80"
 ;
@@ -3263,10 +3268,10 @@ HRTBEAT1:
 	inc 	hl		;356f - Bump HL one more time, to 421CH.
 	ld 	a,(hl)		;3570 - Get the month and put it into A.
 	dec 	hl		;3571 - Decrease HL back to to 421BH.
-	dec 	a		;3572 - Decrease A by one (to the previous month).
-	add 	a,e		;3573 -
-	ld 	e,a		;3574
-	ld 	a,(de)		;3575 - Poll the number of days in a month
+	dec 	a		;3572 - Decrease A by one (zero offset month).
+	add 	a,e		;3573 - add month to LSB of TIMEDATA
+	ld 	e,a		;3574 - put back it into DE (noting no rollover to D)
+	ld 	a,(de)		;3575 - The number of days in the month
 	cp 	(hl)		;3576 -
 	ret 	nc		;3577
 	ld 	a,(hl)		;3578

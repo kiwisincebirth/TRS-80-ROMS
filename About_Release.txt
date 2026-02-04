@@ -18,12 +18,12 @@ For Tandy TRS-80 Model I, all revisions.
 See the following for further details
 https://github.com/kiwisincebirth/TRS-80/blob/main/MODEL1.md
 
-| File           | Description                      | Make Target |
-|----------------|----------------------------------|-------------|
-| MDL1REV2.bin   | Model I Rev 1.2 (Official)       | model12     |
-| MDL1REV3.bin   | Model I Rev 1.3 (Official)       | model13     |
-| MDL1REV3F.bin  | Model I Rev 1.3 - FreHD Patched  | model13f    |
-| MDL1REV3P.bin  | Model I Rev 1.3 - Patched        | model13p    |
+| File            | Description                     | Make Target |
+|-----------------|---------------------------------|-------------|
+| MDL1REV2.bin    | Model I Rev 1.2 (Official)      | model12     |
+| MDL1REV3.bin    | Model I Rev 1.3 (Official)      | model13     |
+| MDL1REV3F.bin   | Model I Rev 1.3 - FreHD Patched | model13f    |
+| MDL1REV3P.bin   | Model I Rev 1.3 - Patched       | model13p    |
 
 Patches Included Are:
 * Lower Case Support with no character translation
@@ -86,11 +86,11 @@ https://github.com/kiwisincebirth/TRS-80/blob/main/MODEL3.md
 
 | File            | Description                     | Make Target |
 |-----------------|---------------------------------|-------------|
-| MDL3.bin        | Model III (Official)            | model3      |
-| MDL3P.bin       | Model III - Patched             | model3p     |
-| MDL3F.bin       | Model III - FreHd Patched       | model3f     |
-| MDL3P5.bin      | Model III - Patched 50Hz        | model3p50   |
-| MDL3F5.bin      | Model III - FreHd Patched 50Hz  | model3f50   |
+| MDL3.bin        | Model 3 (Official)              | model3      |
+| MDL3P.bin       | Model 3 - Patched               | model3p     |
+| MDL3F.bin       | Model 3 - FreHd Patched         | model3f     |
+| MDL3P5.bin      | Model 3 - Patched 50Hz          | model3p50   |
+| MDL3F5.bin      | Model 3 - FreHd Patched 50Hz    | model3f50   |
 
 Patches Included Are:
 * Faster Memory Size? check during startup
@@ -115,6 +115,9 @@ https://github.com/kiwisincebirth/TRS-80/blob/main/MODEL3.4.md
 
 | File            | Description                     | Make Target |
 |-----------------|---------------------------------|-------------|
-| MDL3REV4.bin    | Model I Rev 1.4 (Enhanced)      | model34     |
-| MDL3REV450.bin  | Model I Rev 1.4 (Enhanced 50Hz) | model3450   |
+| MDL3REV4.bin    | Model 3 Rev 1.4 (Enhanced)      | model34     |
+| MDL3REV450.bin  | Model 3 Rev 1.4 (Enhanced 50Hz) | model3450   |
+
+
+
 
