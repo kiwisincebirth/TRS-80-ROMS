@@ -651,13 +651,13 @@ RESET:	ld	a,$01		;0138
 	push	af		;013a
 	SYNTAX	('(')		;013b - rst 08h - all commands start with a (
 	call	GETBYT		;013d - get a numeric value X coordinate
-	cp	128		;0140 - is it greater than 128
-	jp	nc,FCERR	;0142 - if greater than 128 then an error
+	cp	128		;0140 - compare X coordinate with 128
+	jp	nc,FCERR	;0142 - if greater equal to 127 then an error
 	push	af		;0145 - Save coordinate’s X value on the STACK
 	SYNTAX	(',')		;0146 - rst 08h - then a comma
 	call	GETBYT		;0148 - get a numeric value Y coordinate
-	cp	$30		;014b - test to see if the character was alphabetic or alphanumeric
-	jp	nc,FCERR	;014d
+	cp	48		;014b - compare Y coordinate with 48
+	jp	nc,FCERR	;014d - if greater equal to 48 then an error
 	ld	d,$FF		;0150
 LOPMD3:	inc	d		;0152
 	sub	$03		;0153
@@ -685,13 +685,13 @@ PWR2:	adc	a,a		;016d
 	djnz	PWR2		;016e
 	ld	c,a		;0170
 	ld	a,d		;0171
-	or	$3C		;0172
-	ld	d,a		;0174
-	ld	a,(de)		;0175
-	or	a		;0176
-	jp	m,FND4		;0177
-	ld	a,$80		;017a
-FND4:	ld	b,a		;017c
+	or	$3C		;0172 - Set the bits of the MSB of the video memory offset
+	ld	d,a		;0174 - revised MSB of the video memory pointer
+	ld	a,(de)		;0175 - the char at the location of the video memory pointer
+	or	a		;0176 - set flags for char in vid memory location
+	jp	m,FND4		;0177 - sign bit HIGH, graphic character, skip next opcode
+	ld	a,$80		;017a - set graphic blank
+FND4:	ld	b,a		;017c - saving it into B
 	pop	af		;017d
 	or	a		;017e
 	ld	a,b		;017f
@@ -1223,7 +1223,7 @@ CIORTN:	pop	de		;03dd - restore registers from the stack
 ;   the bit pattern obtained to ASCII and stores it in the A register.
 ; ----------------------------------------------------------------------
 KBDDRV:	ld	hl,KYBTSS	;03e3 - keyboard work area, Saved Rows (4036)
-	ld	bc,kbdmatrix+$01;03e6 - first keyboard matrix row
+	ld	bc,kbdmatrix+1	;03e6 - first keyboard matrix row
 	ld	d,$00		;03e9 - track the keyboard Row
 KEYLP:	ld	a,(bc)		;03eb - get keyboard Row
 KEYLP2:	ld	e,a		;03ec - save keyboard row
@@ -1275,7 +1275,7 @@ KEYDLP:	ld	a,c		;0402 - contains the column bit for comparison
 ;
 	ASSERT	$ == $040B, "Segment: KEYFND Entry Point should start at $040B"
 ; ----------------------------------------------------------------------
-KEYFND:	ld	a,(kbdmatrix+$80);040b - Value from SHIFT Matrix Row 3880H
+KEYFND:	ld	a,(kmatrix8)	;040b - Value from SHIFT Matrix Row 3880H
 	ld	b,a		;040e - Save the Shift Row
 	ld	a,d		;040f - Matrix Character in range ($00-$3F)
 	add	a,$40		;0410 - Offset it by 64 ($40-$7F)
@@ -1285,7 +1285,7 @@ KEYFND:	ld	a,(kbdmatrix+$80);040b - Value from SHIFT Matrix Row 3880H
 	jr	nc,KEYRTN	;0418 - Shift not pressed, return alpha ($40-$5F)
 	add	a,$20		;041a - Convert to shifted Alpha ($60-$7F)
 	ld	d,a		;041c - save character
-	ld	a,(kbdmatrix+$40);041d - value at keyboard memory row six
+	ld	a,(kmatrix7)	;041d - value at keyboard memory row six
 	and	$10		;0420 - Was it a Down Arrow
 	jr	z,KEYRT2	;0422 - Not Shift-Down, Ret Lower Case ($60-$7F)
 	ld	a,d		;0424 - get saved character ($60-$7F)
@@ -1854,7 +1854,7 @@ CLRAM:	ld	(de),a		;0687 - zero byte in memory starting at 4036h
 ; ----------------------------------------------------------------------
 ;  Check for a manual override
 ; ----------------------------------------------------------------------
-	ld	a,(kbdmatrix+$40);068b - value at keyboard BREAK KEY
+	ld	a,(kmatrix7)	;068b - value at keyboard BREAK KEY
 	and	$04		;068e - if the BREAK key is being pressed
 	jp	nz,INIT2	;0690 - Jump if the BREAK key was pressed
 ;

@@ -195,7 +195,11 @@ DEFC	diskdata	= $37EF	; Disk data byte
 ; ----------------------------------------------------------------------
 ;  Memory Mapped Hardware
 ; ----------------------------------------------------------------------
+;
 DEFC	kbdmatrix = $3800	; Keyboard matrix start (100H bytes)
+DEFC	kmatrix7 =kbdmatrix+$40	; Keyboard matrix ENTER Row 7
+DEFC	kmatrix8 =kbdmatrix+$80	; Keyboard matrix SHIFT Row 8
+;
 DEFC	vidmem	= $3C00		; Video RAM start (400H bytes)
 DEFC	vidlin	= 64 		; Video RAM line Size (64 characters)
 ;

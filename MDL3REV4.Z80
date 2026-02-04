@@ -529,13 +529,13 @@ RESET:	ld	a,$01		;0138
 	push	af		;013a
 	SYNTAX	('(')		;013b - rst 08h - all commands start with a (
 	call	GETBYT		;013d - get a numeric value X coordinate
-	cp	128		;0140 - is it greater than 128
-	jp	nc,FCERR	;0142 - if greater than 128 then an error
+	cp	128		;0140 - compare X coordinate with 128
+	jp	nc,FCERR	;0142 - if greater equal to 127 then an error
 	push	af		;0145 - Save coordinate’s X value on the STACK
 	SYNTAX	(',')		;0146 - rst 08h - then a comma
 	call	GETBYT		;0148 - get a numeric value Y coordinate
-	cp	$30		;014b - test to see if the character was alphabetic or alphanumeric
-	jp	nc,FCERR	;014d
+	cp	48		;014b - compare Y coordinate with 48
+	jp	nc,FCERR	;014d - if greater equal to 48 then an error
 	ld	d,$FF		;0150
 LOPMD3:	inc	d		;0152
 	sub	$03		;0153

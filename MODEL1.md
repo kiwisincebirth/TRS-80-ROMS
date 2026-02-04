@@ -51,10 +51,6 @@ Some additional defines, which are build options rather than features
 * `#DEFINE SIZE16K` - Will pad the end of the rom with $FF to 16KB size. useful if want to append multiple ROM
   images for used in large 16K paged rom
 
-VERY Experimental - use at your own risk
-* `#DEFINE _EMBED` - Strip all HW, and IO routines leaving just BASIC language as standalone code
-  and used in L2 Basic for CP/M
-
 ## Make Targets
 
 | Make Target | Description                        | File          | Assembler Defines    |

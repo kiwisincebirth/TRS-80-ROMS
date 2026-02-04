@@ -18,12 +18,12 @@ For Tandy TRS-80 Model I, all revisions.
 See the following for further details
 https://github.com/kiwisincebirth/TRS-80/blob/main/MODEL1.md
 
-| File          | Description                        | Make Target |
-|---------------|------------------------------------|-------------|
-| MDL1REV2.bin  | Model I Rev 1.2 (Official)         | model12     |
-| MDL1REV3.bin  | Model I Rev 1.3 (Official)         | model13     |
-| MDL1REV3F.bin | Model I Rev 1.3 - FreHD Patched    | model13f    |
-| MDL1REV3P.bin | Model I Rev 1.3 - Patched          | model13p    |
+| File           | Description                      | Make Target |
+|----------------|----------------------------------|-------------|
+| MDL1REV2.bin   | Model I Rev 1.2 (Official)       | model12     |
+| MDL1REV3.bin   | Model I Rev 1.3 (Official)       | model13     |
+| MDL1REV3F.bin  | Model I Rev 1.3 - FreHD Patched  | model13f    |
+| MDL1REV3P.bin  | Model I Rev 1.3 - Patched        | model13p    |
 
 Patches Included Are:
 * Lower Case Support with no character translation
@@ -40,11 +40,11 @@ ROM, the extended ROM provided on later EACA model's are not included.
 See the following for further details
 https://github.com/kiwisincebirth/TRS-80/blob/main/MODEL1.md
 
-| File           | Description                        | Make Target |
-|----------------|------------------------------------|-------------|
-| EACA80.bin     | Dick Smith System 80 (Official)    | eaca80      |
-| EACA80F.bin    | Dick Smith System 80 FreHd Patched | eaca80f     |
-| EACA80P.bin    | Dick Smith System 80 Patched       | eaca80p     |
+| File            | Description                     | Make Target |
+|-----------------|---------------------------------|-------------|
+| EACA80.bin      | System 80 (Official)            | eaca80      |
+| EACA80F.bin     | System 80 FreHd Patched         | eaca80f     |
+| EACA80P.bin     | System 80 Patched               | eaca80p     |
 
 Patches Included Are:
 * Lower Case Support with no character translation
@@ -71,10 +71,10 @@ Unlike other ROM's All features are enabled by default:
 See the following for further details
 https://github.com/kiwisincebirth/TRS-80/blob/main/MODEL1.4.md
 
-| File             | Description                  | Make Target |
-|------------------|------------------------------|-------------|
-| MDL1REV4.bin     | Model I Rev 1.4 (Enhanced)   | model14     |
-| MDL1REV4EACA.bin | System 80 Rev 1.4 (Enhanced) | model14eaca |
+| File             | Description                    | Make Target |
+|------------------|--------------------------------|-------------|
+| MDL1REV4.bin     | Model I Rev 1.4 (Enhanced)     | model14     |
+| MDL1REV4EACA.bin | System 80 Rev 1.4 (Enhanced)   | model14eaca |
 
 
 ### Tandy TRS-80 Model III
@@ -84,13 +84,13 @@ All ROM are based on the Official - V3 - Rev C - 1981 - ROM's.
 See the following for further details
 https://github.com/kiwisincebirth/TRS-80/blob/main/MODEL3.md
 
-| File       | Description                    | Make Target |
-|------------|--------------------------------|-------------|
-| MDL3.bin   | Model III (Official)           | model3      |
-| MDL3P.bin  | Model III - Patched            | model3p     |
-| MDL3F.bin  | Model III - FreHd Patched      | model3f     |
-| MDL3P5.bin | Model III - Patched 50Hz       | model3p50   |
-| MDL3F5.bin | Model III - FreHd Patched 50Hz | model3f50   |
+| File            | Description                     | Make Target |
+|-----------------|---------------------------------|-------------|
+| MDL3.bin        | Model III (Official)            | model3      |
+| MDL3P.bin       | Model III - Patched             | model3p     |
+| MDL3F.bin       | Model III - FreHd Patched       | model3f     |
+| MDL3P5.bin      | Model III - Patched 50Hz        | model3p50   |
+| MDL3F5.bin      | Model III - FreHd Patched 50Hz  | model3f50   |
 
 Patches Included Are:
 * Faster Memory Size? check during startup
@@ -113,8 +113,8 @@ Unlike other ROM's All features are enabled by default:
 See the following for further details
 https://github.com/kiwisincebirth/TRS-80/blob/main/MODEL3.4.md
 
-| File             | Description                     | Make Target |
-|------------------|---------------------------------|-------------|
-| MDL3REV4.bin     | Model I Rev 1.4 (Enhanced)      | model34     |
-| MDL3REV450.bin   | Model I Rev 1.4 (Enhanced 50Hz) | model3450   |
+| File            | Description                     | Make Target |
+|-----------------|---------------------------------|-------------|
+| MDL3REV4.bin    | Model I Rev 1.4 (Enhanced)      | model34     |
+| MDL3REV450.bin  | Model I Rev 1.4 (Enhanced 50Hz) | model3450   |
 
