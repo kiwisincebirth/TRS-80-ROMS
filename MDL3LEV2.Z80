@@ -379,7 +379,6 @@ ROUTE:
 ;  This is part of the Level II initialization procedure. It moves
 ;  several support routine from 18F7H to 191EH up to 4080H to 40A7H.
 ; ----------------------------------------------------------------------
-NONDISK:
 INIT2:	ld	de,FDIVC	;0075 - Ram location - of Level II BASIC support routines.
 	ld	hl,CONSTR	;0078 - Rom Location - of Level II BASIC support routines.
 	ld  bc,CONSTR2-CONSTR+1 ;007b - Size of the Routine(s) to move
