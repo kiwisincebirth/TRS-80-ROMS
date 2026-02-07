@@ -1,3 +1,4 @@
+;
 ; ======================================================================
 ; Shared LEVEL2 BASIC code for TRS-80 MODEL 1 & MODEL 3
 ; ======================================================================
@@ -4931,7 +4932,7 @@ MORLIN:	GETCHR			;1e5e - rst 10h
 	pop	af		;1e6f
 	sub	'0'		;1e70 - Convert the ASCII digit to binary
 	ld	e,a		;1e72
-	ld	d,$00		;1e73 - DE will be binary 0000 through 0009
+	ld	d,0		;1e73 - DE will be binary 0000 through 0009
 	add	hl,de		;1e75
 	ex	de,hl		;1e76
 	pop	hl		;1e77
