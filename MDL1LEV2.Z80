@@ -655,7 +655,7 @@ CTOFF:	push	hl		;01f8 - Save The HL Register
 ; ----------------------------------------------------------------------
 CTON:	ld	a,(hl)		;01fe - char from BASIC program pointer
 	sub	'#'		;01ff - Check for a # character
-	ld	a,$00		;0201 - A default value, doesnt set flags
+	ld	a,0		;0201 - A default value, doesnt set flags
 	jr	nz,DEFDRV	;0203 - Isnt a # char so process default = 0
 	call	GETINT		;0205 - get INT drive number from BASIC program -> DE
 	SYNTAX	(',')		;0208 - rst 08h - See if we have a Comma
@@ -673,11 +673,11 @@ CTON:	ld	a,(hl)		;01fe - char from BASIC program pointer
 ;   All registers are used.
 ; ----------------------------------------------------------------------
 DEFDRV:
-#IFNDEF EACA80
-	ld	(casselect),a	;0212 - Set the requested cassette
+#IFDEF EACA80
+	out	(casport),a	; On Dick Smith System-80 (EACA) use IO port
+	nop
 #ELSE
-	out	(casport),a	;0212 - On Dick Smith System-80 (EACA) use IO port
-	nop			;0214 - Nop since OUT is only 2 byte instruction
+	ld	(casselect),a	;0212 - Set the requested cassette
 #ENDIF
 	push	hl		;0215 - Save HL Register
 	ld	hl,$FF04	;0216 - AND OR flags to turn on the cassette motor
@@ -976,7 +976,7 @@ INLIN:	xor	a		;0361
 	ld	c,b		;0375 - Move lenght of Input to C
 	ld	b,0		;0376 - zero B, so BC has has lenght of Input
 	add	hl,bc		;0378 - end of the Input
-	ld	(hl),$00	;0379 - Save an end of the input terminator
+	ld	(hl),0		;0379 - Save an end of the input terminator
 	ld	hl,(BUFPNT)	;037b - back to start of the input buffer
 	pop	af		;037e
 	pop	bc		;037f
@@ -1016,7 +1016,7 @@ OUTLPT:	push	af		;039c
 	push	de		;039d
 	push	bc		;039e
 	ld	c,a		;039f
-	ld	e,$00		;03a0
+	ld	e,0		;03a0
 	cp	FORMF		;03a2
 	jr	z,LZRPOS	;03a4
 	cp	LINEF		;03a6
@@ -1086,7 +1086,7 @@ CIORTN:	pop	de		;03dd - restore registers from the stack
 ; ----------------------------------------------------------------------
 KBDDRV:	ld	hl,KYBTSS	;03e3 - keyboard work area, Saved Rows (4036)
 	ld	bc,kbdmatrix+1	;03e6 - first keyboard matrix row
-	ld	d,$00		;03e9 - track the keyboard Row
+	ld	d,0		;03e9 - track the keyboard Row
 KEYLP:	ld	a,(bc)		;03eb - get keyboard Row
 KEYLP2:	ld	e,a		;03ec - save keyboard row
 	xor	(hl)		;03ed - compare with saved row
@@ -1181,7 +1181,7 @@ KEYSPL:	rlca			;043d - times 2, as each table row is 2 bytes
 	inc	a		;0442 - if shifted align to tables second Column
 KEYNSF:	ld	hl,KEYTAB	;0443 - Base Address of lookup table
 KEYTRN:	ld	c,a		;0446 - get the key offset address into BC
-	ld	b,$00		;0447
+	ld	b,0		;0447
 	add	hl,bc		;0449 - and add it to the table base address
 	ld	a,(hl)		;044a - get the character to return from the table
 ; ----------------------------------------------------------------------
@@ -1509,11 +1509,11 @@ PRTVT:	ld	a,(ix+3)	;059f - number of lines on the page
 PRTFF:	call	PRTSTA		;05a6 - Call the GET PRINTER STATUS routine
 	jr	nz,PRTFF	;05a9 - Loop back until the printer is ready
 	ld	a,LINEF		;05ab - We print line feed character(s)
-#IFNDEF EACA80
-	ld	(prtstat),a	;05ad - Send the character to the printer port 37E8H
+#IFDEF EACA80
+	nop
+	out	(prtport),a	; On Dick Smith System-80 (EACA) use IO port
 #ELSE
-	nop			;05ad
-	out	(prtport),a	;05ae - On Dick Smith System-80 (EACA) use IO port
+	ld	(prtstat),a	;05ad - Send the character to the printer port 37E8H
 #ENDIF
 	djnz	PRTFF		;05b0 - Loop back until all of the lines have been skipped
 	jr	PRTOP		;05b2 - all lines skipped, reset the line counter and ret
@@ -1524,11 +1524,11 @@ PRTIT:	push	af		;05b4
 PRTIT2:	call	PRTSTA		;05b5 - Call the GET PRINTER STATUS routine
 	jr	nz,PRTIT2	;05b8 - Loop back until the printer is ready
 	pop	af		;05ba
-#IFNDEF EACA80
-	ld	(prtstat),a	;05ad - Send the character to the printer port 37E8H
+#IFDEF EACA80
+	nop
+	out	(prtport),a	; On Dick Smith System-80 (EACA) use IO port
 #ELSE
-	nop			;05bb
-	out	(prtport),a	;05bc - On Dick Smith System-80 (EACA) use IO port
+	ld	(prtstat),a	;05ad - Send the character to the printer port 37E8H
 #ENDIF
 	cp	ENTER		;05be
 	ret	nz		;05c0
@@ -1547,11 +1547,11 @@ PRTOP:	ld	(ix+4),0	;05cc
 ;   zero if the printer is ready, and non-zero if not ready.
 ; ----------------------------------------------------------------------
 PRTSTA:
-#IFNDEF EACA80
-	ld	a,(prtstat)	;05d1 - Get the status value from the printer (37E8H)
+#IFDEF EACA80
+	nop
+	in	a,(prtport)	; On Dick Smith System-80 (EACA) use IO port
 #ELSE
-	nop			;05d1
-	in	a,(prtport)	;05d2 - On Dick Smith System-80 (EACA) use IO port
+	ld	a,(prtstat)	;05d1 - Get the status value from the printer (37E8H)
 #ENDIF
 	and	$F0		;05d4
 	cp	$30		;05d6
@@ -1754,7 +1754,7 @@ BOOT:	ld	a,$01		;069f - Drive 0
 #IFNDEF FREHDBT
 	; FreHD excludes  these 3 bytes for call HDBOOT above (696h)
 	; noting it is expected tha BC = 0000 at this point of the execution
-	ld	bc,$0000	;06ac
+	ld	bc,0		;06ac
 #ENDIF
 	call	DELAY		;06af - delay (BC times 14.65) about 3 seconds
 ;
@@ -2047,7 +2047,7 @@ CLOADR:	ld	l,a		;2C33 And move it to L-reg
 	ld	h,a		;2C36 H=CLOAD?/CLOAD flag, L=file name
 	ld	(FACLO),hl	;2C37 Save flag and file name in WRA1
 	call	z,SCRTCH	;2C3A If CLOAD call NEW routine to initialize system variables
-	ld	hl,$0000	;2C3D This will cause the drive to be selected when
+	ld	hl,0		;2C3D This will cause the drive to be selected when
 	call	CSRDON 		;2C40 We look for leader and synch byte
 ;
 #ELSE
@@ -2065,7 +2065,7 @@ CLOADP:	cpl			;2c29
 	push	af		;2c2b
 	dec	hl		;2c2c
 	GETCHR			;2c2d - rst 10h
-	ld	a,$00		;2c2e
+	ld	a,0		;2c2e
 	jr	z,CLNONM	;2c30
 	call	FRMEVL		;2c32
 	call	ASC2		;2c35

@@ -493,15 +493,8 @@ INCLUDE	"LEVEL2BASIC-012D.Z80"
 ;
 ASSERT $ == $01D9, "Segment: Continuation at $01D9"
 ;
-; ======================================================================
-; ======================================================================
-;
-; ======================================================================
-; LEGACY CASSETTE ROUTINES FOR LEVEL 2 BASIC BACKWARDS COMPATIBILITY
-; ======================================================================
-;
 ; ----------------------------------------------------------------------
-; CASSETTE ROUTINE (EVALUATE DRIVE NUMBER) – “CTON”
+; LEGACY CASSETTE ROUTINE (EVALUATE DRIVE NUMBER) – “CTON”
 ;   This Code was left over after removing all the unneeded code
 ;   but still needed as it updates registers needed by caller
 ; ----------------------------------------------------------------------
@@ -511,10 +504,12 @@ CTON:	ld	a,(hl)		;01fe - char from BASIC program pointer
 	call	GETINT		;0205 - get INT drive number from BASIC program -> DE
 	SYNTAX	(',')		;0208 - rst 08h - See if we have a Comma
 	ret			;021d
-; ----------------------------------------------------------------------
 ;
 ; ======================================================================
-; ROM REGION 1 - (01E9 - 02B1) - Cassette
+; ======================================================================
+;
+; ======================================================================
+; ROM REGION 1 - (01E3 - 02B1) - Cassette
 ; ======================================================================
 ;
 ;
@@ -779,9 +774,9 @@ INLIN:	xor	a		;0361
 	call	KEYIN		;0371 - keyboard input routine, until a CR, a BREAK
 	push	af		;0374
 	ld	c,b		;0375 - Move lenght of Input to C
-	ld	b,0		;0376 - zero B, so BC has has lenght of Input
+	ld	b,0		;0376 - zero B, so BC has has length of Input
 	add	hl,bc		;0378 - end of the Input
-	ld	(hl),$00	;0379 - Save an end of the input terminator
+	ld	(hl),0		;0379 - Save an end of the input terminator
 	ld	hl,(BUFPNT)	;037b - back to start of the input buffer
 	pop	af		;037e
 	pop	bc		;037f
@@ -821,7 +816,7 @@ OUTLPT:	push	af		;039c
 	push	de		;039d
 	push	bc		;039e
 	ld	c,a		;039f
-	ld	e,$00		;03a0
+	ld	e,0		;03a0
 	cp	FORMF		;03a2
 	jr	z,LZRPOS	;03a4
 	cp	LINEF		;03a6
@@ -891,7 +886,7 @@ CIORTN:	pop	de		;03dd - restore registers from the stack
 ; ----------------------------------------------------------------------
 KBDDRV:	ld	hl,KYBTSS	;03e3 - keyboard work area, Saved Rows (4036)
 	ld	bc,kbdmatrix+1	;03e6 - first keyboard matrix row
-	ld	d,$00		;03e9 - track the keyboard Row
+	ld	d,0		;03e9 - track the keyboard Row
 KEYLP:	ld	a,(bc)		;03eb - get keyboard Row
 KEYLP2:	ld	e,a		;03ec - save keyboard row
 	xor	(hl)		;03ed - compare with saved row
@@ -908,7 +903,7 @@ KEYLP2:	ld	e,a		;03ec - save keyboard row
 ;   On entry D contains the row counter
 ;   and A contains the data from the keyboard matrix,
 ; ----------------------------------------------------------------------
-KEYDWN:	ld	e,a		;03fa - column data from the matrix (redundant)
+KEYDWN:	ld	e,a		;03fa - column data from the matrix
 ;
 ; ----------------------------------------------------------------------
 ; 03FBH - Used by TRSDOS 2.3 - SYS0/SYS - to CONTINUE from it own KB Driver ($43FB)
@@ -986,8 +981,8 @@ KEYSPL:	rlca			;043d - times 2, as each table row is 2 bytes
 	jr	nc,KEYNSF	;0440 - If not Shifted skip next instruction
 	inc	a		;0442 - if shifted align to tables second Column
 KEYNSF:	ld	hl,KEYTAB	;0443 - Base Address of lookup table
-KEYTRN:	ld	c,a		;0446 - get the offset address into BC
-	ld	b,$00		;0447
+KEYTRN:	ld	c,a		;0446 - get the key offset address into BC
+	ld	b,0		;0447
 	add	hl,bc		;0449 - and add it to the table base address
 	ld	a,(hl)		;044a - get the character to return from the table
 ; ----------------------------------------------------------------------
@@ -1315,11 +1310,11 @@ PRTVT:	ld	a,(ix+3)	;059f - number of lines on the page
 PRTFF:	call	PRTSTA		;05a6 - Call the GET PRINTER STATUS routine
 	jr	nz,PRTFF	;05a9 - Loop back until the printer is ready
 	ld	a,LINEF		;05ab - We print line feed character(s)
-#IFNDEF EACA80
-	ld	(prtstat),a	;05ad - Send the character to the printer port 37E8H
+#IFDEF EACA80
+	nop
+	out	(prtport),a	; On Dick Smith System-80 (EACA) use IO port
 #ELSE
-	nop			;05ad
-	out	(prtport),a	;05ae - On Dick Smith System-80 (EACA) use IO port
+	ld	(prtstat),a	;05ad - Send the character to the printer port 37E8H
 #ENDIF
 	djnz	PRTFF		;05b0 - Loop back until all of the lines have been skipped
 	jr	PRTOP		;05b2 - all lines skipped, reset the line counter and ret
@@ -1330,11 +1325,11 @@ PRTIT:	push	af		;05b4
 PRTIT2:	call	PRTSTA		;05b5 - Call the GET PRINTER STATUS routine
 	jr	nz,PRTIT2	;05b8 - Loop back until the printer is ready
 	pop	af		;05ba
-#IFNDEF EACA80
-	ld	(prtstat),a	;05ad - Send the character to the printer port 37E8H
+#IFDEF EACA80
+	nop
+	out	(prtport),a	; On Dick Smith System-80 (EACA) use IO port
 #ELSE
-	nop			;05bb
-	out	(prtport),a	;05bc - On Dick Smith System-80 (EACA) use IO port
+	ld	(prtstat),a	;05ad - Send the character to the printer port 37E8H
 #ENDIF
 	cp	ENTER		;05be
 	ret	nz		;05c0
@@ -1353,11 +1348,11 @@ PRTOP:	ld	(ix+4),0	;05cc
 ;   zero if the printer is ready, and non-zero if not ready.
 ; ----------------------------------------------------------------------
 PRTSTA:
-#IFNDEF EACA80
-	ld	a,(prtstat)	;05d1 - Get the status value from the printer (37E8H)
+#IFDEF EACA80
+	nop
+	in	a,(prtport)	; On Dick Smith System-80 (EACA) use IO port
 #ELSE
-	nop			;05d1
-	in	a,(prtport)	;05d2 - On Dick Smith System-80 (EACA) use IO port
+	ld	a,(prtstat)	;05d1 - Get the status value from the printer (37E8H)
 #ENDIF
 	and	$F0		;05d4
 	cp	$30		;05d6
@@ -1571,7 +1566,7 @@ BOOT:	ld	a,$01		;069f - Drive 0
 	ld	hl,diskstat	;06a4 - address of the disk command/status Register 37ECH
 	ld	de,diskdata	;06a7 - address of the disk data Register (37EFH)
 	ld	(hl),$03	;06aa - command 03H (RESTORE and POSITION TO TRACK 0)
-	ld	bc,$0000	;06ac
+	ld	bc,0		;06ac
 	call	DELAY		;06af - delay (BC times 14.65) about 3 seconds
 ;
 BOOTDL:	bit	0,(hl)		;06b2 - is the diskette controller is busy

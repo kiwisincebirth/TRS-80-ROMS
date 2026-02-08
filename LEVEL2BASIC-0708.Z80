@@ -5529,6 +5529,8 @@ FINPRT:
 ; LEGACY CASSETTE ROUTINE (TURN ON CASSETTE AND WRITE LEADER) – “CWRTON”
 ;   This Code was left over after removing all the unneeded code
 ;   but still needed as it updates registers needed by caller
+;
+; Originally this code was located at $0284, but was moved here
 ; Filling Gap after code removal (2169h) above
 ; ----------------------------------------------------------------------
 CWRTON: call	CTON		;0284

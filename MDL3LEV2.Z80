@@ -927,7 +927,7 @@ INLIN:	xor	a		;0361
 	ld	c,b		;0375 - Move lenght of Input to C
 	ld	b,0		;0376 - zero B, so BC has has lenght of Input
 	add	hl,bc		;0378 - end of the Input
-	ld	(hl),$00	;0379 - Save an end of the input terminator
+	ld	(hl),0		;0379 - Save an end of the input terminator
 	ld	hl,(BUFPNT)	;037b - back to start of the input buffer
 	pop	af		;037e
 	pop	bc		;037f
@@ -967,7 +967,7 @@ OUTLPT:	push	af		;039c
 	push	de		;039d
 	push	bc		;039e
 	ld	c,a		;039f
-	ld	e,$00		;03a0
+	ld	e,0		;03a0
 	cp	FORMF		;03a2
 	jr	z,LZRPOS	;03a4
 	cp	LINEF		;03a6
@@ -1982,7 +1982,7 @@ CLOADR:	ld	l,a		;2C33 And move it to L-reg
 	ld	h,a		;2C36 H=CLOAD?/CLOAD flag, L=file name
 	ld	(FACLO),hl	;2C37 Save flag and file name in WRA1
 	call	z,SCRTCH	;2C3A If CLOAD call NEW routine to initialize system variables
-	ld	hl,$0000	;2C3D This will cause the drive to be selected when
+	ld	hl,0		;2C3D This will cause the drive to be selected when
 	call	CSRDON 		;2C40 We look for leader and synch byte
 	ld	hl,(FACLO)	;2c43
 	ex	de,hl		;2c46
@@ -2578,7 +2578,7 @@ FASTREAD2:
 	jr 	nc,FASTREAD1	;32f1 - Loop back if the pulse width was too long
 	djnz 	FASTREAD2	;32f3 - Loop back to 32E7H 128 times.
 FASTREAD3:
-	ld 	hl,$0000	;32f5 - A BIT COUNTER
+	ld 	hl,0		;32f5 - A BIT COUNTER
 	ld 	b,64		;32f8 - setup a loop of 64 (read 64 bits)
 FASTREAD4:
 	call 	READBIT		;32fa - READ A BIT

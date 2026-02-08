@@ -673,12 +673,8 @@ CLKOFF:
 	res 	0,a		;02a4 - reset the BIT
 	jr 	WRITEC		;02a6 - Write the $EC shadow register
 ;
-; ======================================================================
-; LEGACY CASSETTE ROUTINES FOR LEVEL 2 BASIC BACKWARDS COMPATIBILITY
-; ======================================================================
-;
 ; ----------------------------------------------------------------------
-; CASSETTE ROUTINE (EVALUATE DRIVE NUMBER) – “CTON”
+; LEGACY CASSETTE ROUTINE (EVALUATE DRIVE NUMBER) – “CTON”
 ;   This Code was left over after removing all the unneeded code
 ;   but still needed as it updates registers needed by caller
 ; ----------------------------------------------------------------------
@@ -929,7 +925,7 @@ INLIN:	xor	a		;0361
 	ld	c,b		;0375 - Move lenght of Input to C
 	ld	b,0		;0376 - zero B, so BC has has lenght of Input
 	add	hl,bc		;0378 - end of the Input
-	ld	(hl),$00	;0379 - Save an end of the input terminator
+	ld	(hl),0		;0379 - Save an end of the input terminator
 	ld	hl,(BUFPNT)	;037b - back to start of the input buffer
 	pop	af		;037e
 	pop	bc		;037f
@@ -969,7 +965,7 @@ OUTLPT:	push	af		;039c
 	push	de		;039d
 	push	bc		;039e
 	ld	c,a		;039f
-	ld	e,$00		;03a0
+	ld	e,0		;03a0
 	cp	FORMF		;03a2
 	jr	z,LZRPOS	;03a4
 	cp	LINEF		;03a6
