@@ -111,22 +111,19 @@ By removing the cassette routines several large regions have opened up.
 Any fix/improvement can add its code (to these larger regions) without worrying 
 about other code that may exist (or not). This makes it much simpler and easy to maintain
 
-The Model I Rom has 3 large regions of usage space left over from cassette removal
+The Model I Rom has 2 large regions of usage space left over from cassette removal
 
-| Region | Address        | Capacity  | Available | Formally             |
-|--------|----------------|-----------|-----------|----------------------|
-| 1      | $01E9 - $02B1  | 201 bytes | 201 bytes | Cassette IO Routines |
-| 2      | $02D7 - $0329  | 82 bytes  | 8 bytes   | SYSTEM Tape Loader   |
-| 3      | $2BF5 - $2CA4  | 175 bytes | 55 bytes  | CLOAD CSAVE          |
+| Region | Address       | Capacity  | Available | Formally            |
+|--------|---------------|-----------|-----------|---------------------|
+| 1      | $01E9 - $0329 | 320 bytes | 301 bytes | Cassette IO, SYSTEM |
+| 2      | $2BF5 - $2CA4 | 175 bytes | 6 bytes   | CLOAD CSAVE         |
 
-As at 29/Jan/26 there were 264 bytes free (easily utilised) in the ROM.
-Plus another 53 bytes (4 very small regions) which could be utilised 
-with some additional effort. (9,10,7,27)
+As at 8/Feb/26 there were 307 bytes free (easily utilised) in the ROM.
 
 The build output has a listing of the available free space in the ROMS.
 
-| Region | Contents                              |
-|--------|---------------------------------------|
-| 1      | -nil-                                 |
-| 2      | BUGFIX1 thru BUGFIX13, KEYBOUNCE      |
-| 3      | MSGSTART, FREHDBT, NEWBOOT, NOMEMSIZE |
+| Region | Contents                                 |
+|--------|------------------------------------------|
+| 1      | SYSTEM, FREHDBT                          |
+| 2      | MSGSTART, NOMEMSIZE, NEWBOOT, KEYBOUNCE  |
+|        | BUGFIX1 thru BUGFIX13                    |

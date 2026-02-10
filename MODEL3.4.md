@@ -106,23 +106,23 @@ about other code that may exist (or not). This makes it much simpler and easy to
 
 The Model III ROM has 5 main regions of usage space left over from cassette removal
 
-| Region | Address       | Capacity  | Available | Formally             |
-|--------|---------------|-----------|-----------|----------------------|
-| 0      | $0232 - $0266 | 52 bytes  | 52 bytes  | Misc Cassette        |
-| 1      | $02D7 - $032A | 83 bytes  | 27 bytes  | SYSTEM Tape Loader   |
-| 2      | $2BF5 - $2CA4 | 176 bytes | 133 bytes | CLOAD CSAVE          |
-| 3      | $3145 - $338D | 489 bytes | 489 bytes | Cassette IO Routines |
-| 4      | $37AF - $37DC | 45 bytes  | 5 bytes   | Cassette?            |
+| Region | Address       | Capacity  | Available | Formally         |
+|--------|---------------|-----------|-----------|------------------|
+| 0      | $0232 - $0266 | 52 bytes  | 3 bytes   | Misc Cassette    |
+| 1      | $02A8 - $032A | 130 bytes | 101 bytes | SYSTEM           |
+| 2      | $2BF5 - $2CA4 | 176 bytes | 153 bytes | CLOAD CSAVE      |
+| 3      | $3145 - $338D | 489 bytes | 489 bytes | Cassette IO      |
+| 4      | $37AF - $37DC | 45 bytes  | 5 bytes   | Cassette? Prompt |
 
-As at 31/Jan/26 there were 652 bytes free (easily utilised) in the ROM.
+As at 8/Feb/26 there were 748 bytes free (easily utilised) in the ROM.
 Future removal of the Printer Translation table could free an additional 96 bytes.
 
 The build output has a listing of the available free space in the ROMS.
 
 | Region | Contents              |
 |--------|-----------------------|
-| 0      | -nil-                 |
-| 1      | BUGFIX1 thru BUGFIX13 |
-| 2      | FREHDBOOT, NOMEMSIZE  | 
+| 0      | BUGFIX1 thru BUGFIX11 |
+| 1      | NOMEMSIZE, BUGFIX13   |
+| 2      | SYSTEM, FREHDBOOT     | 
 | 3      | -nil-                 |
 | 4      | MSGSTART, BUGFIX27    | 

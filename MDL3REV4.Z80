@@ -32,6 +32,7 @@
 #DEFINE NOMEMSIZE ; Skip Memory Size? prompt
 #DEFINE FASTMEM ; Fast Memory Size Check (00C4)
 #DEFINE MSGSTART ; Enhanced Startup Message
+;#DEFINE SYSTEMCMD ; Enable the BASIC SYSTEM Command
 ;
 ; Build Features
 ; #DEFINE SIZE16K ; Uncomment to build a $FF padded 16K Image for banked ROM
@@ -608,112 +609,6 @@ READYE:
 ;
 ; ======================================================================
 ; ROM REGION 0 ( 0232 - 0266 )
-;
-; noting there are probably another 16 byes just
-; below this which could also be recovered.
-; ======================================================================
-;
-;
-;
-; ======================================================================
-	DEFC	R0FREE	= $0266 - $
-	PUBLIC	R0FREE
-	DEFS	$0266 - $
-; ======================================================================
-;
-; -------------------------------------------------------
-; 0266 - Storage location for TIME related constants
-; -------------------------------------------------------
-;
-TIMEDATA:
-	DEFB	60, 60, 24 		;0266 - max time data (60 seconds, 60 minutes, 24 hours)
-	DEFB	31, 28, 31, 30, 31, 30	;0269 - twelve bytes which contain the length of each of the twelve months
-	DEFB	31, 31, 30, 31, 30, 31
-	DEFB	0, 0			;0275 UNUSED
-;
-MSGDISK:
-	DEFB	CLINE			;0277 Start of Line
-	DEFB	ELINE			;0278 Erase to EOL
-	DEFB	"Diskette?", ETX 	;0279 Message Space, with $03 Terminator
-;
-	DEFS	$028D - $
-;
-; -------------------------------------------------------
-; 028DH - "$KBBRK" - Check for a BREAK key only.
-;   This is a fast key scan routine which looks solely for the BREAK key.
-;   Use this routine if you want to minimize the keyboard scan time
-;   without totally locking out the keyboard.
-;   On exit NZ will be set if BREAK was set. This subroutine is called by 0444H
-;   (in the middle of the PRINTER ROUTINE) to check for a BREAK key.
-; -------------------------------------------------------
-KBBRK:
-	ld   a,(kbdmatrix+$40)	;028d - scan the break key line
-	and  $04		;0290 - check for the break key
-	ret			;0292
-;
-	DEFS	$0298 - $
-;
-; -------------------------------------------------------
-; 0298 - Enable the Clock Display - "CLKON"
-;   No entry conditions. A is altered by this routine.
-; -------------------------------------------------------
-CLKON:
-	ld 	a,(SHADEC)	;0298 - shadow Port EC
-	set 	0,a		;029b - set the bit
-WRITEC:
-	ld 	(SHADEC),a	;029d - Shadow Port EC
-	ret			;02a0
-;
-; -------------------------------------------------------
-; 02A1 - Disable the Clock Display - "CLKOFF"
-;   No entry conditions. A is altered by this routine.
-; -------------------------------------------------------
-CLKOFF:
-	ld 	a,(SHADEC)	;02a1 - 4210H holds the bit mask for port ECH. Port ECH stores miscellaneous controls.
-	res 	0,a		;02a4 - reset the BIT
-	jr 	WRITEC		;02a6 - Write the $EC shadow register
-;
-; ----------------------------------------------------------------------
-; LEGACY CASSETTE ROUTINE (EVALUATE DRIVE NUMBER) – “CTON”
-;   This Code was left over after removing all the unneeded code
-;   but still needed as it updates registers needed by caller
-; ----------------------------------------------------------------------
-CTON:	ld	a,(hl)		;01fe - char from BASIC program pointer
-	sub	'#'		;01ff - Check for a # character
-	ret	nz		;0203 - Isnt a # char so nothing to do
-	call	GETINT		;0205 - get INT drive number from BASIC program -> DE
-	SYNTAX	(',')		;0208 - rst 08h - See if we have a Comma
-	ret			;021d
-;
-	DEFS	$02B2 - $
-;
-; ----------------------------------------------------------------------
-; 02B2 – LEVEL II BASIC SYSTEM ROUTINE – “SYSTEM”
-; ----------------------------------------------------------------------
-SYSTEM:	call	SYSOUT		;02b2 - Call the DOS exit for system command at 41E2H.
-	ld	sp,SYSSTK	;02b5 - Set the STACK pointer to the assumed load address.
-	; This location passes control to the routine used by the BASIC command SYSTEM.
-	call	CRDO		;02b8 - display a carriage return on the video display
-	ld	a,'*'		;02bb
-	call	OUTDO		;02bd - Display a * character on the video display.
-	call	QINLIN		;02c0 - get the input from the keyboard
-	jp	c,RESETR	;02c3 - If BREAK key, JMP 06CC entry. BUG 29
-	GETCHR			;02c6 - rst 10h - first byte of user input
-	jp	z,SNERR		;02c7 - if no input then a syntax error
-	cp	'/'		;02ca - check for a slash command
-;
-; Rest of SYSTEM Code was removed/changed to remove cassette functionality
-; Code below was moved up (see original addresses), and modified slightly
-;
-	jp	nz,SNERR	;IF NOT a "/" command then a syntax error
-GODO:	GETCHR			;0322 - rst 10h
-	call	LINGET		;0323 - Convert to ascii string
-	jr	nz,SYSTEM	;0326 - if no address defined Display * prompt
-	ex	de,hl		;0328 - execution address into HL
-	jp	(hl)		;0329 - jump to execution address
-;
-; ======================================================================
-; ROM REGION 1 - (02D7 - 032A) - System
 ; ======================================================================
 ;
 ; ----------------------------------------------------------------------
@@ -761,7 +656,6 @@ SINGLEFIX:
 	PUBLIC 	BUGFIX2_BYTES
 #ENDIF
 ;
-; ----------------------------------------------------------------------
 ; BUGFIX7 - Space after Type declaration Tag
 ; ----------------------------------------------------------------------
 ;
@@ -818,6 +712,80 @@ INTNXTOVER:
 	PUBLIC 	BUGFIX11_BYTES
 #ENDIF
 ;
+; ======================================================================
+; END ROM REGION 0
+;
+	DEFC	R0FREE	= $0266 - $
+	PUBLIC	R0FREE
+	DEFS	$0266 - $
+; ======================================================================
+;
+; -------------------------------------------------------
+; 0266 - Storage location for TIME related constants
+; -------------------------------------------------------
+;
+TIMEDATA:
+	DEFB	60, 60, 24 		;0266 - max time data (60 seconds, 60 minutes, 24 hours)
+	DEFB	31, 28, 31, 30, 31, 30	;0269 - twelve bytes which contain the length of each of the twelve months
+	DEFB	31, 31, 30, 31, 30, 31
+	DEFB	0, 0			;0275 UNUSED
+;
+MSGDISK:
+	DEFB	CLINE			;0277 Start of Line
+	DEFB	ELINE			;0278 Erase to EOL
+	DEFB	"Diskette?", ETX 	;0279 Message Space, with $03 Terminator
+;
+; ----------------------------------------------------------------------
+; LEGACY CASSETTE ROUTINE (EVALUATE DRIVE NUMBER) – “CTON”
+;   This Code was left over after removing all the unneeded code
+;   but still needed as it updates registers needed by caller
+; ----------------------------------------------------------------------
+CTON:	ld	a,(hl)		; char from BASIC program pointer
+	sub	'#'		; Check for a # character
+	ret	nz		; Isnt a # char so nothing to do
+	call	GETINT		; get INT drive number from BASIC program -> DE
+	SYNTAX	(',')		; rst 08h - See if we have a Comma
+	ret
+;
+; -------------------------------------------------------
+; 028DH - "$KBBRK" - Check for a BREAK key only.
+;   This is a fast key scan routine which looks solely for the BREAK key.
+;   Use this routine if you want to minimize the keyboard scan time
+;   without totally locking out the keyboard.
+;   On exit NZ will be set if BREAK was set. This subroutine is called by 0444H
+;   (in the middle of the PRINTER ROUTINE) to check for a BREAK key.
+; -------------------------------------------------------
+KBBRK:
+	ld   a,(kbdmatrix+$40)	;028d - scan the break key line
+	and  $04		;0290 - check for the break key
+	ret			;0292
+;
+	DEFS	$0298 - $
+;
+; -------------------------------------------------------
+; 0298 - Enable the Clock Display - "CLKON"
+;   No entry conditions. A is altered by this routine.
+; -------------------------------------------------------
+CLKON:
+	ld 	a,(SHADEC)	;0298 - shadow Port EC
+	set 	0,a		;029b - set the bit
+WRITEC:
+	ld 	(SHADEC),a	;029d - Shadow Port EC
+	ret			;02a0
+;
+; -------------------------------------------------------
+; 02A1 - Disable the Clock Display - "CLKOFF"
+;   No entry conditions. A is altered by this routine.
+; -------------------------------------------------------
+CLKOFF:
+	ld 	a,(SHADEC)	;02a1 - 4210H holds the bit mask for port ECH. Port ECH stores miscellaneous controls.
+	res 	0,a		;02a4 - reset the BIT
+	jr 	WRITEC		;02a6 - Write the $EC shadow register
+;
+; ======================================================================
+; ROM REGION 1 - (02A8 - 032A) - System
+; ======================================================================
+;
 ; ----------------------------------------------------------------------
 ; BUGFIX13 - Display of Single Precision Numbers
 ; ----------------------------------------------------------------------
@@ -835,7 +803,35 @@ FOUNDBFIX:
 	PUBLIC 	BUGFIX13_BYTES
 #ENDIF
 ;
+; ----------------------------------------------------------------------
+; Bypass Memory Size Prompt (CREDIT : JOHN SWIDERSKI)
+; ----------------------------------------------------------------------
+#IFDEF NOMEMSIZE
+;
+SKIPMEMORY:
+	ld	a,(kbdmatrix+$02) ; check BREAK or "M" while waiting
+	and	$20		; the BREAK key or M Key
+; Following worked on Model 1, but not model 3
+;	call	_KBD		; Read char from KBD into A
+;	cp	'M'		; was it the M key being pressed
+	jp	z,MEMTST	; If NOT "M" key SKIP Memory Size? - perform Mem test.
+	call	CLS		; clears the screen
+	jp	MEMGET		; ASK User for Memory Size ?
+;
+KBBRKM:
+	ld	a,(kbdmatrix+$42) ; check BREAK or "M" while waiting
+	and	$24		; the BREAK key or M Key
+	ret
+; ----------------------------------------------------------------------
+	DEFC 	NOMEMSIZE_ENABLED = 1
+	PUBLIC 	NOMEMSIZE_ENABLED
+	DEFC 	NOMEMSIZE_BYTES = $ - SKIPMEMORY
+	PUBLIC 	NOMEMSIZE_BYTES
+#ENDIF
+;
 ; ======================================================================
+; END ROM REGION 1
+;
 	DEFC	R1FREE	= $032A - $
 	PUBLIC	R1FREE
 	DEFS	$032A - $
@@ -1958,6 +1954,35 @@ MLOOP:	ld	a,(de)		;2be8
 ; ROM REGION 2 ( 2BF5 - 2CA5 ) CLOAD CSAVE
 ; ======================================================================
 ;
+#IFDEF SYSTEMCMD
+;
+; ----------------------------------------------------------------------
+; LEVEL II BASIC SYSTEM ROUTINE – “SYSTEM”
+; ----------------------------------------------------------------------
+SYSTEM:	call	SYSOUT		;02b2 - Call the DOS exit for system command at 41E2H.
+	ld	sp,SYSSTK	;02b5 - Set the STACK pointer to the assumed load address.
+	; This location passes control to the routine used by the BASIC command SYSTEM.
+	call	CRDO		;02b8 - display a carriage return on the video display
+	ld	a,'*'		;02bb
+	call	OUTDO		;02bd - Display a * character on the video display.
+	call	QINLIN		;02c0 - get the input from the keyboard
+	jp	c,RESETR	;02c3 - If BREAK key, JMP 06CC entry. BUG 29
+	GETCHR			;02c6 - rst 10h - first byte of user input
+	jp	z,SNERR		;02c7 - if no input then a syntax error
+	cp	'/'		;02ca - check for a slash command
+;
+; Rest of SYSTEM Code was removed/changed to remove cassette functionality
+; Code below was moved up (see original addresses), and modified slightly
+;
+	jp	nz,SNERR	;IF NOT a "/" command then a syntax error
+GODO:	GETCHR			;0322 - rst 10h
+	call	LINGET		;0323 - Convert to ascii string
+	jr	nz,SYSTEM	;0326 - if no address defined Display * prompt
+	ex	de,hl		;0328 - execution address into HL
+	jp	(hl)		;0329 - jump to execution address
+;
+#ENDIF
+;
 ; ----------------------------------------------------------------------
 ; FREHDBOOT - FreHD HD bootup routine
 ; ----------------------------------------------------------------------
@@ -1984,33 +2009,9 @@ FREHDBOOT:
 	PUBLIC 	FREHDBT_BYTES
 #ENDIF
 ;
-; ----------------------------------------------------------------------
-; Bypass Memory Size Prompt (CREDIT : JOHN SWIDERSKI)
-; ----------------------------------------------------------------------
-#IFDEF NOMEMSIZE
-;
-SKIPMEMORY:
-	ld	a,(kbdmatrix+$02) ; check BREAK or "M" while waiting
-	and	$20		; the BREAK key or M Key
-; Following worked on Model 1, but not model 3
-;	call	_KBD		; Read char from KBD into A
-;	cp	'M'		; was it the M key being pressed
-	jp	z,MEMTST	; If NOT "M" key SKIP Memory Size? - perform Mem test.
-	call	CLS		; clears the screen
-	jp	MEMGET		; ASK User for Memory Size ?
-;
-KBBRKM:
-	ld	a,(kbdmatrix+$42) ; check BREAK or "M" while waiting
-	and	$24		; the BREAK key or M Key
-	ret
-; ----------------------------------------------------------------------
-	DEFC 	NOMEMSIZE_ENABLED = 1
-	PUBLIC 	NOMEMSIZE_ENABLED
-	DEFC 	NOMEMSIZE_BYTES = $ - SKIPMEMORY
-	PUBLIC 	NOMEMSIZE_BYTES
-#ENDIF
-;
 ; ======================================================================
+; END ROM REGION 2
+;
 	DEFC	R2FREE	= $2CA5 - $
 	PUBLIC	R2FREE
 	DEFS	$2CA5 - $
@@ -2256,6 +2257,8 @@ PRTABLE:
 ; ======================================================================
 ;
 ; ======================================================================
+; END ROM REGION 3
+;
 	DEFC	R3FREE	= $338E - $
 	PUBLIC	R3FREE
 	DEFS	$338E - $
@@ -3140,6 +3143,8 @@ STARTMESSAGE:
 #ENDIF
 ;
 ; ======================================================================
+; END ROM REGION 4
+;
 	DEFC	R4FREE	= $37DC - $
 	PUBLIC	R4FREE
 	DEFS	$37DC - $

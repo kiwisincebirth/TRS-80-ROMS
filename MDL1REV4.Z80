@@ -39,6 +39,7 @@
 ;
 ; Rom 1.3 Features (can be disabled to save space)
 #DEFINE KEYBOUNCE ; Enable 1.3 Keyboard Debounce (03FBh)
+;#DEFINE SYSTEMCMD ; Enable the BASIC SYSTEM (limited) Command
 ;
 ; Build Features
 ; #DEFINE SIZE16K ; Uncomment to build a $FF padded 16K Image for banked ROM
@@ -498,32 +499,23 @@ ASSERT $ == $01D9, "Segment: Continuation at $01D9"
 ;   This Code was left over after removing all the unneeded code
 ;   but still needed as it updates registers needed by caller
 ; ----------------------------------------------------------------------
-CTON:	ld	a,(hl)		;01fe - char from BASIC program pointer
-	sub	'#'		;01ff - Check for a # character
-	ret	nz		;0203 - Isnt a # char so nothing to do
-	call	GETINT		;0205 - get INT drive number from BASIC program -> DE
-	SYNTAX	(',')		;0208 - rst 08h - See if we have a Comma
-	ret			;021d
+CTON:	ld	a,(hl)		; char from BASIC program pointer
+	sub	'#'		; Check for a # character
+	ret	nz		; Isnt a # char so nothing to do
+	call	GETINT		; get INT drive number from BASIC program -> DE
+	SYNTAX	(',')		; rst 08h - See if we have a Comma
+	ret
 ;
 ; ======================================================================
-; ======================================================================
-;
-; ======================================================================
-; ROM REGION 1 - (01E3 - 02B1) - Cassette
-; ======================================================================
-;
-;
-; ======================================================================
-; END ROM REGION 1
-;
-	DEFC	R1FREE	= $02B2 - $
-	PUBLIC	R1FREE
-	DEFS	$02B2 - $
+; ROM REGION 1 - (01E3 - 0329) - Cassette IO and SYSTEM
 ; ======================================================================
 ;
 ; ----------------------------------------------------------------------
-; 02B2 – LEVEL II BASIC SYSTEM ROUTINE – “SYSTEM”
+; LEVEL II BASIC SYSTEM ROUTINE – “SYSTEM”
 ; ----------------------------------------------------------------------
+;
+#IFDEF SYSTEMCMD
+;
 SYSTEM:	call	SYSOUT		;02b2 - Call the DOS exit for system command at 41E2H.
 	ld	sp,SYSSTK	;02b5 - Set the STACK pointer to the assumed load address.
 	; This location passes control to the routine used by the BASIC command SYSTEM.
@@ -546,159 +538,41 @@ GODO:	GETCHR			;0322 - rst 10h
 	ex	de,hl		;0328 - execution address into HL
 	jp	(hl)		;0329 - jump to execution address
 ;
+; ----------------------------------------------------------------------
+	DEFC 	SYSTEMCMD_ENABLED = 1
+	PUBLIC 	SYSTEMCMD_ENABLED
+	DEFC 	SYSTEMCMD_BYTES = $ - SYSTEM
+	PUBLIC 	SYSTEMCMD_BYTES
+#ENDIF
+;
+; ----------------------------------------------------------------------
+; FREHDBOOT - FreHD HD bootup routine
+; ----------------------------------------------------------------------
+#IFDEF FREHDBT
+;
+FREHDBOOT:	call	CLS		;0069 - Clear Screen
+	call	DELAY		;006c - pause for a few seconds
+	ld	a,ROM_MODEL_1	;00ff - ROM parameter to FreHD. 1 for Model1.
+        out	(WRITEROM),a	;0101 - write the value
+        in	a,(READROM)	;0103 - read response
+        cp	0FEh		;0105 - FE is FreHD present and valid code!
+        ret	nz		;0107 - return if no FreHD or old firmware
+        ld	hl,ROM_LOAD	;0108 - load more "rom" from FreHD
+        ld	bc,READROM	;010b - port to read and size counter
+        inir			;010e - bulk transfer
+        jp	ROM_LOAD	;0110 - jump to loader in RAM, (which may performa RET)
+; ----------------------------------------------------------------------
+	DEFC 	FREHDBT_ENABLED = 1
+	PUBLIC 	FREHDBT_ENABLED
+	DEFC 	FREHDBT_BYTES = $ - FREHDBOOT
+	PUBLIC 	FREHDBT_BYTES
+#ENDIF
+
 ; ======================================================================
-; ROM REGION 2 - (02D7 - 0329) - System
-; ======================================================================
+; END ROM REGION 1
 ;
-; ----------------------------------------------------------------------
-; BUGFIX1 - 32 Character Mode Line Length fixed
-; ----------------------------------------------------------------------
-;
-#IFDEF BUGFIX1
-;
-DSPLINLTH:
-	ld	a,(CAST)	; get shadow copy of Cassette port
-	and	CAST32		; check if 32 char mode
-	ld	a,64		; assume 64 line length
-	ret	z		; flag not set so return the 64
-	srl	a		; set 32 line length
-	ret			; and return it.
-;
-; ----------------------------------------------------------------------
-	DEFC 	BUGFIX1_ENABLED = 1
-	PUBLIC 	BUGFIX1_ENABLED
-	DEFC 	BUGFIX1_BYTES = $ - DSPLINLTH
-	PUBLIC 	BUGFIX1_BYTES
-#ENDIF
-;
-; ----------------------------------------------------------------------
-; BUGFIX2 - Random Number Single Precision Overrun
-; ----------------------------------------------------------------------
-;
-#IFDEF BUGFIX2
-;
-RND0FIX:
-	call	NORMAL		;153e - Call normalise - then apply fixes
-				; Fall through, and RET
-;
-SINGLEFIX:
-	; NOTING This routine is also used by BugFix 13
-	GETYPE			; check the type in ACCumulator
-	ret	nc		; ignore a double value
-	ld	a,(FACLO)	; Get LSB byte from Single
-	and	$F0		; truncate the LSB bits off the SINGLE mantissa
-	ld	(FACLO),a	; Store it back
-	ret
-;
-; ----------------------------------------------------------------------
-	DEFC 	BUGFIX2_ENABLED = 1
-	PUBLIC 	BUGFIX2_ENABLED
-	DEFC 	BUGFIX2_BYTES = $ - RND0FIX
-	PUBLIC 	BUGFIX2_BYTES
-#ENDIF
-;
-; ----------------------------------------------------------------------
-; BUGFIX7 - Space after Type declaration Tag
-; ----------------------------------------------------------------------
-;
-#IFDEF BUGFIX7
-;
-INFINEFIX:
-	inc	hl		; next program byte
-	ld	a,(hl)		; get program byte
-	cp	SPACE		; Is it a space
-	jp 	nz,FINE		; NOT - Continue (return)
-	jr	INFINEFIX	; loop around
-; ----------------------------------------------------------------------
-	DEFC 	BUGFIX7_ENABLED = 1
-	PUBLIC 	BUGFIX7_ENABLED
-	DEFC 	BUGFIX7_BYTES = $ - INFINEFIX
-	PUBLIC 	BUGFIX7_BYTES
-#ENDIF
-;
-; ----------------------------------------------------------------------
-; BUGFIX7C - Space after TAB keyword
-; ----------------------------------------------------------------------
-;
-#IFDEF BUGFIX7C
-;
-TABERFIX:
-	GETCHR			; get next char - RST 10
-	cp	')'		; if close bracket
-	ret	z		; found closing bracket, continue normally
-	dec	hl		; not a closing bracket, so DONT consume it.
-	ret
-; ----------------------------------------------------------------------
-	DEFC 	BUGFIX7C_ENABLED = 1
-	PUBLIC 	BUGFIX7C_ENABLED
-	DEFC 	BUGFIX7C_BYTES = $ - TABERFIX
-	PUBLIC 	BUGFIX7C_BYTES
-#ENDIF
-;
-; ----------------------------------------------------------------------
-; BUGFIX11 - Overflow on Integer FOR loop
-; ----------------------------------------------------------------------
-;
-#IFDEF BUGFIX11
-;
-INTNXTOVER:
-	pop	hl		; restore the loop variable pointer (2305)
-	pop	hl		; restore the for entry pointer (2309)
-	ld	bc,6		; need to consume 6 more bytes off the stack
-	add	hl,bc		; which is passed as HL into the next routine
-	jp	LOOPDN		; Normal NEXT completion of loop
-; ----------------------------------------------------------------------
-	DEFC 	BUGFIX11_ENABLED = 1
-	PUBLIC 	BUGFIX11_ENABLED
-	DEFC 	BUGFIX11_BYTES = $ - INTNXTOVER
-	PUBLIC 	BUGFIX11_BYTES
-#ENDIF
-;
-; ----------------------------------------------------------------------
-; BUGFIX13 - Display of Single Precision Numbers
-; ----------------------------------------------------------------------
-;
-#IFDEF BUGFIX13
-;
-FOUNDBFIX:
-	call	SINGLEFIX	; apply the fix - See BUGFIX 2 for this routine
-	call	FOUNVC		;1222 - compare the ACCumulator to 999999.5
-	jp	FOUNDV1		; continue
-; ----------------------------------------------------------------------
-	DEFC 	BUGFIX13_ENABLED = 1
-	PUBLIC 	BUGFIX13_ENABLED
-	DEFC 	BUGFIX13_BYTES = $ - FOUNDBFIX
-	PUBLIC 	BUGFIX13_BYTES
-#ENDIF
-;
-; ----------------------------------------------------------------------
-; KEYBOUNCE - Routine Added to V1.3 ROMS
-; ----------------------------------------------------------------------
-#IFDEF KEYBOUNCE
-;
-KEYBOU:	push	bc		;011C Save Row Address in BC into the STACK
-	ld 	bc,$0500	;011D the debounce delay
-	call	DELAY		;0120 delay on delay count in BC (18.8 ms)
-	pop	bc		;0123 Restore the Row Address back to BC
-	ld	a,(bc)		;0124 Reload the original flags from active row
-	and	e		;0125 Combine the current flag lists with the original flag bits
-	ret	z		;0126 Return to caller if zero because the row was not active on the second test
-	ld	a,d		;0127 Otherwise, we have a legitimate active row
-	rlca			;0128 Multiply the row index by 2. twice.
-	rlca			;0129 This code previously existed at the calling site
-	jp	KYDRES		;012A Resume the keyboard driver routine
-; ----------------------------------------------------------------------
-	DEFC 	KEYBOUNCE_ENABLED = 1
-	PUBLIC 	KEYBOUNCE_ENABLED
-	DEFC 	KEYBOUNCE_BYTES = $ - KEYBOU
-	PUBLIC 	KEYBOUNCE_BYTES
-#ENDIF
-;
-; ======================================================================
-; END ROM REGION 2
-;
-	DEFC	R2FREE	= $032A - $
-	PUBLIC	R2FREE
+	DEFC	R1FREE	= $032A - $
+	PUBLIC	R1FREE
 	DEFS	$032A - $
 ; ======================================================================
 ;
@@ -1819,7 +1693,7 @@ MLOOP:	ld	a,(de)		;2be8
 	ret			;2bf4
 ;
 ; ======================================================================
-; ROM REGION 3 - (2BF5 - 2CA4) - Cload Csave
+; ROM REGION 2 - (2BF5 - 2CA4) - Cload Csave
 ; ======================================================================
 ;
 ; ----------------------------------------------------------------------
@@ -1847,26 +1721,124 @@ STARTMESSAGE:
 #ENDIF
 ;
 ; ----------------------------------------------------------------------
-; FREHDBOOT - FreHD HD bootup routine
+; BUGFIX1 - 32 Character Mode Line Length fixed
 ; ----------------------------------------------------------------------
-#IFDEF FREHDBT
 ;
-FREHDBOOT:	call	CLS		;0069 - Clear Screen
-	call	DELAY		;006c - pause for a few seconds
-	ld	a,ROM_MODEL_1	;00ff - ROM parameter to FreHD. 1 for Model1.
-        out	(WRITEROM),a	;0101 - write the value
-        in	a,(READROM)	;0103 - read response
-        cp	0FEh		;0105 - FE is FreHD present and valid code!
-        ret	nz		;0107 - return if no FreHD or old firmware
-        ld	hl,ROM_LOAD	;0108 - load more "rom" from FreHD
-        ld	bc,READROM	;010b - port to read and size counter
-        inir			;010e - bulk transfer
-        jp	ROM_LOAD	;0110 - jump to loader in RAM, (which may performa RET)
+#IFDEF BUGFIX1
+;
+DSPLINLTH:
+	ld	a,(CAST)	; get shadow copy of Cassette port
+	and	CAST32		; check if 32 char mode
+	ld	a,64		; assume 64 line length
+	ret	z		; flag not set so return the 64
+	srl	a		; set 32 line length
+	ret			; and return it.
+;
 ; ----------------------------------------------------------------------
-	DEFC 	FREHDBT_ENABLED = 1
-	PUBLIC 	FREHDBT_ENABLED
-	DEFC 	FREHDBT_BYTES = $ - FREHDBOOT
-	PUBLIC 	FREHDBT_BYTES
+	DEFC 	BUGFIX1_ENABLED = 1
+	PUBLIC 	BUGFIX1_ENABLED
+	DEFC 	BUGFIX1_BYTES = $ - DSPLINLTH
+	PUBLIC 	BUGFIX1_BYTES
+#ENDIF
+;
+; ----------------------------------------------------------------------
+; BUGFIX2 - Random Number Single Precision Overrun
+; ----------------------------------------------------------------------
+;
+#IFDEF BUGFIX2
+;
+RND0FIX:
+	call	NORMAL		;153e - Call normalise - then apply fixes
+				; Fall through, and RET
+;
+SINGLEFIX:
+	; NOTING This routine is also used by BugFix 13
+	GETYPE			; check the type in ACCumulator
+	ret	nc		; ignore a double value
+	ld	a,(FACLO)	; Get LSB byte from Single
+	and	$F0		; truncate the LSB bits off the SINGLE mantissa
+	ld	(FACLO),a	; Store it back
+	ret
+;
+; ----------------------------------------------------------------------
+	DEFC 	BUGFIX2_ENABLED = 1
+	PUBLIC 	BUGFIX2_ENABLED
+	DEFC 	BUGFIX2_BYTES = $ - RND0FIX
+	PUBLIC 	BUGFIX2_BYTES
+#ENDIF
+;
+; ----------------------------------------------------------------------
+; BUGFIX7 - Space after Type declaration Tag
+; ----------------------------------------------------------------------
+;
+#IFDEF BUGFIX7
+;
+INFINEFIX:
+	inc	hl		; next program byte
+	ld	a,(hl)		; get program byte
+	cp	SPACE		; Is it a space
+	jp 	nz,FINE		; NOT - Continue (return)
+	jr	INFINEFIX	; loop around
+; ----------------------------------------------------------------------
+	DEFC 	BUGFIX7_ENABLED = 1
+	PUBLIC 	BUGFIX7_ENABLED
+	DEFC 	BUGFIX7_BYTES = $ - INFINEFIX
+	PUBLIC 	BUGFIX7_BYTES
+#ENDIF
+;
+; ----------------------------------------------------------------------
+; BUGFIX7C - Space after TAB keyword
+; ----------------------------------------------------------------------
+;
+#IFDEF BUGFIX7C
+;
+TABERFIX:
+	GETCHR			; get next char - RST 10
+	cp	')'		; if close bracket
+	ret	z		; found closing bracket, continue normally
+	dec	hl		; not a closing bracket, so DONT consume it.
+	ret
+; ----------------------------------------------------------------------
+	DEFC 	BUGFIX7C_ENABLED = 1
+	PUBLIC 	BUGFIX7C_ENABLED
+	DEFC 	BUGFIX7C_BYTES = $ - TABERFIX
+	PUBLIC 	BUGFIX7C_BYTES
+#ENDIF
+;
+; ----------------------------------------------------------------------
+; BUGFIX11 - Overflow on Integer FOR loop
+; ----------------------------------------------------------------------
+;
+#IFDEF BUGFIX11
+;
+INTNXTOVER:
+	pop	hl		; restore the loop variable pointer (2305)
+	pop	hl		; restore the for entry pointer (2309)
+	ld	bc,6		; need to consume 6 more bytes off the stack
+	add	hl,bc		; which is passed as HL into the next routine
+	jp	LOOPDN		; Normal NEXT completion of loop
+; ----------------------------------------------------------------------
+	DEFC 	BUGFIX11_ENABLED = 1
+	PUBLIC 	BUGFIX11_ENABLED
+	DEFC 	BUGFIX11_BYTES = $ - INTNXTOVER
+	PUBLIC 	BUGFIX11_BYTES
+#ENDIF
+;
+; ----------------------------------------------------------------------
+; BUGFIX13 - Display of Single Precision Numbers
+; ----------------------------------------------------------------------
+;
+#IFDEF BUGFIX13
+;
+FOUNDBFIX:
+	call	SINGLEFIX	; apply the fix - See BUGFIX 2 for this routine
+	call	FOUNVC		;1222 - compare the ACCumulator to 999999.5
+	jp	FOUNDV1		; continue
+; ----------------------------------------------------------------------
+	DEFC 	BUGFIX13_ENABLED = 1
+	PUBLIC 	BUGFIX13_ENABLED
+	DEFC 	BUGFIX13_BYTES = $ - FOUNDBFIX
+	PUBLIC 	BUGFIX13_BYTES
 #ENDIF
 ;
 ; ----------------------------------------------------------------------
@@ -1942,11 +1914,34 @@ SKIPMEMORY:
 	PUBLIC 	NOMEMSIZE_BYTES
 #ENDIF
 ;
-; ======================================================================
-; END ROM REGION 3
+; ----------------------------------------------------------------------
+; KEYBOUNCE - Routine Added to V1.3 ROMS
+; ----------------------------------------------------------------------
+#IFDEF KEYBOUNCE
 ;
-	DEFC	R3FREE	= $2CA5 - $
-	PUBLIC	R3FREE
+KEYBOU:	push	bc		;011C Save Row Address in BC into the STACK
+	ld 	bc,$0500	;011D the debounce delay
+	call	DELAY		;0120 delay on delay count in BC (18.8 ms)
+	pop	bc		;0123 Restore the Row Address back to BC
+	ld	a,(bc)		;0124 Reload the original flags from active row
+	and	e		;0125 Combine the current flag lists with the original flag bits
+	ret	z		;0126 Return to caller if zero because the row was not active on the second test
+	ld	a,d		;0127 Otherwise, we have a legitimate active row
+	rlca			;0128 Multiply the row index by 2. twice.
+	rlca			;0129 This code previously existed at the calling site
+	jp	KYDRES		;012A Resume the keyboard driver routine
+; ----------------------------------------------------------------------
+	DEFC 	KEYBOUNCE_ENABLED = 1
+	PUBLIC 	KEYBOUNCE_ENABLED
+	DEFC 	KEYBOUNCE_BYTES = $ - KEYBOU
+	PUBLIC 	KEYBOUNCE_BYTES
+#ENDIF
+;
+; ======================================================================
+; END ROM REGION 2
+;
+	DEFC	R2FREE	= $2CA5 - $
+	PUBLIC	R2FREE
 	DEFS	$2CA5 - $
 ;
 ; ======================================================================
@@ -1973,7 +1968,7 @@ ASSERT $ == $2FFB, "Segment: Continuation at $2FFB"
 ; ======================================================================
 ;
 ; Report Free Memory
-	DEFC	TOTFREE = R1FREE + R2FREE + R3FREE
+	DEFC	TOTFREE = R1FREE + R2FREE
 	PUBLIC	TOTFREE
 ; ======================================================================
 ;
