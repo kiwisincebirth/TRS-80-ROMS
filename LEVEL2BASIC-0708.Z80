@@ -16,11 +16,12 @@
 ; BUGFIX11 - Dependency on INTNXTOVER (provided externally)
 ; BUGFIX13 - Dependency on FOUNDBFIX (provided externally)
 ;
-; VER12 - Downgrade Model 1 from Rev 1.3 to Revision 1.2
-; EACA80 - Applies Dick Smith System 80 Changes (minor)
-; MODEL3ROM - Upgrades to Model 3
+; VER12 - Downgrade from M1 Rev 1.3 (baseline) to Rev 1.2
+; EACA80 - Applies Dick Smith System 80 IO Port Changes
+; MODEL3ROM - Applies Minor Upgrades to support Model 3
 ;
 ; NOCASSETTE - Disables BASIC Calls to Cassette Routines
+; NOSYSTEMCMD - Disables BASIC call to System Command
 ;
 ; ======================================================================
 ; MATH ROUTINES
@@ -3592,10 +3593,10 @@ STMDSP:
 	DEFW	DVLSET		; LSET ( Command Vector )
 	DEFW	DVREST		; RSET ( Command Vector )
 	DEFW	DVSAVE		; SAVE ( Command Vector )
-#IFDEF SYSTEMCMD
-	DEFW	SYSTEM		; SYSTEM
-#ELSE
+#IFDEF NOSYSTEMCMD
 	DEFW	SNERR		; SYSTEM
+#ELSE
+	DEFW	SYSTEM		; SYSTEM
 #ENDIF
 	DEFW	LPRINT		; LPRINT
 	DEFW	DVDEF		; DEF ( Command Vector )

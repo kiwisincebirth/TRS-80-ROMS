@@ -1533,6 +1533,9 @@ INITR:
 ; LEVEL 2 BASIC ROUTINES $0708 - $2B28
 ;
 #DEFINE	NOCASSETTE ; Removes Cassette Routines - disabled by Revision 4
+#IFNDEF SYSTEMCMD
+	#DEFINE NOSYSTEMCMD 	; Flag the System CMD is Disabled
+#ENDIF
 ;
 INCLUDE	"LEVEL2BASIC-0708.Z80"
 ;

@@ -1791,6 +1791,9 @@ UNTOKEN9:
 ;
 #DEFINE	NOCASSETTE ; Removes Cassette Routines - disabled by Revision 4
 #DEFINE	MODEL3ROM ; Specifically States to Include Model 3 Code Changes
+#IFNDEF SYSTEMCMD
+	#DEFINE NOSYSTEMCMD 	; Flag the System CMD is Disabled
+#ENDIF
 ;
 INCLUDE	"LEVEL2BASIC-0708.Z80"
 ;
@@ -1981,6 +1984,11 @@ GODO:	GETCHR			;0322 - rst 10h
 	ex	de,hl		;0328 - execution address into HL
 	jp	(hl)		;0329 - jump to execution address
 ;
+; ----------------------------------------------------------------------
+	DEFC 	SYSTEMCMD_ENABLED = 1
+	PUBLIC 	SYSTEMCMD_ENABLED
+	DEFC 	SYSTEMCMD_BYTES = $ - SYSTEM
+	PUBLIC 	SYSTEMCMD_BYTES
 #ENDIF
 ;
 ; ----------------------------------------------------------------------

@@ -5,7 +5,7 @@ all: model13all model12  eaca80all model14all model3all model34all
 model13all: model13 model13f model13p
 eaca80all: eaca80 eaca80f eaca80p model14eaca
 model14all: model14 model14eaca
-model3all: model3 model3p model3f model3p50 model3f50
+model3all: model3 model3p model3f model3p50 model3f50 model3frehd
 model34all: model34 model3450
 
 Z80ASM=z88dk-z80asm -b -l -g
@@ -65,14 +65,15 @@ model3p50:
 	@echo "Generating Model 3 - Rev 1.3 50Hz (Patched)"
 	@${Z80ASM} -DVIDEO50 -DPATCH -oMDL3P50.bin MDL3LEV2.Z80
 
-# This one is not part of ALL, it is used to test
-# binary compatibity with the (official) Model 3
-# FreHD ROM, included with commercial products
+# This one is NOT part of DISTRIBUTION, it is used to test
+# binary compatibility with the (official) Model 3
+# FreHD ROM, (test rom) included with commercial products
 model3frehd:
-	@echo "Generating Model 3 Level 2 (FreHD)"
+	@echo "Generating Model 3 - Rev 1.3 (FreHD)"
 	@${Z80ASM} -DFREHDBT -oMDL3LEV2F.bin MDL3LEV2.Z80
-	@echo "Verifying* Model 3 Level 2 (FreHD)"
+	@echo "Verifying* Model 3 - Rev 1.3 (FreHD)"
 	@diff MDL3LEV2F.bin ./test-roms/Model3-RevC-FreHD.bin
+	@rm MDL3LEV2F.*
 
 model34:
 	@echo "Generating Model 3 - Rev 1.4"
