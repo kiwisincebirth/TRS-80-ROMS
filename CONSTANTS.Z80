@@ -213,7 +213,7 @@ DEFC	mRST1	= RAM+$00	; RST 08h (Syntax Check) Vector
 DEFC	mRST2	= RAM+$03	; RST 10h (Get Next Character) Vector.
 DEFC	mRST3	= RAM+$06	; RST 18h (Cp HL, DE) Vector.
 DEFC	mRST4	= RAM+$09	; RST 20h (Get Current Type) Vector.
-DEFC	mRST5	= RAM+$0C	; RST 28h (Break Key Vector) Vector.
+DEFC	mRST5	= RAM+$0C	; RST 28h (Break Key; DOS Supervisor Call) Vector.
 DEFC	mRST6	= RAM+$0F	; RST 30h (DOS DEBUG entry point) Vector.
 DEFC	mRST7	= RAM+$12	; RST 38h (Interrupt Service) Vector.
 ;
@@ -243,7 +243,7 @@ DEFC	NMIVEC	= RAM+$49	; RST 0 NMI Vector (Reset If So)
 DEFC	TMPSTK	= RAM+$7D	; Stack pointer for initial DISK, bootstrap.
 ;
 DEFC	FDIVC	= RAM+$80	; Subtraction routine used by division code...
-DEFC	FDIVB	= RAM+$84	; These offests are used to set argumnets...
+DEFC	FDIVB	= RAM+$84	; These offsets are used to set arguments...
 DEFC	FDIVA	= RAM+$88	; into the routine before calling it...
 DEFC	FDIVG	= RAM+$8B	; hence why the code is copied into RAM.
 ;

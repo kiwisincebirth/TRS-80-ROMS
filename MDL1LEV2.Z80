@@ -126,10 +126,7 @@ INCLUDE "CONSTANTS.Z80"
 ;
 DEFC	CURCHR	= $5F	; _ cursor character
 ;
-DEFC	BUFINI	= RAM+$1E5	; String Buffer initialised with -> colon null comma (M1)
-DEFC	SMPSTK	= RAM+$1F8	; Initial Stack address (M1)
 DEFC	MEMEND	= RAM+$200	; End of Reserved RAM Communications area
-DEFC	SYSSTK	= RAM+$288	; Stack address usd by SYSTEM command
 ;
 ; ======================================================================
 ;   START OF PROGRAM CODE
@@ -244,8 +241,15 @@ _CTL:	push	bc		;0023
 ; 0028H (RST 28H) - DOS Function CALL - DOSCAL
 ;
 ;   Jumps to 400CH which contains C9H (RET) under Level II BASIC.
-;   This vector is only used by Disk BASIC. It is called by the BREAK key routine,
-;   and can be used to intercept the BREAK key logic
+;   This vector is only used by Disk BASIC.
+;
+;   This is the DOS FUNCTION CALL routine at RST 28 - which passes request
+;   code in A-register to DOS for processing. Returns for non-disk system.
+;   For disk systems, the A Register must contain a legitimate DOS function code.
+;   If the code is positive, the CALL is ignored and control returns to the caller.
+;   Note that the DOS routine discards the return address stored on the STACK
+;   by the RST instruction. After processing control will be returned
+;   to the previous address on the STACK)
 ; ----------------------------------------------------------------------
 _DOSCAL:
 rst28:	jp	mRST5		;0028
@@ -315,7 +319,8 @@ _PRT:	ld	de,mPDCB	;003b
 ; ----------------------------------------------------------------------
 KBLINE:
 _KEYIN:	jp	KEYIN		;0040
-	ret			;0043 - unsure of the purpose of these instructions
+	; this is assumed to be an unused entry point, never used
+	ret			;0043
 	nop			;0044
 	nop			;0045
 ;
@@ -417,7 +422,7 @@ INIT2:	ld	de,FDIVC	;0075 - Ram location - of Level II BASIC support routines.
 	ldir			;007e - Move the routines
 ;
 ;  Initialises String Buffer
-	ld	hl,BUFINI	;0080 - String Buffer Area in RAM (41E5H)
+	ld	hl,MEMEND-$1B	;0080 - String Buffer Area in RAM (41E5H)
 	ld	(hl),':'	;0083 - save a colon
 	inc	hl		;0085 - next location
 	ld	(hl),b		;0086 - write a 0, B reg should be zero
@@ -454,7 +459,7 @@ LOPRTS:	ld	(hl),OPRET	;00a1 - Store RET OpCode
 ; sets the memory pointers accordingly and prints RADIO SHACK LEVEL II BASIC ,
 	ld	hl,MEMEND+$E8	;00a8 - starting address of user RAM (which is 42E8H)
 	ld	(hl),b		;00ab
-	ld	sp,SMPSTK	;00ac - STACK pointer to 41F8H, temporary until call STKINI
+	ld	sp,MEMEND-$08	;00ac - STACK pointer to 41F8H, temporary until call STKINI
 	call	STKINI		;00af - Go initialize the Level II BASIC variables and pointers
 	call	CLS		;00b2 - clears the screen, changes to 64 characters, and homes the screen)
 ;
@@ -503,7 +508,7 @@ TYPMEM:	call	LINGET		;00d6 - convert user input string (HL) into value in DE
 	ld	(hl),a		;00e2 - write the test value
 	cp	(hl)		;00e3 - read and compare to see if value was saved
 	ld	(hl),b		;00e4 - restore the original value
-	jr	nz,MEMGET	;00e5 - if not a usaable ram adress, back to MEM SIZE prompt
+	jr	nz,MEMGET	;00e5 - if not a usable ram address, back to MEM SIZE prompt
 USEDEF:	dec	hl		;00e7 - minus 1
 	ld	de,MEMEND+$214	;00e8 - the minimum MEMORY SIZE? response.
 	CPDEHL			;00eb - RST 18 - compare DE (input)  and HL (minimum)
@@ -827,7 +832,7 @@ ENBLK:	call	CADRIN		;02a9
 ; 02B2 – LEVEL II BASIC SYSTEM ROUTINE – “SYSTEM”
 ; ----------------------------------------------------------------------
 SYSTEM:	call	SYSOUT		;02b2 - Call the DOS exit for system command at 41E2H.
-	ld	sp,SYSSTK	;02b5 - Set the STACK pointer to the assumed load address.
+	ld	sp,MEMEND+$88	;02b5 - Set the STACK pointer to the assumed load address.
 	; This location passes control to the routine used by the BASIC command SYSTEM.
 	call	CRDO		;02b8 - display a carriage return on the video display
 	ld	a,'*'		;02bb

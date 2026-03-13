@@ -21,7 +21,6 @@
 ; MODEL3ROM - Applies Minor Upgrades to support Model 3
 ;
 ; NOCASSETTE - Disables BASIC Calls to Cassette Routines
-; NOSYSTEMCMD - Disables BASIC call to System Command
 ;
 ; ======================================================================
 ; MATH ROUTINES
@@ -3593,11 +3592,7 @@ STMDSP:
 	DEFW	DVLSET		; LSET ( Command Vector )
 	DEFW	DVREST		; RSET ( Command Vector )
 	DEFW	DVSAVE		; SAVE ( Command Vector )
-#IFDEF NOSYSTEMCMD
-	DEFW	SNERR		; SYSTEM
-#ELSE
 	DEFW	SYSTEM		; SYSTEM
-#ENDIF
 	DEFW	LPRINT		; LPRINT
 	DEFW	DVDEF		; DEF ( Command Vector )
 	DEFW	POKE		; POKE
@@ -4313,26 +4308,26 @@ QINLIN:	ld	a,'?'		;1bb3
 ;   execution, and, as such, all statements appear together in the ; reserved
 ;   word list in the same ; order they appear in in STMDSP.
 ; ----------------------------------------------------------------------
-CRUNCH:	xor	a		;1bc0
-	ld	(DORES),a	;1bc1
-	ld	c,a		;1bc4
-	ex	de,hl		;1bc5
-	ld	hl,(BUFPNT)	;1bc6
+CRUNCH:	xor	a		;1bc0 - Zero A
+	ld	(DORES),a	;1bc1 - temporary tokenization flag.
+	ld	c,a		;1bc4 - Zero C
+	ex	de,hl		;1bc5 - DE address of the first character after the line number
+	ld	hl,(BUFPNT)	;1bc6 - starting address of the input buffer.
 	dec	hl		;1bc9
 	dec	hl		;1bca
-	ex	de,hl		;1bcb
-KLOOP:	ld	a,(hl)		;1bcc
-	cp	SPACE		;1bcd
-	jp	z,STUFFH	;1bcf
-	ld	b,a		;1bd2
+	ex	de,hl		;1bcb - HL -> current input string addr ; DE -> start buffer addr-2
+KLOOP:	ld	a,(hl)		;1bcc - current input buffer character
+	cp	SPACE		;1bcd - is it a space
+	jp	z,STUFFH	;1bcf - want to keep it, jp to "STUFF" it into the destination line
+	ld	b,a		;1bd2 - copy character into B
 	cp	DQUOTE		;1bd3 - Check to see if the current character is a "
-	jp	z,STRNG		;1bd5
-	or	a		;1bd8
-	jp	z,CRDONE	;1bd9
-	ld	a,(DORES)	;1bdc
-	or	a		;1bdf
-	ld	a,(hl)		;1be0
-	jp	nz,STUFFH	;1be1
+	jp	z,STRNG		;1bd5 - if a double quote - parse a string.
+	or	a		;1bd8 - check for 0, end of line
+	jp	z,CRDONE	;1bd9 - if end of line then we are done
+	ld	a,(DORES)	;1bdc - temporary tokenization flag.
+	or	a		;1bdf - check the flag
+	ld	a,(hl)		;1be0 - Re-fetch the current character
+	jp	nz,STUFFH	;1be1 - if token flag set, then don't want to tokenize
 	cp	'?'		;1be4 - Check to see if is a ? (PRINT statement)
 	ld	a,TKPRNT	;1be6 - Token PRINT for next line
 	jp	z,STUFFH	;1be8 - If we have a ? then make believe it is a "PRINT"
@@ -4348,7 +4343,7 @@ MUSTCR:	push	de		;1bf5 - Save the value of the input buffer pointer
 	push	bc		;1bfd - save RET address
 	ld	b,$7F		;1bfe - initialize the reserved words counter
 	ld	a,(hl)		;1c00 - character at the location of the input buffer
-	cp	'a'		;1c01 - lower-case chaeck
+	cp	'a'		;1c01 - lower-case check
 	jr	c,TRYAGA	;1c03 - if the character in Register A isn't lowercase
 	cp	'z'+1		;1c05 - is within the lower-case range
 	jr	nc,TRYAGA	;1c07 - if the character in Register A isn't lowercase
@@ -4362,7 +4357,7 @@ LOPSKP:	inc	hl		;1c0e - Bump the reserved words list pointer
 	inc	b		;1c13 - Bump the reserved words counter
 	ld	a,(hl)		;1c14 - character at the location of the reserved words list
 	and	$7F		;1c15 - Reset the MSB Bit 7 of the character from reserved word list
-	ret	z		;1c17 - EXIT if we are at the end of ther reserved word list
+	ret	z		;1c17 - EXIT if we are at the end of the reserved word list
 	cp	c		;1c18 - compare with character from input buffer
 	jr	nz,LOPSKP	;1c19 - if characters DONT match, loop, keep looking
 	ex	de,hl		;1c1b - DE -> reserved words list pointer; HL -> input buffer pointer
@@ -4403,7 +4398,7 @@ FOUND:	ld	c,b		;1c39 - value of the reserved words counter
 	ex	de,hl		;1c3b
 	ret			;1c3c
 ; ----------------------------------------------------------------------
-; 1C3D – Part of the tokeninzing routine – “NOTRES”
+; 1C3D – Part of the tokenizing routine – “NOTRES”
 ; ----------------------------------------------------------------------
 NOTRES:	ex	de,hl		;1c3d
 	ld	a,c		;1c3e
@@ -4427,18 +4422,18 @@ CKSNGO:	cp	$FB		;1c4a
 	inc	c		;1c57
 	jr	STRNG		;1c58
 ; ----------------------------------------------------------------------
-; 1C5A – Part of the tokeninzing routine – “NTSNGT” and “STUFFH”
+; 1C5A – Part of the tokenizing routine – “NTSNGT” and “STUFFH”
 ; ----------------------------------------------------------------------
 NTSNGT:	ex	de,hl		;1c5a
 STUFFH:	inc	hl		;1c5b
 	ld	(de),a		;1c5c
 	inc	de		;1c5d
 	inc	c		;1c5e
-	sub	':'		;1c5f ;  is a : to flag a multi-statement line
+	sub	':'		;1c5f is a : to flag a multi-statement line
 	jr	z,COLIS		;1c61
 	cp	$4E		;1c63
 	jr	nz,NODATT	;1c65
-COLIS:	ld	(DORES),a	;1c67
+COLIS:	ld	(DORES),a	;1c67 Save A value as the tokenization flag for DATA.
 NODATT:	sub	$59		;1c6a
 	jp	nz,KLOOP	;1c6c
 	ld	b,a		;1c6f
@@ -4453,7 +4448,7 @@ STRNG:	inc	hl		;1c77
 	inc	de		;1c7a
 	jr	STR1		;1c7b
 ; ----------------------------------------------------------------------
-;  1C7D – Part of the tokeninzing routine – Jumped here when an EOL is found
+;  1C7D – Part of the tokenizing routine – Jumped here when an EOL is found
 ; ----------------------------------------------------------------------
 CRDONE:	ld	hl,$0005	;1c7d - add 5 bytes to the tokenized character count
 	ld	b,h		;1c80
