@@ -2092,13 +2092,13 @@ FINEDO:	ld	e,$32		;0fa2
 ;   Display "IN " and integer stored in HL. Used to display messages
 ;   such as "BREAK IN nnnnn"
 ; ----------------------------------------------------------------------
-INPRT:	push	hl		;0fa7
-	ld	hl,m_INTX	;0fa8
-	call	STROUT		;0fab
-	pop	hl		;0fae
+INPRT:	push	hl		;0fa7 - save the integer to display
+	ld	hl,m_INTX	;0fa8 - the " in " message
+	call	STROUT		;0fab - print the " in " message
+	pop	hl		;0fae - load the integer to display
 ;
 ; ======================================================================
-; 0FAFH – CONVERT BINARY TO ASCII AND DISPLAY RESULT – “LINPRT”
+; 0FAFH – CONVERT INTEGER TO ASCII AND DISPLAY RESULT – “LINPRT”
 ;
 ;   This routine converts the two byte number in the HL Register Pair
 ;   (which is assumed to be an integer) to ASCII and displays it at
@@ -2113,7 +2113,7 @@ LINPRT:	call	MAKINT		;0faf - Move INT in HL into the ACCumulator
 	jp	STROUI		;0fba - display string pointed to by HL
 ;
 ; ----------------------------------------------------------------------
-; 0FBDH-1363H – BINARY TO ASCII CONVERSION ROUTINE – “FOUT”
+; 0FBDH-1363H – FLOATING TO ASCII CONVERSION ROUTINE – “FOUT”
 ;
 ;   This routine will output the value held in the ACCumulator according
 ;   to the format specifications held in Registers A, B, and C.
@@ -2122,7 +2122,7 @@ LINPRT:	call	MAKINT		;0faf - Move INT in HL into the ACCumulator
 FOUT:	xor	a		;0fbd - Zero Register A so that the format is set for free output
 ;
 ; ======================================================================
-; 0FBEH – FLOATING to ASCII Conversion Routine – “PUFOUT”
+; 0FBEH – FLOATING TO ASCII CONVERSION ROUTINE – “PUFOUT”
 ;
 ;   This routine converts a single or double precision number in the
 ;   ACCumulator to its ASCII equivalent. The ASCII value is stored at
@@ -2169,8 +2169,8 @@ FOUT2:	inc	hl		;0fd9 - inc to next char (after -) in the buffer
 	jp	z,FOUTZR	;0fe7
 	cp	VTSNG		;0fea - compare with Single Precsion
 	jp	nc,FOUFRV	;0fec - jump if single or Double precision
-	ld	bc,$0000	;0fef -
-	call	FOUTCI		;0ff2 - IntToASCII store string in HL bufferL
+	ld	bc,$0000	;0fef
+	call	FOUTCI		;0ff2 - IntToASCII store string in HL buffer
 FOUTZS:	ld	hl,FBUFFR	;0ff5
 	ld	b,(hl)		;0ff8
 	ld	c,SPACE		;0ff9
@@ -2316,7 +2316,7 @@ FOUTDN:	ld	(hl),$00	;1093
 ; ----------------------------------------------------------------------
 FOUTFX:	inc	hl		;109a
 	push	bc		;109b
-	cp	$04		;109c
+	cp	$04		;109c - Check the number type in ACC is single or double precision
 	ld	a,d		;109e
 	jp	nc,FOUFXV	;109f
 	rra			;10a2
@@ -2851,49 +2851,56 @@ FOUCS2:	inc	b		;130a
 	jr	FOUCI1		;132d
 ;
 ; ======================================================================
-; 132F – INTEGER to ASCII – “FOUTCI”
+; 132F – INTEGER TO ASCII – “FOUTCI”
 ;
 ;   This routine converts an integer into decimal digits by dividing
 ;   the integer portion of the current value by 100,000 using compound
 ;   subtraction. The quotient is kept in Register B as an ASCII value
 ;   and A=0 on exit.
 ; ----------------------------------------------------------------------
-FOUTCI:	push	de		;132f
-	ld	de,FOITBL	;1330
-	ld	a,$05		;1333
-FOUCI1:	call	FOUTED		;1335
-	push	bc		;1338
-	push	af		;1339
-	push	hl		;133a
+FOUTCI:	push	de		;132f - preserve register
+	ld	de,FOITBL	;1330 - descending powers of 10 starting at 10,000
+	ld	a,5		;1333 - number of digits
+FOUCI1:	call	FOUTED		;1335 - Check if a comma needs to be before next digit
+	push	bc		;1338 - Save the decimal and comma counter
+	push	af		;1339 - Save the number of digits-to-process counter
+	push	hl		;133a - Save the address of the power table
 	ex	de,hl		;133b
-	ld	c,(hl)		;133c
-	inc	hl		;133d
-	ld	b,(hl)		;133e
-	push	bc		;133f
-	inc	hl		;1340
-	ex	(sp),hl		;1341
-	ex	de,hl		;1342
-	ld	hl,(FACLO)	;1343
-	ld	b,$2F		;1346
-FOUCI2:	inc	b		;1348
-	ld	a,l		;1349
-	sub	e		;134a
-	ld	l,a		;134b
-	ld	a,h		;134c
-	sbc	a,d		;134d
-	ld	h,a		;134e
-	jr	nc,FOUCI2	;134f
-	add	hl,de		;1351
-	ld	(FACLO),hl	;1352
-	pop	de		;1355
-	pop	hl		;1356
-	ld	(hl),b		;1357
-	inc	hl		;1358
-	pop	af		;1359
-	pop	bc		;135a
-	dec	a		;135b
-	jr	nz,FOUCI1	;135c
-	call	FOUTED		;135e
+	ld	c,(hl)		;133c - the LSB for the power of 10 from lookup
+	inc	hl		;133d - inc table lookup poiner
+	ld	b,(hl)		;133e - the LSB for the power of 10 from lookup
+	push	bc		;133f - save power of 10
+	inc	hl		;1340 - inc table lookup poiner
+	ex	(sp),hl		;1341 - Stack -> power of 10 table pointer; HL-> power of ten
+	ex	de,hl		;1342 - Put the power of ten into DE
+	ld	hl,(FACLO)	;1343 - the integer value in ACCumulator
+	ld	b,'0' - 1	;1346 - loop starting at '0'
+;
+; This loop divides the current value by a power of 10 starting at 10,000
+; and working down to 10. The remainder frome ach division is added to the
+; division and the sum becomes the dividend for the next division until done.
+; The quotient is +2FH (which is the ASCII equivalent of a quotient).
+;
+FOUCI2:	inc	b		;1348 - ascii digit
+	ld	a,l		;1349 - lsb of the integer
+	sub	e		;134a - subtract lsb of power of 10
+	ld	l,a		;134b - put back
+	ld	a,h		;134c - msb of the integer
+	sbc	a,d		;134d - subtarct msb of power of 10
+	ld	h,a		;134e - put back
+	jr	nc,FOUCI2	;134f - keep looping if not oerflowed
+;
+	add	hl,de		;1351 - since overflowed, revert back 1
+	ld	(FACLO),hl	;1352 - store adjusted integer
+	pop	de		;1355 - address of the next power of 10
+	pop	hl		;1356 - memory pointer for the buffer
+	ld	(hl),b		;1357 - store the digit in the buffer
+	inc	hl		;1358 - next buffer address
+	pop	af		;1359 - number of digits to convert
+	pop	bc		;135a - decimal/comma counts
+	dec	a		;135b - Dec diget counter (from 5)
+	jr	nz,FOUCI1	;135c - more digits to process
+	call	FOUTED		;135e - Check if a comma needs to be before next digit
 	ld	(hl),a		;1361
 	pop	de		;1362
 	ret			;1363
@@ -3881,10 +3888,10 @@ REERR:	ld	e,ERRRW		;19A0 - ?RW ERROR
 ; ----------------------------------------------------------------------
 ; 19A2 - Entry Point For Errors
 ; ----------------------------------------------------------------------
-ERROR:	ld	hl,(CURLIN)	;19a2
-	ld	(ERRLIN),hl	;19a5
-	ld	(DOT),hl	;19a8
-ERRESM:	ld	bc,ERRMOR	;19ab - ret addr - continuation address after reinit
+ERROR:	ld	hl,(CURLIN)	;19a2 - current BASIC line number
+	ld	(ERRLIN),hl	;19a5 - Save to error line number
+	ld	(DOT),hl	;19a8 - Save for EDIT command
+ERRESM:	ld	bc,ERRMOR	;19ab - RETurn address after stack reinit in STKERR
 ;
 ; ----------------------------------------------------------------------
 ; 19AE - ALTERNATE ENTRY TO BASIC "READY"
@@ -3892,61 +3899,62 @@ ERRESM:	ld	bc,ERRMOR	;19ab - ret addr - continuation address after reinit
 ; To use this routine, load the BC with 1A18H, then JP the 19AE
 ; On the model 1 (and Enhanced Model 3) A simple JP 06CCH will work
 ; ----------------------------------------------------------------------
-ERESET:	ld	hl,(SAVSTK)	;19ae
-	jp	STKERR		;19b1
+ERESET:	ld	hl,(SAVSTK)	;19ae - saved stack pointer
+	jp	STKERR		;19b1 - reinit system vars, and SP from SAVSTK (HL)
+				; this Jump routine RETurns to ERRMOR
 ;
 ; ----------------------------------------------------------------------
 ; 19B4 – LEVEL II BASIC COMMAND MODE ERROR HANDLING – “ERRMOR”
 ; ----------------------------------------------------------------------
-ERRMOR:	pop	bc		;19b4
-	ld	a,e		;19b5
-	ld	c,e		;19b6
-	ld	(ERRFLG),a	;19b7
-	ld	hl,(SAVTXT)	;19ba
-	ld	(ERRTXT),hl	;19bd
-	ex	de,hl		;19c0
-	ld	hl,(ERRLIN)	;19c1
-	ld	a,h		;19c4
-	and	l		;19c5
-	inc	a		;19c6
-	jr	z,NTMDCN	;19c7
-	ld	(OLDLIN),hl	;19c9
-	ex	de,hl		;19cc
-	ld	(OLDTXT),hl	;19cd
-NTMDCN:	ld	hl,(ONELIN)	;19d0
-	ld	a,h		;19d3
-	or	l		;19d4
-	ex	de,hl		;19d5
-	ld	hl,ONEFLG	;19d6
-	jr	z,NOTRAP	;19d9
-	and	(hl)		;19db
-	jr	nz,NOTRAP	;19dc
-	dec	(hl)		;19de
-	ex	de,hl		;19df
-	jp	GONE4		;19e0
+ERRMOR:	pop	bc		;19b4 - Discard (FNDFOR Stopper) from Stack
+	ld	a,e		;19b5 - Passed in Error Code
+	ld	c,e		;19b6 - save error code for latter (19E5)
+	ld	(ERRFLG),a	;19b7 - sav the error code here as well
+	ld	hl,(SAVTXT)	;19ba - current BASIC program pointer
+	ld	(ERRTXT),hl	;19bd - save basic program pointer for RESUME
+	ex	de,hl		;19c0 - DE -> current BASIC program pointer
+	ld	hl,(ERRLIN)	;19c1 - line number where the error occurred.
+	ld	a,h		;19c4 - test the line number is direct $FFFF
+	and	l		;19c5 - by anding
+	inc	a		;19c6 - and incrementing $FF -> $00
+	jr	z,NTMDCN	;19c7 - If this was a direct command - Skip
+	ld	(OLDLIN),hl	;19c9 - update the last line number executed
+	ex	de,hl		;19cc - Get bacK SAVTXT into HL
+	ld	(OLDTXT),hl	;19cd - update last line executed pointer
+NTMDCN:	ld	hl,(ONELIN)	;19d0 - the current ON ERROR address.
+	ld	a,h		;19d3 - compare with 0
+	or	l		;19d4 - by or'ing H and L
+	ex	de,hl		;19d5 - DE -> the ON ERROR address to go to
+	ld	hl,ONEFLG	;19d6 - address of the error flag
+	jr	z,NOTRAP	;19d9 - Z from above means - no ON ERROR Address
+	and	(hl)		;19db - Test the Error Flag (ONEFLG)
+	jr	nz,NOTRAP	;19dc - NZ means the (ONEFLG) was not set
+	dec	(hl)		;19de - Force an error
+	ex	de,hl		;19df - HL -> ON ERROR line address pointer
+	jp	GONE4		;19e0 - make that happen
 ; ----------------------------------------------------------------------
 ; 19E3 – LEVEL II BASIC COMMAND MODE ERROR HANDLING – “NOTRAP”
 ; ----------------------------------------------------------------------
 NOTRAP:	xor	a		;19e3
-	ld	(hl),a		;19e4
-	ld	e,c		;19e5
-	call	CRDONZ		;19e6
-	ld	hl,ERRTAB	;19e9
-	call	EXDSKR		;19ec - dos err handling
+	ld	(hl),a		;19e4 - Clear the error override flag to zero
+	ld	e,c		;19e5 - Restore the error code (See 19B6)
+	call	CRDONZ		;19e6 - display a CR on the display if necessary
+	ld	hl,ERRTAB	;19e9 - table containing ASCII errors eg "SN"
+	call	EXDSKR		;19ec - DOS err Exit Handling
 	ld	d,a		;19ef
 	ld	a,'?'		;19f0
-	call	OUTDO		;19f2
-	add	hl,de		;19f5
-	ld	a,(hl)		;19f6
-	call	OUTDO		;19f7
-	GETCHR			;19fa - rst 10h
-	call	OUTDO		;19fb
-	ld	hl,m_ERR	;19fe
-	push	hl		;1a01
-	ld	hl,(ERRLIN)	;1a02
-	ex	(sp),hl		;1a05
-ERRFIN:	call	STROUT		;1a06
-	pop	hl		;1a09
+	call	OUTDO		;19f2 - Print a "?"
+	add	hl,de		;19f5 - Add ERRTAB table address to err number
+	ld	a,(hl)		;19f6 - get  the first character e.g. "S"
+	call	OUTDO		;19f7 - print first character
+	GETCHR			;19fa - rst 10h - gets next char e.g. "N"
+	call	OUTDO		;19fb - print second character
+	ld	hl,m_ERR	;19fe - error Message " Error"
+	push	hl		;1a01 - save message address
+	ld	hl,(ERRLIN)	;1a02 - basic line number causing the error
+	ex	(sp),hl		;1a05 - get the message " Error"
+ERRFIN:	call	STROUT		;1a06 - Display " Error"
+	pop	hl		;1a09 - get the line number
 	ld	de,$FFFE	;1a0a
 	CPDEHL			;1a0d
 #IFDEF MODEL3ROM
@@ -3954,12 +3962,12 @@ ERRFIN:	call	STROUT		;1a06
 #ELSE
 	jp	z,INIT		;1a0e
 #ENDIF
-	ld	a,h		;1a11
-	and	l		;1a12
-	inc	a		;1a13
-	call	nz,INPRT	;1a14
+	ld	a,h		;1a11 - if we were in direct mode
+	and	l		;1a12 - then line number is $FFFF
+	inc	a		;1a13 - incrementing this -> $00
+	call	nz,INPRT	;1a14 - not direct mode -> display " in <linenumber>"
 ;
-	DEFB	LDANN		; Z80 Trick - LD A,nn - skip next 1 byte instruction
+	DEFB	LDANN		;1a17 - Z80 Trick - LD A,nn - skip next 1 byte instruction
 ;
 STPRDY:	pop	bc		;1a18
 ;
@@ -3973,7 +3981,7 @@ STPRDY:	pop	bc		;1a18
 ; ======================================================================
 	ASSERT	$ == $1A19, "Segment: READY Entry Point Should start at $1A19"
 READY:	call	FINLPT		;1a19 - set the current output device to the video display
-	call	PRGFIN		;1a1c - dos exit for BASIC startup
+	call	PRGFIN		;1a1c - DOS EXIT for BASIC startup
 #IFDEF NOCASSETTE
 	NOP3			;skip the cassette call
 #ELSE
@@ -3986,18 +3994,17 @@ READY:	call	FINLPT		;1a19 - set the current output device to the video display
 	sub	ERRSN		;1a2e - compare with SYNTAX ERROR
 	call	z,ERREDT	;1a30 - If an SN ERR, enter EDIT mode on that line
 ;
-;
 ; ======================================================================
 ; ======================================================================
 ; 1A33-1A5F – MAIN LEVEL II BASIC INTERPRETER ENTRY – “MAIN”
 ;
 ;    Handle normal command prompt and AUTO Processing
 ; ----------------------------------------------------------------------
-MAIN:	ld	hl,$FFFF	;1a33
-	ld	(CURLIN),hl	;1a36
-	ld	a,(AUTFLG)	;1a39
-	or	a		;1a3c
-	jr	z,NTAUTO	;1a3d - for normal User Prompt ump Down
+MAIN:	ld	hl,$FFFF	;1a33 - line number indicating Direct command mode
+	ld	(CURLIN),hl	;1a36 - Set up for direct command mode - set line number
+	ld	a,(AUTFLG)	;1a39 - Auto Flag NOT zero if in Auto Mode
+	or	a		;1a3c - set flags
+	jr	z,NTAUTO	;1a3d - for normal User Prompt jump Down
 ; ----------------------------------------------------------------------
 ; Auto processing continues here
 ;   If the jump here was from an AUTO call, (40E4H) will have the increment
@@ -4035,15 +4042,15 @@ AUTGOD:	ld	hl,(AUTINC)	;1a60
 ; 1A76H-1AF7 – NOT AN AUTO – “NTAUTO”
 ;   Command entry comes here if we are not in an Auto Command
 ; ----------------------------------------------------------------------
-NTAUTO:	ld	a,'>'		;1a76
+NTAUTO:	ld	a,'>'		;1a76 - READY> _ prompt
 	call	OUTDO		;1a78 - Display the > Prompt
-	call	INLIN		;1a7b - Read a Line
+	call	INLIN		;1a7b - Actually read a Line of input
 	jp	c,MAIN		;1a7e - loop back if BREAK pressed
 	GETCHR			;1a81 - rst 10h
-	inc	a		;1a82 - sets the status flags but saves the carry flag
+	inc	a		;1a82 - sets the Z status flags leaving C flag unaffected
 	dec	a		;1a83 - so we can test for an end of statement
 	jp	z,MAIN		;1a84 - if we have an end of (or blank) statement
-	push	af		;1a87
+	push	af		;1a87 - save for latter -> 1A9D
 	call	LINGET		;1a88 - convert line pointer to Integer
 BAKSP:	dec	hl		;1a8b - back pointer up
 	ld	a,(hl)		;1a8c - get the character
@@ -4051,12 +4058,12 @@ BAKSP:	dec	hl		;1a8b - back pointer up
 	jr	z,BAKSP		;1a8f - Loop back over any space characters
 	inc	hl		;1a91 - finally pushing pointer to first space.
 	ld	a,(hl)		;1a92 - get the character
-	cp	SPACE		;1a93
-	call	z,INXHRT	;1a95
-EDENT:	push	de		;1a98
+	cp	SPACE		;1a93 - is it a space
+	call	z,INXHRT	;1a95 - If space skip it, by INC HL
+EDENT:	push	de		;1a98 - Save the BASIC line number in Register Pair DE
 	call	CRUNCH		;1a99 - TOKENIZE THE INPUT
-	pop	de		;1a9c
-	pop	af		;1a9d
+	pop	de		;1a9c - Restore the BASIC line number
+	pop	af		;1a9d - Get the carry flag (from the 1A81H character fetch)
 	ld	(SAVTXT),hl	;1a9e - Save the command txt pointer
 	call	DIRDO		;1aa1 - DOS EXIT - Give a DOS chance to process
 	jp	nc,GONE1	;1aa4 - IF The was a DIRECT STATEMENT
@@ -4107,12 +4114,15 @@ MLOOPR:	ld	a,(de)		;1ae1
 	inc	de		;1ae4
 	or	a		;1ae5
 	jr	nz,MLOOPR	;1ae6
-FINI:	pop	de		;1ae8
-	call	CHEAD		;1ae9
-	call	EXFIND		;1aec
-	call	RUNC		;1aef
-	call	EXFIN2		;1af2
-	jp	MAIN		;1af5
+; ----------------------------------------------------------------------
+; at completion of CLOAD code below is executed to clean up
+; ----------------------------------------------------------------------
+FINI:	pop	de		;1ae8 - address of the line in the program table from the STACK. For Fixing
+	call	CHEAD		;1ae9 - fix/update line pointers for all lines following the new line
+	call	EXFIND		;1aec - Check to see if DOS should be handling something
+	call	RUNC		;1aef - Do a clear, set up the STACK, and update all the BASIC line pointers
+	call	EXFIN2		;1af2 - Check to see if DOS should be handling something
+	jp	MAIN		;1af5 - Go get the input again
 ; ----------------------------------------------------------------------
 ; 1AF8-1B0F – LINE POINTERS ROUTINE – “LINKER”
 ;   This routine fixes the line pointers in a BASIC program.
@@ -4121,9 +4131,10 @@ FINI:	pop	de		;1ae8
 ;   means that the line pointers would no longer be valid. This routine
 ;   will fix them. Registers A, HL and DE are used
 ; ----------------------------------------------------------------------
-LINKER:	ld	hl,(TXTTAB)	;1af8
+LINKER:	ld	hl,(TXTTAB)	;1af8 - Called externally (Disk BASIC)
 	ex	de,hl		;1afb
-CHEAD:	ld	h,d		;1afc
+; ----------------------------------------------------------------------
+CHEAD:	ld	h,d		;1afc - Called Internally
 	ld	l,e		;1afd
 	ld	a,(hl)		;1afe
 	inc	hl		;1aff
@@ -4278,7 +4289,7 @@ STKERR:	ld	sp,hl		;1b9a - MAIN SET SP with the start of the string space pointer
 	ld	(TEMPPT),hl	;1b9e - init string temps - the next available location in the string work area
 	call	FINLPT		;1ba1 - set the current output device to the video display
 	call	FINPRT		;1ba4 - turn off the cassette recorder
-	xor	a		;1ba7
+	xor	a		;1ba7 - ZERO registers A,H,L
 	ld	h,a		;1ba8
 	ld	l,a		;1ba9
 	ld	(SUBFLG),a	;1baa - Clear the FOR statement flag.
@@ -4972,9 +4983,10 @@ CLEAR:	jp	z,CLEARC	;1e7a
 ; ----------------------------------------------------------------------
 ; 1EA3-1EB0 - LEVEL II BASIC RUN ROUTINE - "RUN"
 ;   This is the MAIN entry Point
-;   On entry, if the Z flag is set, there was no parameter present
+;   On entry: Z flag is set, there was no parameter present
+;             C flag is set, there is a numeric parameter
 ; ----------------------------------------------------------------------
-RUN:	jp	z,RUNC		;1ea3 - Jump if there isn't a line number specified after the RUN
+RUN:	jp	z,RUNC		;1ea3 - Jump if there are No parameters after the RUN
 	call	LRUN		;1ea6 - see if DOS wants to do anything?
 	call	CLEARC		;1ea9 - initialize RUN time variables
 	ld	bc,NEWSTT	;1eac - BC with the continuation address in the execution driver, RETurn to NEWSTT
@@ -5348,7 +5360,7 @@ PRINTC:	jp	z,FINPRT	;20a0
 ;
 #ELSE
 ;
-PRINT:	call	FILGET		;206f DOS exit for PRINT processing.
+PRINT:	call	FILGET		;206f DOS EXIT for PRINT processing.
 	cp	'#'		;2072 Check for Cassette
 	jr	nz,PNOTAT	;2074
 	call	CWRTON		;2076 Write header on cassette file
@@ -5442,7 +5454,7 @@ CRFIN:	call	EXDSCR		;2103
 ; ----------------------------------------------------------------------
 ; 2108 – This is the jump point for a continuation of the PRINT# code – “COMPRT”.
 ; ----------------------------------------------------------------------
-COMPRT:	call	EXPDOS		;2108 - Dos Exit for Print TAB and Print #
+COMPRT:	call	EXPDOS		;2108 - DOS EXIT for Print TAB and Print #
 	ld	a,(PRTFLG)	;210b - the current output device flag
 	or	a		;210e - Set The Flags
 	jp	p,NTCAS		;210f - if the printer or the video display
@@ -5486,7 +5498,7 @@ TABER:	call	GTBYTC		;2137 - evaluate the tab number, and return with the result 
 #ENDIF
 ; ----------------------------------------------------------------------
 	push	hl		;2140 - save the pointer to program
-	call	EXPDOS		;2141 - Dos Exit for Print TAB and Print #
+	call	EXPDOS		;2141 - DOS EXIT for Print TAB and Print #
 	ld	a,(PRTFLG)	;2144 - the current output device flag
 	or	a		;2147 - set the flags
 	jp	m,FCERR		;2148 - cannot send a tab to cassette, FC ERR
@@ -5520,7 +5532,7 @@ FINPRT:
 #ENDIF
 	xor	a		;2170 - DEV0VID
 	ld	(PRTFLG),a	;2171 - set current output device type = VIDEO
-	call	FINDRT		;2174 - DOS Exit Point
+	call	FINDRT		;2174 - DOS EXIT Point
 	ret			;2177
 ;
 #IFDEF NOCASSETTE
@@ -5570,7 +5582,7 @@ TRMNOK:	ld	a,(FLGINP)	;217f
 ; ----------------------------------------------------------------------
 INPUT:	call	ERRDIR		;219a - Check to see if there is an illegal direct
 	ld	a,(hl)		;219d - char in basic program
-	call	EXUNKN		;219e - Pass Control to a DOS exit.
+	call	EXUNKN		;219e - Pass Control to a DOS EXIT.
 	sub	'#'		;21a1 - compare with # indicating from Cassette
 	ld	(CASFLG),a	;21a3 - store value in cassette flag
 	ld	a,(hl)		;21a6 - get the character again
@@ -6630,7 +6642,7 @@ FINZER:	ld	(FAC),a		;26d5
 	ld	(FACLO),hl	;26db
 	GETYPE			;26de - RST 20 - check the current number type
 	jr	nz,POPHR2	;26df
-	ld	hl,m_REDDY-1	;26e1
+	ld	hl,m_INTX+4	;26e1 - An address containing a 0 terminator - IN message
 	ld	(FACLO),hl	;26e4
 POPHR2:	pop	hl		;26e7
 	ret			;26e8

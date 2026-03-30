@@ -157,12 +157,12 @@ _GET:	push	bc		;0013
 ; 0018H (RST 18H) Compare DE:HL - CPDEHL
 ;
 ;   This routine can be called by using RST 18H or CALL 1C90H.
-;   Numerically compares DE and HL. Will not work for
-;   signed integers (except positive ones). Uses the A-register
-;   only. Sets the S and Z flags accordingly
-;   (they are set in the same way as for a normal 8 bit CP).
-;   All registers are unchanged except for A
-;   Jumps to lC90H through 4006H.
+;   Unsigned compares (HL-DE). All registers are unchanged except A
+;	Sets the S and Z flags accordingly (same way as for a normal 8 bit CP).
+;   Uses the A-register only.
+;   The result of the comparison is returned in the status Register as:
+;   CARRY SET=HL<DE; NO CARRY=HL>DE; NZ=Unequal; Z=Equal).
+;   Jumps to 1C90H through 4006H.
 ; ----------------------------------------------------------------------
 rst18:	jp	mRST3		;0018
 ;

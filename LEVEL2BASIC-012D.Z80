@@ -169,7 +169,7 @@ BUFCIN:	push	af		;01ab
 	ld	hl,(DSCTMP+1)	;01b5
 	ld	(hl),a		;01b8
 	jp	PUTNEW		;01b9
-NULRT:	ld	hl,m_REDDY-1	;01bc
+NULRT:	ld	hl,m_INTX+4	;01bc - An address containing a 0 terminator - IN message
 	ld	(FACLO),hl	;01bf
 	ld	a,VTSTR		;01c2 - String Value Type
 	ld	(VALTYP),a	;01c4

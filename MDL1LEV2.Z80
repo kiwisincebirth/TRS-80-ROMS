@@ -202,12 +202,12 @@ _GET:	push	bc		;0013
 ; 0018H (RST 18H) Compare DE:HL - CPDEHL
 ;
 ;   This routine can be called by using RST 18H or CALL 1C90H.
-;   Numerically compares DE and HL. Will not work for
-;   signed integers (except positive ones). Uses the A-register
-;   only. Sets the S and Z flags accordingly
-;   (they are set in the same way as for a normal 8 bit CP).
-;   All registers are unchanged except for A
-;   Jumps to lC90H through 4006H.
+;   Unsigned compares (HL-DE). All registers are unchanged except A
+;	Sets the S and Z flags accordingly (same way as for a normal 8 bit CP).
+;   Uses the A-register only.
+;   The result of the comparison is returned in the status Register as:
+;   CARRY SET=HL<DE; NO CARRY=HL>DE; NZ=Unequal; Z=Equal).
+;   Jumps to 1C90H through 4006H.
 ; ----------------------------------------------------------------------
 rst18:	jp	mRST3		;0018
 ;
@@ -2085,12 +2085,12 @@ CLNONM:	ld	l,a		;2c39
 #ENDIF
 	ld	hl,(FACLO)	;2c43
 	ex	de,hl		;2c46
-LOPCLK:	ld	b,$03		;2c47
-LOPCL2:	call	CASIN		;2c49
-	sub	$D3		;2c4c
-	jr	nz,LOPCLK	;2c4e
-	djnz	LOPCL2		;2c50
-	call	CASIN		;2c52
+LOPCLK:	ld	b,3		;2c47 - the number of header bytes
+LOPCL2:	call	CASIN		;2c49 - read one byte from cassette
+	sub	$D3		;2c4c - Check A is a filename header byte
+	jr	nz,LOPCLK	;2c4e - Loop if isn't a filename header byte
+	djnz	LOPCL2		;2c50 - Loop for 3 filename header bytes
+	call	CASIN		;2c52 - read one byte, looking for filename
 	inc	e		;2c55
 	dec	e		;2c56
 	jr	z,NONAMC	;2c57
@@ -2103,10 +2103,10 @@ NONAMC:	ld	hl,(TXTTAB)	;2c5c
 ; write	(or overwrite) that byte to memory, check for a zero, and loop
 ; back	IF no zero was found.
 ; ----------------------------------------------------------------------
-DOCRS:	ld	b,$03		;2c5f - number of zeros to look for to stop the load
-DOCSMR:	call	CASIN		;2c61
-	ld	e,a		;2c64
-	sub	(hl)		;2c65
+DOCRS:	ld	b,3		;2c5f - number of zeros to look for to stop the load
+DOCSMR:	call	CASIN		;2c61 - read 1 byte
+	ld	e,a		;2c64 - preserve the byte read
+	sub	(hl)		;2c65 - Compare the byte read with the byte in memory HL
 	and	d		;2c66
 	jr	nz,NOGOOD	;2c67 - if CLOAD? was selected but the bytes don’t match
 	ld	(hl),e		;2c69 - save the character we read to memory pointer in HL
@@ -2118,23 +2118,23 @@ DOCSMR:	call	CASIN		;2c61
 	call	BCASIN		;2c72
 	djnz	DOCSMR		;2c75 - Do that loop until three zeros in a row have been read
 	ld	(VARTAB),hl	;2c77 - Save the new end of the BASIC program pointer.
-	ld	hl,m_REDDY	;2c7a
-	call	STROUT		;2c7d
-	call	CTOFF		;2c80
+	ld	hl,m_REDDY	;2c7a - BASIC READY message
+	call	STROUT		;2c7d - print the message
+	call	CTOFF		;2c80 - turn cassette off
 	ld	hl,(TXTTAB)	;2c83 - the start of the BASIC program pointer.
 	push	hl		;2c86 - Save the BASIC program pointer to the STACK, for FINI
-	jp	FINI		;2c87 - reinitialize the BASIC interpreter and continue
+	jp	FINI		;2c87 - EXIT -> reinitialize the BASIC interpreter and continue
 NOGOOD:	ld	hl,NOOKCS	;2c8a
 	call	STROUT		;2c8d
 	jp	STPRDY		;2c90
 SKPFIL:	ld	(vidmem+$3E),a	;2c93
-ZERSRF:	ld	b,$03		;2c96
-GETCHZ:	call	CASIN		;2c98
-	or	a		;2c9b
-	jr	nz,ZERSRF	;2c9c
-	djnz	GETCHZ		;2c9e
+ZERSRF:	ld	b,3		;2c96 - the number of zeros to be found to stop the search
+GETCHZ:	call	CASIN		;2c98 - read 1 byte from  cassette
+	or	a		;2c9b - is byte equal to zero
+	jr	nz,ZERSRF	;2c9c - Loop if isn't equal to zero
+	djnz	GETCHZ		;2c9e - Loop until three zeros in a row have been read
 	call	CSRDON3		;2ca0
-	jr	LOPCLK		;2ca3
+	jr	LOPCLK		;2ca3 - loop back
 ; ----------------------------------------------------------------------
 ;
 ; ======================================================================
