@@ -968,10 +968,11 @@ ISCHAR:	call	EXINC		;0358
 ;   This routine inputs a string from the keyboard, up to 240 characters,
 ;   and echoes them to the screen. It puts this data into a buffer located
 ;   at the address pointed to by the buffer pointer at 40A7H
+;   HL returns starting (minus 1) location of input in HL.
 ; ----------------------------------------------------------------------
 INLIN:	xor	a		;0361
-	ld	(CHARC),a	;0362
-	ld	(TTYPOS),a	;0365
+	ld	(CHARC),a	;0362 - the last key pressed
+	ld	(TTYPOS),a	;0365 - current cursor line position
 	call	INLINE		;0368 - Go call the DOS link at 41AFH
 	push	bc		;036b
 	ld	hl,(BUFPNT)	;036c - starting address of the input buffer
@@ -1044,8 +1045,9 @@ LZRPOS:	ld	a,e		;03b6
 ;
 ; ----------------------------------------------------------------------
 ; 03C2H-03E2H – DRIVER ENTRY ROUTINE – “CIO”
-;   This routine is called from a RST 14 GET (with a device code of 01H in
-;   Register B), RST 1C PUT (with a device code of 02H in Register B),
+;   This routine is called from a
+;	RST 14 GET (with a device code of 01H in Register B),
+;	RST 1C PUT (with a device code of 02H in Register B),
 ;   and RST 24 CTL (with a device code of 04H in Register B).
 ; ----------------------------------------------------------------------
 CIO:	push	hl		;03c2 - Save HL, IX, DE registers on the stack
@@ -1112,6 +1114,7 @@ KEYDWN:	ld	e,a		;03fa - column data from the matrix
 ;
 ; ----------------------------------------------------------------------
 ; 03FBH - Used by TRSDOS 2.3 - SYS0/SYS - to CONTINUE from it own KB Driver ($43FB)
+;	- Also used by DOSPLUS in a similar fashion
 	ASSERT	$ == $03FB, "Segment: Entry Point should start at $03FB"
 ; ----------------------------------------------------------------------
 ;

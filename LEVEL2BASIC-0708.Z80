@@ -3940,7 +3940,7 @@ NOTRAP:	xor	a		;19e3
 	ld	e,c		;19e5 - Restore the error code (See 19B6)
 	call	CRDONZ		;19e6 - display a CR on the display if necessary
 	ld	hl,ERRTAB	;19e9 - table containing ASCII errors eg "SN"
-	call	EXDSKR		;19ec - DOS err Exit Handling
+	call	EXDSKR		;19ec - DOS EXIT for Error Handling
 	ld	d,a		;19ef
 	ld	a,'?'		;19f0
 	call	OUTDO		;19f2 - Print a "?"
@@ -3981,7 +3981,7 @@ STPRDY:	pop	bc		;1a18
 ; ======================================================================
 	ASSERT	$ == $1A19, "Segment: READY Entry Point Should start at $1A19"
 READY:	call	FINLPT		;1a19 - set the current output device to the video display
-	call	PRGFIN		;1a1c - DOS EXIT for BASIC startup
+	call	PRGFIN		;1a1c - DOS EXIT for BASIC startup (41AC)
 #IFDEF NOCASSETTE
 	NOP3			;skip the cassette call
 #ELSE
@@ -4686,13 +4686,14 @@ GONE2:	sub	TKOFF		;1d60 - Check for a token >= 80H
 ;
 ;   The RST 10H code is located here. This is the EXAMINE NEXT SYMBOL
 ;   routine which loads the next character from the string pointed to by
-;   the HL Register set into the A-register and clears the CARRY flag if
-;   it is alphabetic, or sets it if is alphanumeric. Blanks and control
-;   codes 09 and OB are ignored causing the following character to be
-;   loaded and tested. The HL Register will be incremented before loading
-;   any character therefore on the first call the HL Register should contain
-;   the string address minus one. The string must be terminated by a byte
-;   of zeros).
+;   the HL Register set into the A-register and:
+;     * clears the CARRY flag if it is alphabetic,
+;     * or sets it if is alphanumeric.
+;   Blanks and control codes 09 and OB are ignored causing the following
+;   character to be loaded and tested.
+;   The HL Register will be incremented before loading any character therefore
+;   on the first call the HL Register should contain the string address-1.
+;   The string must be terminated by a byte of zeros).
 ; ----------------------------------------------------------------------
 CHRGTR:	inc	hl		;1d78 - Bump the BASIC program pointer to next char
 	ld	a,(hl)		;1d79

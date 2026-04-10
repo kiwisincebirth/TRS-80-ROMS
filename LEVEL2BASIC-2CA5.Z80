@@ -337,23 +337,27 @@ PLSPRT:	push	af		;2e49
 	ret			;2e52
 ;
 ; ----------------------------------------------------------------------
-; enter EDIT if there was an error in a line number
+; 2E53 - Enter EDIT if there was an error in a line number
+;    Called from the command processor if SN error when executing program
 ; ----------------------------------------------------------------------
-ERREDT:	ld	(ERRFLG),a	;2e53
-	ld	hl,(ERRLIN)	;2e56
-	or	h		;2e59
-	and	l		;2e5a
-	inc	a		;2e5b
-	ex	de,hl		;2e5c
-	ret	z		;2e5d
+ERREDT:	ld	(ERRFLG),a	;2e53 - Reset the error Flag, Caller is passing Zero
+	ld	hl,(ERRLIN)	;2e56 - what line number. FFFF if a direct command
+	or	h		;2e59 - Loads A with H, since A already Zero
+	and	l		;2e5a - AND with L, So FF if a Direct command
+	inc	a		;2e5b - FF -> bump to 00
+	ex	de,hl		;2e5c - DE now holds line number
+	ret	z		;2e5d - Back to command processor if No Line number
 	jr	EREDIT		;2e5e
 ; ----------------------------------------------------------------------
 ; 2E60-2FFA – LEVEL II BASIC EDIT ROUTINE – “EDIT”
 ;
-;   the EDIT command takes a single line number as its argument. If that
-;   line doesn’t exist, and error is thrown. If the line does exist,
-;   the line number is then typed, and the system waits for the user
-;   to enter any of the valid commands.
+;  the EDIT command takes a single line number as its argument.
+;   * If that line doesn’t exist, and error is thrown.
+;   * If the line does exist, the line number is then typed, and the
+;     system waits for the user to enter any of the valid commands.
+;  Register C holds the number of characters in the line,
+;  Register B holds the current character position (with 0 being the first character)
+;  Register Pair HL points to the current character
 ; ----------------------------------------------------------------------
 EDIT:	call	LINSPC		;2e60
 	ret	nz		;2e63

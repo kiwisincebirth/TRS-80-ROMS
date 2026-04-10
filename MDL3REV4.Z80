@@ -907,10 +907,11 @@ ISCHAR:	call	EXINC		;0358
 ;   This routine inputs a string from the keyboard, up to 240 characters,
 ;   and echoes them to the screen. It puts this data into a buffer located
 ;   at the address pointed to by the buffer pointer at 40A7H
+;   HL returns starting (minus 1) location of input in HL.
 ; ----------------------------------------------------------------------
 INLIN:	xor	a		;0361
-	ld	(CHARC),a	;0362
-	ld	(TTYPOS),a	;0365
+	ld	(CHARC),a	;0362 - the last key pressed
+	ld	(TTYPOS),a	;0365 - current cursor line position
 	call	INLINE		;0368 - Go call the DOS link at 41AFH
 	push	bc		;036b
 	ld	hl,(BUFPNT)	;036c - starting address of the input buffer
@@ -1631,8 +1632,9 @@ KLNCR:	push	af		;0662
 ;
 ; ======================================================================
 ; 0674 – 0699 - I/O DRIVER ENTRY ROUTINE – “CIO”
-;   This routine is called from a RST 14 GET (with a device code of 01H in
-;   Register B), RST 1C PUT (with a device code of 02H in Register B),
+;   This routine is called from a
+;	RST 14 GET (with a device code of 01H in Register B),
+;	RST 1C PUT (with a device code of 02H in Register B),
 ;   and RST 24 CTL (with a device code of 04H in Register B).
 ; ----------------------------------------------------------------------
 ;
