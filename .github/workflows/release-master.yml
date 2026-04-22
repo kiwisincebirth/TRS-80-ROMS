@@ -36,15 +36,12 @@ jobs:
         run: |
           tar cvf TRS-80-${{github.run_number}}-ROM-Images.tar *.txt *.bin
 
-      # https://github.com/marketplace/actions/automatic-releases
-      - name: Attach Package Archive
-        uses: wwarthen/actions/packages/automatic-releases@built-packages
-        with:
-          repo_token: "${{secrets.GITHUB_TOKEN}}"
-          draft: true
-          prerelease: false
-          automatic_release_tag: "release${{github.run_number}}"
-          title: "Release ${{github.run_number}}"
-          files: |
-            *.tar
-            *.txt
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          TAG: ${{github.ref_name}}
+        run: |
+          gh release create "release${{github.run_number}}" *.tar *.txt \
+            --draft \
+            --title="Release ${{github.run_number}}" \
+            --generate-notes
