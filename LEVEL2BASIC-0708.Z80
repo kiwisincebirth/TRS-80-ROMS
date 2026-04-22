@@ -5051,36 +5051,38 @@ RETURN:	ret	nz		;1ede
 	ld	a,(BFKLFL)	;1ef8
 	or	a		;1efb
 	jp	nz,STPRDY	;1efc
-GOBACK:	ld	hl,NEWSTT	;1eff
-	ex	(sp),hl		;1f02
+GOBACK:	ld	hl,NEWSTT	;1eff - return address of NEWSTT
+	ex	(sp),hl		;1f02 - put return address on the Stack
 ;
-	DEFB	LDANN		;1f03 - Z80 Trick LD A,nn - skp next instruction - load it into A
-;
-DATAH:	pop	hl		;1f04
+	DEFB	LDANN		;1f03 - Z80 Trick LD A,nn - skip POP HL
 ;
 ; ----------------------------------------------------------------------
-; 1F05-1F20 - SCAN ROUTINE - "DATA"
+; 1F04-1F20 - SCAN ROUTINE - "DATA" and "REM"
+; 	Noting DATA is treated almost identically to REM
+;	As DATA are not executable instructions
 ; ----------------------------------------------------------------------
-DATA:	DEFB	LDBCNN, $3A	;1f05 - Z80 Trick - LD BC,$nn3A - skip the next 1 byte - Then a NOP
-REM:	ld	c,$00		;1f07 - z80 Trick - noting second byte here is 0 which is a NOP
+DATAH:	pop	hl		;1f04 - restore the Basic program pointer into HL
+DATA:	DEFB	LDBCNN, $3A	;1f05 - Z80 Trick - LD BC,$nn3A - skip the LD C,0  (0 -> NOP)
+REM:	ld	c,$00		;1f07 - Z80 Trick - noting second byte here is 0 which is a NOP
+;
 	ld	b,$00		;1f09
-EXCHQT:	ld	a,c		;1f0b
+EXCHQT:	ld	a,c		;1f0b - Exchange Registers B <-> C
 	ld	c,b		;1f0c
 	ld	b,a		;1f0d
 REMER:	ld	a,(hl)		;1f0e
 	or	a		;1f0f
-	ret	z		;1f10
+	ret	z		;1f10 - found an end of line terminator
 	cp	b		;1f11
 	ret	z		;1f12
 	inc	hl		;1f13
-	cp	DQUOTE		;1f14 - Check to see if is a quote "
+	cp	DQUOTE		;1f14 - Check to see if is a double " quote
 	jr	z,EXCHQT	;1f16
 	sub	TKIF		;1f18 - Check to see if is a IF token
-	jr	nz,REMER	;1f1a
+	jr	nz,REMER	;1f1a - Not IF token then loop back
 	cp	b		;1f1c
-	adc	a,d		;1f1d
+	adc	a,d		;1f1d - Add A to the D register ?
 	ld	d,a		;1f1e
-	jr	REMER		;1f1f
+	jr	REMER		;1f1f - Loop Back
 ;
 ; ----------------------------------------------------------------------
 ; 1F21-1F6B - LEVEL II BASIC LET ROUTINE - "LET"

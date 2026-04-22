@@ -36,7 +36,6 @@
 #DEFINE FREHDBT ; Enable FreHD Auto boot at startup (069Ch)
 #DEFINE NMIHARD ; Set NMI Reset as always hard reset. (0066h)
 #DEFINE MSGSTART ; Enhanced Startup Message (0102)
-#DEFINE KEYBOARD ; Enhanced Keyboard (03E3)
 ;
 ; Rom 1.3 Features (can be disabled to save space)
 #DEFINE KEYBOUNCE ; Enable 1.3 Keyboard Debounce (03FBh)
@@ -513,121 +512,8 @@ CTON:	ld	a,(hl)		; char from BASIC program pointer
 	ret
 ;
 ; ======================================================================
+; ROM REGION 1 - (01E3 - 0329) - Cassette IO and SYSTEM
 ; ======================================================================
-;
-; ======================================================================
-; ROM REGION 1 - (01E3 - 02B1) - Cassette
-; ======================================================================
-;
-; ======================================================================
-; EXTENDED ENTRY POINTS (FIXED) FOR NEW ROM ROUTINES
-;   This table is same as Model 3 Entry Points starting at $3000
-; ======================================================================
-CAPSLOCK:
-#IFDEF KEYBOARD
-	jp	KB_SCANCAPS	;01E3 - Scan Keyboard for CAPS LOCK Key
-#ELSE
-	ret
-	nop2
-#ENDIF
-
-; ----------------------------------------------------------------------
-; KEYBOARD - Enhanced Model 1 Keyboard Driver
-; ----------------------------------------------------------------------
-;
-#IFDEF KEYBOARD
-;
-; Extension to Process JUST Row 8 checking for CAPS Lock Key
-KB_SCANCAPS:
-	ld	bc,kmatrix8	; last keyboard matrix row
-	ld	d,$07		; keyboard Row number
-	jr	KB_SCANLP2	; process the 8th row.
-;
-; Extension for Main KB Matrix Scan, including all 8 rows.
-KB_SCANLOOP:
-	ret	c		; past 8th row of keyboard matrix so return from here
-	jp	p,KEYLP		;03f6 - Not reached Row 8 (bit 7) of Matrix - LOOP
-;
-; Process the 8th 8th row of keyboard matrix
-KB_SCANLP2:
-	ld	hl,KYBTSS8	; saved old keyboard row 8.
-	ld	a,(bc) 		; Get Row 8 from KBD matrix
-	and	$F8		; Masking to exclude SHIFT and CTRL
-	jp	KEYLP2		; Loop back and process 8th row
-;
-; Toggle Caps Lock
-KB_CAPSLOCK:
-	ld	a,(ix+4) 	; caps lock bit
-	xor	$80		; CAPS LOCK bit mask
-	ld	(ix+4),a	; CAPS LOCK bit mask
-	xor	a		; no Ket to return.
-	ret
-;
-; Prefix for KEYNAL routine to handle CTRL Key check
-KB_KEYNAL:
-	bit 	2,b		; test if the CTRL key was depressed
-	jp	z,KEYNAL 	; no control Key, process it normally
-	sub	$20		; remove the KEY offset, so zero based
-        ld	hl,KB_CTRLTR	; the control key translation table
-	jp	KEYTRN		; Return after Control key translation
-
-; Determine The Modifier Keys - returning in B register
-; 	Bit 0 - SHIFT Key State from Keyboard
-; 	Bit 1 - RSHIFT Key State from Keyboard
-; 	Bit 2 - CTRL Key State from Keyboard
-; 	Bit 3-6 unused Bits from KB DCB ($4019)
-; 	Bit 7 - Shifted State for Alpha (CAPS xor SHIFT)
-KB_CAPSCTL:
-        ld	a,(kmatrix8)	; Value from SHIFT Matrix Row 3880H
-        and	$07		; mask only the Shift/Control keys
-        ld	b,a		; save keyboard shift control keys
-        rrca			; Rotate bit 0 (shift) to Bit 7
-        xor	(ix+4) 		; toggle shift based on  caps lock bit 7  state
-        and	$F8		; mask the caps lock toggle (and other bits)
-        or	b		; then bring in Bit 0 SHIFT, 1 RSHIFT, 2 CTRL
-        ld 	b,a		; store result
-        ; NOTE This routine doesnt check for SHIFT DownArrow
-        ret
-;
-; Translation table for non - alpha control character
-KB_CTRLTR:
-	;
-	; Control Keys for 5th Row
-	DEFB	'|'	; CTRL 0 - ($7C) Vertical Bar (|)
-	DEFB	ARUP 	; CTRL 1 - ($1B) Escape - (Shift Up Arrow)
-	DEFB	CHOME 	; CTRL 2 - ($1C) Home Cursor
-	DEFB	CLINE 	; CTRL 3 - ($1D) Start of current line
-	DEFB	ELINE 	; CTRL 4 - ($1E) erase to end of line
-	DEFB	$7F 	; CTRL 5 - ($7F) Rubout
-	DEFB	'~' 	; CTRL 6 - ($7E) Tilde
-	DEFB	BQUOTE 	; CTRL 7 - ($60) Backtick
-	;
-	; Control Keys for 6th Row
-	DEFB	'{' 	; CTRL 8 - ($7B) Left Brace
-	DEFB	'}' 	; CTRL 9 - ($7D) Right Brace
-	DEFB	0 	; CTRL : - Previously Screen Print Function
-	DEFB	'^' 	; CTRL ; - ($5E) Carat "^"
-	DEFB	'[' 	; CTRL , - ($5B) Left Bracket
-	DEFB	'_'  	; CTRL - - ($5F) Underline
-	DEFB	']' 	; CTRL . - ($5D) Right Bracket
-	DEFB	BSLASH 	; CTRL / - ($5C) Backslash "\"
-	;
-	; Control Keys for 7th Row, same as table at $0050
-	DEFB	ENTER	; ENTER
-	DEFB	CLRKEY	; CLEAR
-	DEFB	BREAK	; BREAK
-	DEFB	UPARRW	; ↑ Up Arrow
-	DEFB	LINEF	; ↓ Down Arrow
-	DEFB	BACKS	; BS, ← Left arrow
-	DEFB	TAB	; Tab, -> right arrow
-	DEFB	SPACE	; Space
-;
-; ----------------------------------------------------------------------
-	DEFC 	KEYBOARD_ENABLED = 1
-	PUBLIC 	KEYBOARD_ENABLED
-	DEFC 	KEYBOARD_BYTES = $ - KB_SCANCAPS
-	PUBLIC 	KEYBOARD_BYTES
-#ENDIF
 ;
 ; ----------------------------------------------------------------------
 ; LEVEL II BASIC SYSTEM ROUTINE – “SYSTEM”
@@ -896,13 +782,8 @@ KEYLP2:	ld	e,a		;03ec - save keyboard row
 	inc	d		;03f2 - advance to nex row
 	inc	l		;03f3 - next saved KB row address
 	rlc	c		;03f4 - next KB matrix row
-#IFDEF KEYBOARD
-	jp	KB_SCANLOOP	; complete the scan loop
-	nop
-#ELSE
 	jp	p,KEYLP		;03f6 - Not reached Row 8 (bit 7) of Matrix
 	ret			;03f9
-#ENDIF
 ; ----------------------------------------------------------------------
 ; 03FAH – Accept a KB Down-stroke and Convert it to ASCII – “KEYDWN”
 ;   On entry D contains the row counter
@@ -921,20 +802,21 @@ KEYDWN:	ld	e,a		;03fa - column data from the matrix
         jp	KEYBOU		;03fb jump to the new keyboard debounce routine.
 KYDRES:				;03fe return address for keybounce
 ;
-#ENDIF
+#ELSE
 	ld	a,d		;03fb - initial row counter from the matrix
 	rlca			;03fc
 	rlca			;03fd
+#ENDIF
+;
 	rlca			;03fe - multiply row counter by 8, gives row offset
 	ld	d,a		;03ff - save row counter
-	ld	a,e		; get column data back into A
-KEYDLP:
-	rrca			; Rotate A right, shifting bits toward carry flag.
-	jr	c, KEYFND	; If C found the matrix bit, continue below
-	inc	d		; bump key code index for next column
-	jr	KEYDLP		; loop to find next bit
-;
-	DEFS	$040B - $	; Account for variable (BOUNCE) #IFDEF
+	ld	c,1		;0400 - start comparison at column number 1
+KEYDLP:	ld	a,c		;0402 - contains the column bit for comparison
+	and	e		;0403 - compare with colum data from the matrix
+	jr	nz,KEYFND	;0404 - found matching colum
+	inc	d		;0406 - increment the main counter for next column
+	rlc	c		;0407 - shift the column bit to next column
+	jr	KEYDLP		;0409 - loop
 ; ----------------------------------------------------------------------
 ; 040BH – Part of the Keyboard routine – “KEYFND”
 ;   Convert keyboard matrix code 0-63 (Row*8 + Column) into ASCII character
@@ -943,28 +825,7 @@ KEYDLP:
 ;
 	ASSERT	$ == $040B, "Segment: KEYFND Entry Point should start at $040B"
 ; ----------------------------------------------------------------------
-#IFDEF KEYBOARD
-;
-KEYFND:
-	call	KB_CAPSCTL 	; get B register with CTRL ; Shift Key ; Shift alpha
-	ld 	a,d		; Load Register A with the value in Register D (Row * 8 + column 0-7)
-	cp 	$3B 		; was CAPS LOCK key pressed
-	jp 	z,KB_CAPSLOCK 	; process caps Lock key
-	cp 	$20		; Check to see if the key is alphabetic by testing for the 4 rows (@, A-Z)
-	jp 	nc,KB_KEYNAL 	; if the value in Register A is not alpha
-	bit 	2,b		; test if the CTRL key was depressed
-	jr	nz,KEYRTN 	; not ctrl returning a ctrl key value.
-	add 	$40 		; Adjust the ASCII value in Register A
-	bit 	7, B 		; test  the alpha SHIFT value
-	jr 	NZ,KEYRTN 	; Jump if the no SHIFT required
-	add 	$20 		; Adjust the value for lower case
-	jr 	KEYRTN 		; Return the Byte
-	;
-	DEFS	$0429 - $	; Fill Deleted code bock
-;
-#ELSE
-;
-KEYFND:	ld	a,(kmatrix8)	;040b - Value from SHIFT Matrix Row 3880H
+KEYFND:	ld	a,(kbdmatrix+$80);040b - Value from SHIFT Matrix Row 3880H
 	ld	b,a		;040e - Save the Shift Row
 	ld	a,d		;040f - Matrix Character in range ($00-$3F)
 	add	a,$40		;0410 - Offset it by 64 ($40-$7F)
@@ -980,18 +841,13 @@ KEYFND:	ld	a,(kmatrix8)	;040b - Value from SHIFT Matrix Row 3880H
 	ld	a,d		;0424 - get saved character ($60-$7F)
 	sub	$60		;0425 - Convert to CTRL Key ($00-$1F)
 	jr	KEYRTN		;0427 - Return the Control Key
-#ENDIF
 ; ----------------------------------------------------------------------
 ; 0429H – Part of the Keyboard routine – “KEYNAL”
 ;    If we are here, the character was not alpha so need
 ;    to check for numeric, shifted numeric, or special
 ;    On Entry A contains ($60-$7F)
 ; ----------------------------------------------------------------------
-#IFDEF KEYBOARD
-KEYNAL:	sub	$30		;0429 - only sub 30 since no add in caller
-#ELSE
 KEYNAL:	sub	$70		;0429 - Which half of Matrix Rows 5-6 or 7-8
-#ENDIF
 	jr	nc,KEYSPL	;042b - If Rows 7-8 then special character
 	add	a,$40		;042d - Re-Adjust A down to contain ($30-$3F)
 	cp	$3C		;042f - Check if one of the last 4 characters
@@ -1657,11 +1513,7 @@ INITR:
 	DEFB	1		; 4015 (mKDCB) - Device Type = 1 for KB (Read only)
 	DEFW	KBDDRV		; 4016 - keyboard driver address
 	DEFB	0		; 4017 - Not used on Model 1
-#IFDEF KEYBOARD
-	DEFB	$80		; 4019 - CAPS LOCK $80 -> shifted
-#ELSE
 	DEFB	0		; 4018 - Not used on Model 1
-#ENDIF
 	DEFB	0		; 4019 - Not used on Model 1
 	DEFB	"KI"
 ; Display DCB
