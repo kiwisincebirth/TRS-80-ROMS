@@ -45,7 +45,7 @@ FSUBS:	call	MOVRM		;0710
 ;   Subtracts the single precision value in (BC:DE) from the
 ;   single precision value in WRA1. The difference is left in WRA1.
 ; ----------------------------------------------------------------------
-FSUB:	call	NNEG		;0713
+FSUB:	call	FNEG		;0713
 ;
 ; ======================================================================
 ; 0716H – LEVEL II BASIC SINGLE PRECISION ADDITION - “FADD”
@@ -231,13 +231,13 @@ NGER:	ld	hl,FACSGN	;07c3
 ;   at a time anymore. Alters everything except Register H.
 ; ----------------------------------------------------------------------
 SHIFTR:	ld	b,$00		;07d7
-SHIFTR1: sub	$08		;07d9
+SHFTR1: sub	$08		;07d9
 	jr	c,SHFTR2	;07db
 	ld	b,e		;07dd
 	ld	e,d		;07de
 	ld	d,c		;07df
 	ld	c,$00		;07e0
-	jr	SHIFTR1		;07e2
+	jr	SHFTR1		;07e2
 ; ----------------------------------------------------------------------
 ; 07E4 – SINGLE PRECISION MATH ROUTINE – “SHFTR2”
 ;   This routine will shift the number in C/D/E right the number
@@ -277,11 +277,12 @@ LOGCN2:	DEFB	3			; count of numbers in table
 	DEFB	$45, $AA, $38, $82	; 2.88539129
 ;
 ; ======================================================================
-; 0809H – LEVEL II BASIC LOG ROUTINE – “FNLOG”
+; 0809H – LEVEL II BASIC LOG ROUTINE – “LOG”
 ;
 ;   Computes the natural log (base E) of the single precision value in
 ;   WRA1. The result is returned as a single precision value in WRA1.
 ; ----------------------------------------------------------------------
+LOG:
 FNLOG:	call	SIGN		;0809
 	or	a		;080c
 	jp	pe,FCERR	;080d
@@ -540,7 +541,7 @@ SIGN:	ld	a,(FAC)		;0955
 ;
 FCOMPS:	cpl			;095e
 ; ----------------------------------------------------------------------
-ICOMPS:	rla			;095f - sign bit in Register A into the CARRY FLAG
+ICOMS:	rla			;095f - sign bit in Register A into the CARRY FLAG
 SIGNS:	sbc	a,a		;0960 - If the CARRY FLAG is 0 (i.e., POSITIVE), make Register A = 0.
 				;       If the CARRY FLAG is 1 (i.e., NEGATIVE), make Register A = FFH
 	ret	nz		;0961 - Return If the CARRY FLAG was 1, (negative)
@@ -572,6 +573,7 @@ FLOATR:	ld	hl,FAC		;0969
 ;   ABS routine (ACCumulator=ABS(ACCumulator)) input and output can be integer,
 ;   single-precision or double-precision, depending on what is placed in the NTF
 ; ----------------------------------------------------------------------
+ABS:
 FNABS:	call	VSIGN		;0977
 	ret	p		;097a
 ; ----------------------------------------------------------------------
@@ -584,7 +586,8 @@ VNEG:	GETYPE			;097b - RST 20 - check the current number type
 ; This routine will negate the single or double precision number in the ACCumulator.
 ; Registers A, H, and L are affected.
 ; ----------------------------------------------------------------------
-NNEG:	ld	hl,FAC-1	;0982
+NEG:
+FNEG:	ld	hl,FAC-1	;0982
 	ld	a,(hl)		;0985
 	xor	$80		;0986
 	ld	(hl),a		;0988
@@ -596,6 +599,7 @@ NNEG:	ld	hl,FAC-1	;0982
 ;   and ACCumulator=-l, 0 or 1 depending on sign and value of ACC before
 ;   execution. Registers A, H, and L are affected.
 ; ----------------------------------------------------------------------
+SGN:
 FNSGN:	call	VSIGN		;098a
 ; ----------------------------------------------------------------------
 ; This routine will convert a signed number (held in Register A) into an integer.
@@ -629,7 +633,7 @@ ISIGN:	ld	a,h		;099e
 	or	l		;099f
 	ret	z		;09a0
 	ld	a,h		;09a1
-	jr	ICOMPS		;09a2
+	jr	ICOMS		;09a2
 ; ----------------------------------------------------------------------
 ; 09A4H – SINGLE PRECISION MATH ROUTINE – “PUSHF” - MOVE
 ;   Moves the single precision value in the ACCumulator to the STACK
@@ -762,7 +766,7 @@ VMOVFA:	ld	hl,ARGLO	;09f4 - Source Address Register 2
 ;   Precision and number of bytes moved determined by NTF.
 ; ----------------------------------------------------------------------
 VMOVFM:	ld	de,MOVVFM	;09f7 - Pointer to Move from HL to DE
-	jr	VMOVMF		;09fa
+	jr	VMVVFM		;09fa
 ; ----------------------------------------------------------------------
 ; 09FCH – MOVE FROM ACCUM TO ACCUM2 – “VMOVAF”
 ;   Copy any precision value from ACCUM to ACCUM2.
@@ -777,7 +781,7 @@ VMOVAF:	ld	hl,ARGLO	;09fc - Target address of Register 2
 ;   All Registers except C are affected.
 ; ----------------------------------------------------------------------
 	ld	de,VMOVE	;09ff - Pointer to Move from DE to HL
-VMOVMF:	push	de		;0a02 - saved as return address
+VMVVFM:	push	de		;0a02 - saved as return address
 VDFACS:	ld	de,FACLO	;0a03 - Register 1 Single - Address
 	GETYPE			;0a06 - RST 20 - check the current number type
 	ret	c		;0a07 - Process 4 bytes - return to VMOVE
@@ -840,7 +844,7 @@ FCOMP2:	inc	hl		;0a26
 ICOMP:	ld	a,d		;0a39
 	xor	h		;0a3a
 	ld	a,h		;0a3b
-	jp	m,ICOMPS	;0a3c
+	jp	m,ICOMS		;0a3c
 	cp	d		;0a3f
 	jp	nz,SIGNS	;0a40
 	ld	a,l		;0a43
@@ -1034,19 +1038,15 @@ CONDS:	ld	hl,$0000	;0ae3
 	ld	(DFACLO),hl	;0ae6
 	ld	(DFACLO+2),hl	;0ae9
 ; ----------------------------------------------------------------------
-; 0AECH - Set NTF to DOUBLE
+; 0AECH - MATH ROUTINE - "VALDBL" - Set NTF to DOUBLE
 ; ----------------------------------------------------------------------
 VALDBL:	ld	a,VTDBL		;0aec - Double Value Type
 ;
-; ----------------------------------------------------------------------
-; 0AEEH-0AF3H – MATH ROUTINE – “VALSNG”
-; ----------------------------------------------------------------------
-;
 	DEFB	LDBCNN		;0aee - Z80 Trick LD BC,nnnn - skip next 2 byte instruction
-;
 ; ----------------------------------------------------------------------
-; 0AEFH - Set NTF to SINGLE
+; 0AEEH – MATH ROUTINE – “VALSNG” - Set NTF to SINGLE
 ; ----------------------------------------------------------------------
+CALSNG:
 VALSNG:	ld	a,VTSNG		;0aef - single precision number type flag (of 4)
 	jp	CONISD		;0af1
 ;
@@ -1055,6 +1055,7 @@ VALSNG:	ld	a,VTSNG		;0aef - single precision number type flag (of 4)
 ;   This routine calls 20H (RST 20H) and returns if NTF=3 (string) else if NTF is not 3
 ;   then it generates a TM ERROR. BC, DE, and HL are saved
 ; ----------------------------------------------------------------------
+FRCSTR:
 CHKSTR:	GETYPE			;0af4 - RST 20 - check the current number type
 	ret	z		;0af5
 ;
@@ -1109,11 +1110,12 @@ DCXBRT:	dec	bc		;0b24
 ;   point number in WRA1. The result is stored in WRA1 and
 ;   the type flag is set to integer.
 ; ----------------------------------------------------------------------
+FIXER:
 FNFIX:	GETYPE			;0b26 - RST 20 - check the current number type
 	ret	m		;0b27
 	call	SIGN		;0b28
 	jp	p,FNINT		;0b2b
-	call	NNEG		;0b2e
+	call	FNEG		;0b2e
 	call	FNINT		;0b31
 	jp	VNEG		;0b34
 ;
@@ -1125,11 +1127,13 @@ FNFIX:	GETYPE			;0b26 - RST 20 - check the current number type
 ;   is returned. If the value is negative with a fractional part,
 ;   it is rounded up before truncation. The integer portion is left in A
 ; ----------------------------------------------------------------------
+VINT:
 FNINT:	GETYPE			;0b37 - RST 20 - check the current number type
 	ret	m		;0b38 - Already integer Just Return
 	jr	nc,DINT		;0b39 - Its a Double so use DOUBLE -> Int
 	jr	z,TMERR		;0b3b - IF its a String then TM ERR
 	call	CONIS		;0b3d - THE Conversion Routine
+INT:
 IINT:	ld	hl,FAC		;0b40 - The Exponent address
 	ld	a,(hl)		;0b43 - get the exponent
 	cp	$98		;0b44 - test for fractional bits
@@ -1350,7 +1354,7 @@ IMULT4:	ld	a,b		;0c37
 	push	de		;0c3d
 	call	CONSIH		;0c3e
 	pop	de		;0c41
-	jp	NNEG		;0c42
+	jp	FNEG		;0c42
 ; ----------------------------------------------------------------------
 ; 0C45H-0C5AH – MATH ROUTINE – “IMULDV”
 ;   This is the integer division routine HL = DE / HL. The remainder will be
@@ -1530,11 +1534,11 @@ DROUNB:	or	a		;0d11
 ; ----------------------------------------------------------------------
 DROUNA:	ld	hl,DFACLO	;0d20
 	ld	b,$07		;0d23
-DRON1:	inc	(hl)		;0d25
+DRONA1:	inc	(hl)		;0d25
 	ret	nz		;0d26
 	inc	hl		;0d27
 	dec	b		;0d28
-	jr	nz,DRON1	;0d29
+	jr	nz,DRONA1	;0d29
 	inc	(hl)		;0d2b
 	jp	z,OVERR		;0d2c
 	dec	hl		;0d2f
@@ -1547,13 +1551,13 @@ DADDAA:	ld	hl,ARGLO	;0d33
 DADDFO:	ld	de,DFACLO	;0d36
 DADDS:	ld	c,$07		;0d39
 	xor	a		;0d3b
-DADALS:	ld	a,(de)		;0d3c
+DADDL:	ld	a,(de)		;0d3c
 	adc	a,(hl)		;0d3d
 	ld	(de),a		;0d3e
 	inc	de		;0d3f
 	inc	hl		;0d40
 	dec	c		;0d41
-	jr	nz,DADALS	;0d42
+	jr	nz,DADDL	;0d42
 	ret			;0d44
 ; ----------------------------------------------------------------------
 ; 0D45H-0D56H – DOUBLE PRECISION MATH ROUTINE – “DADDAS”
@@ -1839,6 +1843,7 @@ FIN:	xor	a		;0e6c - Z FLAG SET
 ; ----------------------------------------------------------------------
 ; Top of the loop starts here
 ; ----------------------------------------------------------------------
+FIN1:
 FINC:	GETCHR			;0e83 - rst 10h
 	jp	c,FINDIG	;0e84 - was it a digit
 	cp	'.'		;0e87
@@ -2093,7 +2098,7 @@ FINEDO:	ld	e,$32		;0fa2
 ;   such as "BREAK IN nnnnn"
 ; ----------------------------------------------------------------------
 INPRT:	push	hl		;0fa7 - save the integer to display
-	ld	hl,m_INTX	;0fa8 - the " in " message
+	ld	hl,INTXT	;0fa8 - the " in " message
 	call	STROUT		;0fab - print the " in " message
 	pop	hl		;0fae - load the integer to display
 ;
@@ -2631,25 +2636,25 @@ FOUNDB:	jp	FOUNDBFIX	; Jump out to corrected routine
 FOUNDB:	call	FOUNVC		;1222 - compare the ACCumulator to 999999.5
 #ENDIF
 ;
-FOUNDV1: GETYPE			;1225 - RST 20 - check the current number type
-	jr	nc,FOUNDV4	;1226 - If we Have DOUBLE or STRING(not logical),
+FOUNV1: GETYPE			;1225 - RST 20 - check the current number type
+	jr	nc,FOUNV4	;1226 - If we Have DOUBLE or STRING(not logical),
 	ld	bc,$9143	;1228
 	ld	de,$4FF9	;122b - BC:DE equal to Single value of 99,999.999 ( **** Alternately $5000!!!!)
 	call	FCOMP		;122e - compare with value in accumulator
-	jr	FOUNDV5		;1231
-FOUNDV4: ld	de,FOUTDL	;1233 - pointer to DOUBLE 999,999,999,999,999.95
+	jr	FOUNV5		;1231
+FOUNV4: ld	de,FOUTDL	;1233 - pointer to DOUBLE 999,999,999,999,999.95
 	call	DCOMPD		;1236 - Compare with value in Accumulator
-FOUNDV5: jp	p,FOUNDV3	;1239 - If the number is big enough EXIT ROUTINE
+FOUNV5: jp	p,FOUNV3	;1239 - If the number is big enough EXIT ROUTINE
 	pop	af		;123c - Get exponent
 	call	FINMLT		;123d - multiply by 10, exponent in A is adjusted
 	push	af		;1240 - Save exponent
-	jr	FOUNDV1		;1241 - LOOP BACK UP
+	jr	FOUNV1		;1241 - LOOP BACK UP
 ; ----------------------------------------------------------------------
-FOUNDVV: pop	af		;1243 - number too big, get exponent off stack
+FOUNV2: pop	af		;1243 - number too big, get exponent off stack
 	call	FINDIV		;1244 - Divide a number by 10
 	push	af		;1247 - exponent back on stack
 	call	FOUNVC		;1248 - compare the ACCumulator to 999999.5
-FOUNDV3: pop	af		;124b - exponent off stack
+FOUNV3: pop	af		;124b - exponent off stack
 ;
 #IFDEF VER12
 	or	a		;124c
@@ -2673,7 +2678,7 @@ FOUNVC:	GETYPE			;124f - RST 20 - check the current number type
 FONVC1:	ld	de,FOUTDU	;125e - address of double = 9,999,999,999,999,999.5
 	call	DCOMPD		;1261 - Double Compare
 FONVC2:	pop	hl		;1264 - GET return address off stack
-	jp	p,FOUNDVV	;1265 - the number in the ACCumulator bigger than
+	jp	p,FOUNV2	;1265 - the number in the ACCumulator bigger than
 	jp	(hl)		;1268 - number not big enough, RET by JP to (HL)
 ; ----------------------------------------------------------------------
 ; 1269H – MATH ROUTINE – “FOTZER”
@@ -2974,7 +2979,7 @@ FOITBL:	DEFB	$10, $27	; 10,000
 ; ----------------------------------------------------------------------
 ; 13E2-13E6 – MATH ROUTINE – “PSHNEG”
 ; ----------------------------------------------------------------------
-PSHNEG:	ld	HL,NNEG		; address of the routine for conversion of floating point numbers from negative to positive
+PSHNEG:	ld	HL,FNEG		; address of the routine for conversion of floating point numbers from negative to positive
 	ex	(sp),hl		;13e5
 	jp	(hl)		;13e6
 ;
@@ -2984,6 +2989,7 @@ PSHNEG:	ld	HL,NNEG		; address of the routine for conversion of floating point nu
 ;   it by raising n to the power of 0.5. The root is left in ACC as a single
 ;   precision value. Single-precision values only should be used
 ; ----------------------------------------------------------------------
+SQR:
 FNSQR:	call	PUSHF		;13e7
 	ld	hl,FHALF	;13ea
 	call	MOVFM		;13ed
@@ -3035,7 +3041,7 @@ FPWR1:	pop	hl		;1421
 	pop	hl		;1425
 	ld	(FACLO),hl	;1426
 	call	c,PSHNEG	;1429
-	call	z,NNEG		;142c
+	call	z,FNEG		;142c
 	push	de		;142f
 	push	bc		;1430
 	call	FNLOG		;1431
@@ -3048,6 +3054,7 @@ FPWR1:	pop	hl		;1421
 ;
 ;   Single-precision only. (ACCumulator = EXP(REG1)).
 ; ----------------------------------------------------------------------
+EXP:
 FNEXP:	call	PUSHF		;1439
 	ld	bc,$8138	;143c
 	ld	de,$AA3B	;143f
@@ -3068,7 +3075,7 @@ FNEXP:	call	PUSHF		;1439
 	pop	de		;1463
 	push	af		;1464
 	call	FSUB		;1465
-	call	NNEG		;1468
+	call	FNEG		;1468
 	ld	hl,EXPCON	;146b
 	call	POLY		;146e
 	ld	de,$0000	;1471
@@ -3144,6 +3151,7 @@ POLY1:	pop	af		;14b2
 ;   If the passed argument is 0, the last random number generated is returned.
 ;   If the argument is < 0, a new sequence of random numbers is started using the argument.
 ; ----------------------------------------------------------------------
+RND:
 FNRND:	call	FRCINT		;14c9 - convert the RND(x) argument to an integer -> HL
 	ld	a,h		;14cc - the MSB for the argument value
 	or	a		;14cd
@@ -3230,6 +3238,7 @@ RND02:	dec	l		;1516 - dec the main bit loop counter
 ;   floating point value in ACCumulator; the cosine will be returned in
 ;   ACCumulator as a floating point value.
 ; ----------------------------------------------------------------------
+COS:
 FNCOS:	ld	hl,PI2		;1541
 	call	FADDS		;1544
 ;
@@ -3240,6 +3249,7 @@ FNCOS:	ld	hl,PI2		;1541
 ;   sine must be given in radians in WRA1.
 ;   Single-precision only.(ACCumulator = SIN(ACCumulator)).
 ; ----------------------------------------------------------------------
+SIN:
 FNSIN:	call	PUSHF		;1547
 	ld	bc,$8349	;154a - exponent and the MSB of a single precision constant
 	ld	de,$0FDB	;154d - NMSB and the LSB of a single precision constant
@@ -3261,11 +3271,11 @@ FNSIN:	call	PUSHF		;1547
 	call	SIGN		;1573
 	or	a		;1576
 SIN1:	push	af		;1577
-	call	p,NNEG		;1578
+	call	p,FNEG		;1578
 	ld	hl,FR4		;157b
 	call	FADDS		;157e
 	pop	af		;1581
-	call	nc,NNEG		;1582
+	call	nc,FNEG		;1582
 	ld	hl,SINCON	;1585
 	jp	POLYX		;1588
 ;
@@ -3295,6 +3305,7 @@ SINCON:	DEFB	05H		; The number of single precision constants (05) which follows
 ;   as a single precision value in WRA1. The tangent will be left in WRA1
 ;   Single-precision only.(ACCumulator = TAN(ACCumulator)).
 ; ----------------------------------------------------------------------
+TAN:
 FNTAN:	call	PUSHF		;15a8
 	call	FNSIN		;15ab
 	pop	bc		;15ae
@@ -3311,9 +3322,10 @@ FNTAN:	call	PUSHF		;15a8
 ;   The angle will be left as a single precision value in WRA1
 ;   Single-precision only.(ACCumulator = ATN(ACCumulator)).
 ; ----------------------------------------------------------------------
-ATAN:	call	SIGN		;15bd
+ATAN:
+FNATAN:	call	SIGN		;15bd
 	call	m,PSHNEG	;15c0
-	call	m,NNEG		;15c3
+	call	m,FNEG		;15c3
 	ld	a,(FAC)		;15c6
 	cp	$81		;15c9
 	jr	c,ATAN2		;15cb
@@ -3368,7 +3380,7 @@ FUNDSP:
 	DEFW	FNCOS		; COS()
 	DEFW	FNSIN		; SIN()
 	DEFW	FNTAN		; TAN()
-	DEFW	ATAN		; ATAN()
+	DEFW	FNATAN		; ATAN()
 	DEFW	PEEK		; PEEK - ($E5)
 	DEFW	DVCVI		; CVI - Disk Basic Token - ($E6)
 	DEFW	DVCVS		; CVS - Disk Basic Token
@@ -3389,7 +3401,7 @@ FUNDSP:
 	DEFW	FNASC		; ASC
 	DEFW	FNCHR		; CHR$
 	DEFW	FNLEFT		; LEFT$
-	DEFW	FNRGT		; RIGHT$
+	DEFW	FNRIGT		; RIGHT$
 	DEFW	FNMID		; MID$ - ($FA)
 ;
 ; ----------------------------------------------------------------------
@@ -3418,15 +3430,15 @@ RESLST:
 	DEFB	$D2,"EAD"	; READ
 	DEFB	$CC,"ET"	; LET
 	DEFB	$C7,"OTO"	; GOTO  - $8D
-	DEFB	$D2,"UN"	; RUN
+	DEFB	$D2,"UN"	; RUN   - $8E
 	DEFB	$C9,"F"		; IF    - $8F
-	DEFB	$D2,"ESTORE"	; RESTORE
+	DEFB	$D2,"ESTORE"	; RESTORE-$90
 	DEFB	$C7,"OSUB"	; GOSUB - $91
-	DEFB	$D2,"ETURN"	; RETURN
+	DEFB	$D2,"ETURN"	; RETURN- $92
 	DEFB	$D2,"EM"	; REM   - $93
-	DEFB	$D3,"TOP"	; STOP
+	DEFB	$D3,"TOP"	; STOP  - $94
 	DEFB	$C5,"LSE"	; ELSE  - $95
-	DEFB	$D4,"RON"	; TRON
+	DEFB	$D4,"RON"	; TRON  - $96
 	DEFB	$D4,"ROFF"	; TROFF
 	DEFB	$C4,"EFSTR"	; DEFSTR
 	DEFB	$C4,"EFINT"	; DEFINT
@@ -3507,19 +3519,19 @@ ELSE
 ;
 	DEFB	$D3,"GN"	; SGN - $D7
 	DEFB	$C9,"NT"	; INT - $D8
-	DEFB	$C1,"BS"	; ABS
-	DEFB	$C6,"RE"	; FRE
-	DEFB	$C9,"NP"	; INP
-	DEFB	$D0,"OS"	; POS
-	DEFB	$D3,"QR"	; SQR
-	DEFB	$D2,"ND"	; RND
-	DEFB	$CC,"OG"	; LOG
-	DEFB	$C5,"XP"	; EXP
-	DEFB	$C3,"OS"	; COS
-	DEFB	$D3,"IN"	; SIN
-	DEFB	$D4,"AN"	; TAN
-	DEFB	$C1,"TN"	; ATN
-	DEFB	$D0,"EEK"	; PEEK
+	DEFB	$C1,"BS"	; ABS - $D9
+	DEFB	$C6,"RE"	; FRE - $DA
+	DEFB	$C9,"NP"	; INP - $DB
+	DEFB	$D0,"OS"	; POS - $DC
+	DEFB	$D3,"QR"	; SQR - $DD
+	DEFB	$D2,"ND"	; RND - $DE
+	DEFB	$CC,"OG"	; LOG - $DF
+	DEFB	$C5,"XP"	; EXP - $E0
+	DEFB	$C3,"OS"	; COS - $E1
+	DEFB	$D3,"IN"	; SIN - $E2
+	DEFB	$D4,"AN"	; TAN - $E3
+	DEFB	$C1,"TN"	; ATN - $E4
+	DEFB	$D0,"EEK"	; PEEK- $E5
 	DEFB	$C3,"VI"	; CVI (disk) - $E6
 	DEFB	$C3,"VS"	; CVS (disk)
 	DEFB	$C3,"VD"	; CVD (disk)
@@ -3529,19 +3541,18 @@ ELSE
 	DEFB	$CD,"KI$"	; MKI$ (disk)
 	DEFB	$CD,"KS$"	; MKS$ (disk)
 	DEFB	$CD,"KD$"	; MKD$ (disk) - $ED
-	DEFB	$C3,"INT"	; CINT
-	DEFB	$C3,"SNG"	; CSNG
-	DEFB	$C3,"DBL"	; CDBL
-	DEFB	$C6,"IX"	; FIX
-	DEFB	$CC,"EN"	; LEN
-	DEFB	$D3,"TR$"	; STR$
-	DEFB	$D6,"AL"	; VAL
-	DEFB	$C1,"SC"	; ASC
-	DEFB	$C3,"HR$"	; CHR$
+	DEFB	$C3,"INT"	; CINT   - $EF
+	DEFB	$C3,"SNG"	; CSNG   - $F0
+	DEFB	$C3,"DBL"	; CDBL   - $F1
+	DEFB	$C6,"IX"	; FIX    - $F2
+	DEFB	$CC,"EN"	; LEN    - $F3
+	DEFB	$D3,"TR$"	; STR$   - $F4
+	DEFB	$D6,"AL"	; VAL    - $F5
+	DEFB	$C1,"SC"	; ASC    - $F6
+	DEFB	$C3,"HR$"	; CHR$   - $F7
 	DEFB	$CC,"EFT$"	; LEFT$  - $F8
 	DEFB	$D2,"IGHT$"	; RIGHT$ - $F9
 	DEFB	$CD,"ID$"	; MID$   - $FA
-;
 	DEFB	$A7		; ' (REM)- $FB
 ;
 	DEFB	80h		; END OF TABLE TERMINATOR.
@@ -3556,7 +3567,7 @@ STMDSP:
 	DEFW	END		; END - ID = $80
 	DEFW	FOR		; FOR
 	DEFW	RESET		; RESET
-	DEFW	SET		; SET
+	DEFW	SETS		; SET
 	DEFW	CLS		; CLS
 	DEFW	DVCMD		; CMD ( Command Vector )
 	DEFW	RANDOM		; RANDOM
@@ -3574,7 +3585,7 @@ STMDSP:
 	DEFW	RETURN		; RETURN
 	DEFW	REM		; REM
 	DEFW	STOP		; STOP
-	DEFW	REM		; ELSE (ELSE is not a standalone command)
+	DEFW	ELSE		; ELSE ( Same vector as REM )
 	DEFW	TRON		; TRON
 	DEFW	TROFF		; TROFF
 	DEFW	DEFSTR		; DEFSTR
@@ -3741,26 +3752,25 @@ CONSTR:	sub	$00		;4080 (FDIVC) - Note Argument is set into working RAM
 	DEFW	MEMEND+$14C	;40A0 (STKTOP) - String Storage Area (434C)
 	DEFW	$FFFE		;40A2 (CURLIN) - Current BASIC Line Number
 	DEFW	MEMEND+$E9	;40A4 (TXTTAB) - BASIC Program Statement Table Pointer
-;
 CONSTR2:
 ;
 ; ----------------------------------------------------------------------
+;
 ; 191D-1923 – MESSAGE STORAGE LOCATION – "ERR"
-; ----------------------------------------------------------------------
-m_ERR:	DEFB	" Error"
+ERRMSG:	DEFB	" Error"
 	DEFB	0
 ;
-; Message IN
-m_INTX:	DEFB	" in "
+; 1924-1928 – MESSAGE STORAGE LOCATION - "IN"
+INTXT:	DEFB	" in "
 	DEFB	0
 ;
 ; 1929-192F – MESSAGE STORAGE LOCATION – "REDDY"
-m_REDDY: DEFB	"READY"
+REDYTXT: DEFB	"READY"
 	DEFB	ENTER
 	DEFB	0
 ;
 ; 1930-1935 – MESSAGE STORAGE LOCATION – "BRKTXT"
-BNKTXT:	DEFB	"Break"
+BRKTXT:	DEFB	"Break"
 	DEFB	0
 ;
 ; ----------------------------------------------------------------------
@@ -3949,7 +3959,7 @@ NOTRAP:	xor	a		;19e3
 	call	OUTDO		;19f7 - print first character
 	GETCHR			;19fa - rst 10h - gets next char e.g. "N"
 	call	OUTDO		;19fb - print second character
-	ld	hl,m_ERR	;19fe - error Message " Error"
+	ld	hl,ERRMSG	;19fe - error Message " Error"
 	push	hl		;1a01 - save message address
 	ld	hl,(ERRLIN)	;1a02 - basic line number causing the error
 	ex	(sp),hl		;1a05 - get the message " Error"
@@ -3985,10 +3995,10 @@ READY:	call	FINLPT		;1a19 - set the current output device to the video display
 #IFDEF NOCASSETTE
 	NOP3			;skip the cassette call
 #ELSE
-	call	CTOFF		;1a1f - turn off the cassette recorder
+	call	COFF		;1a1f - turn off the cassette recorder
 #ENDIF
 	call	CRDONZ		;1a22 - display a carriage return if necessary
-	ld	hl,m_REDDY	;1a25 - the starting address of word “READY”
+	ld	hl,REDYTXT	;1a25 - the starting address of word “READY”
 	call	STROUT		;1a28 - Display the word “READY”
 	ld	a,(ERRFLG)	;1a2b - load A with the value of the current error code
 	sub	ERRSN		;1a2e - compare with SYNTAX ERROR
@@ -4237,7 +4247,7 @@ SCRTCH:	ld	hl,(TXTTAB)	;1b4d
 ;   and than passes right through to here to reset the rest.
 ; ----------------------------------------------------------------------
 #IFDEF MODEL3ROM
-RUNC:	call 	SCROLLP		;1b5d - clear video scroll protection
+RUNC:	call 	NEWX		;1b5d - clear video scroll protection
 #ELSE
 RUNC:	ld	hl,(TXTTAB)	;1b5d - the PST (the start of the BASIC program pointer).
 #ENDIF
@@ -4668,7 +4678,7 @@ GONE3:	ret	z		;1d5f - Return If an END OF LINE delimiter
 GONE2:	sub	TKOFF		;1d60 - Check for a token >= 80H
 	jp	c,LET		;1d62 - NOT a Token, so must be a LET. JUMP
 	cp	TKTAB-TKOFF	;1d65 - if the token is below the TAB( token
-	jp	nc,ISMID	;1d67 - If the token >= TAB token
+	jp	nc,ISMIDS	;1d67 - If the token >= TAB token
 	rlca			;1d6a - Multiply the token value in Register A by two
 	ld	c,a		;1d6b
 	ld	b,$00		;1d6c - address offset into BC
@@ -4768,7 +4778,7 @@ ENDCON:	ld	hl,(CURLIN)	;1dc1
 DIRIS:	call	FINLPT		;1dd4 - set the current output device to video
 	call	CRDONZ		;1dd7
 	pop	af		;1dda
-	ld	hl,BNKTXT	;1ddb
+	ld	hl,BRKTXT	;1ddb
 	jp	nz,ERRFIN	;1dde
 	jp	STPRDY		;1de1
 ;
@@ -4789,12 +4799,14 @@ CONT:	ld	hl,(OLDTXT)	;1de4
 ; ----------------------------------------------------------------------
 ; 1DF7-1DF8 - TRON ENTRY POINT - "TRON"
 ; ----------------------------------------------------------------------
+TON:
 TRON:	DEFB	LDANN		;1df7 - Z80 Trick LD A,nn where nn is the next XOR instruction byte
 ; which is nn zero, thus we store a non-ZERO, ON state
 ;
 ; ----------------------------------------------------------------------
 ; 1DF8 - TROFF ENTRY POINT - "TROFF"
 ; ----------------------------------------------------------------------
+TOFF:
 TROFF:	xor	a		;1df8
 	ld	(TRCFLG),a	;1df9
 	ret			;1dfc
@@ -5057,13 +5069,16 @@ GOBACK:	ld	hl,NEWSTT	;1eff - return address of NEWSTT
 	DEFB	LDANN		;1f03 - Z80 Trick LD A,nn - skip POP HL
 ;
 ; ----------------------------------------------------------------------
-; 1F04-1F20 - SCAN ROUTINE - "DATA" and "REM"
+; 1F04-1F20 - SCAN ROUTINE - "DATA", "REM", and ELSE
 ; 	Noting DATA is treated almost identically to REM
 ;	As DATA are not executable instructions
+;	Also ELSE is not a standalone statement so also treated as a REM
 ; ----------------------------------------------------------------------
 DATAH:	pop	hl		;1f04 - restore the Basic program pointer into HL
 DATA:	DEFB	LDBCNN, $3A	;1f05 - Z80 Trick - LD BC,$nn3A - skip the LD C,0  (0 -> NOP)
-REM:	ld	c,$00		;1f07 - Z80 Trick - noting second byte here is 0 which is a NOP
+;
+REM:
+ELSE:	ld	c,$00		;1f07 - Z80 Trick - noting second byte here is 0 which is a NOP
 ;
 	ld	b,$00		;1f09
 EXCHQT:	ld	a,c		;1f0b - Exchange Registers B <-> C
@@ -5460,11 +5475,11 @@ CRFIN:	call	EXDSCR		;2103
 COMPRT:	call	EXPDOS		;2108 - DOS EXIT for Print TAB and Print #
 	ld	a,(PRTFLG)	;210b - the current output device flag
 	or	a		;210e - Set The Flags
-	jp	p,NTCAS		;210f - if the printer or the video display
+	jp	p,NTCCAS		;210f - if the printer or the video display
 	ld	a,','		;2112
 	call	OUTDO		;2114
 NTCAS0:	jr	NOTABR		;2117
-NTCAS:	jr	z,ISCTTY	;2119 - is it the video display
+NTCCAS:	jr	z,ISCTTY	;2119 - is it the video display
 	ld	a,(LPTPOS)	;211b - the current carriage position.
 	cp	$70		;211e
 	jp	CHKCOM		;2120
@@ -5507,9 +5522,9 @@ TABER:	call	GTBYTC		;2137 - evaluate the tab number, and return with the result 
 	jp	m,FCERR		;2148 - cannot send a tab to cassette, FC ERR
 	jp	z,TTYIST	;214b - is Video
 	ld	a,(LPTPOS)	;214e - printer get carriage position
-	jr	DOSIST		;2151
+	jr	DOSIZT		;2151
 TTYIST:	ld	a,(TTYPOS)	;2153 - current cursor position
-DOSIST:	cpl			;2156 - => - current cursor pos
+DOSIZT:	cpl			;2156 - => - current cursor pos
 	add	a,e		;2157 - number of tabs - current cursor pos
 	jr	nc,NOTABR	;2158 - already past the current pos, JP EXIT
 ASPA2:	inc	a		;215a
@@ -5531,7 +5546,7 @@ FINPRT:
 	; removing this code (non cassette) leaves space for below
 	ld	a,(PRTFLG)	;2169 - current output device flag
 	or	a		;216c - check the flags
-	call	m,CTOFF		;216d - If cassette, turn it off
+	call	m,COFF		;216d - If cassette, turn it off
 #ENDIF
 	xor	a		;2170 - DEV0VID
 	ld	(PRTFLG),a	;2171 - set current output device type = VIDEO
@@ -5619,7 +5634,7 @@ FILBUF:	call	CASIN		;21b2
 	djnz	FILBUF		;21bb
 ENDREC:	dec	hl		;21bd
 	ld	(hl),$00	;21be
-	call	CTOFF		;21c0
+	call	COFF		;21c0
 	ld	hl,(BUFPNT)	;21c3
 	dec	hl		;21c6
 	jr	INPCN3		;21c7
@@ -5709,11 +5724,11 @@ DATBK:	call	FILIND		;222d
 	ld	d,a		;2235
 	ld	b,a		;2236
 	cp	DQUOTE		;2237
-	jr	z,NOWGETR	;2239
+	jr	z,NOWGET	;2239
 	ld	d,':'		;223b
 	ld	b,','		;223d
 	dec	hl		;223f
-NOWGETR: call	STRLT2		;2240
+NOWGET: call	STRLT2		;2240
 DOASIG:	pop	af		;2243
 	ex	de,hl		;2244
 	ld	hl,STRDN2	;2245
@@ -6645,7 +6660,7 @@ FINZER:	ld	(FAC),a		;26d5
 	ld	(FACLO),hl	;26db
 	GETYPE			;26de - RST 20 - check the current number type
 	jr	nz,POPHR2	;26df
-	ld	hl,m_INTX+4	;26e1 - An address containing a 0 terminator - IN message
+	ld	hl,INTXT+4	;26e1 - An address containing a 0 terminator - IN message
 	ld	(FACLO),hl	;26e4
 POPHR2:	pop	hl		;26e7
 	ret			;26e8
@@ -6816,11 +6831,11 @@ INLPNM:	pop	hl		;279a
 	ld	c,l		;27b3
 	add	hl,hl		;27b4
 	sub	VTSNG		;27b5 - Compare with Single Precision
-	jr	c,DMLVAL	;27b7 - If it is an Integer or String
+	jr	c,SMLVAL	;27b7 - If it is an Integer or String
 	add	hl,hl		;27b9
 	jr	z,DONMUL	;27ba
 	add	hl,hl		;27bc
-DMLVAL:	or	a		;27bd
+SMLVAL:	or	a		;27bd
 	jp	po,DONMUL	;27be
 	add	hl,bc		;27c1
 DONMUL:	pop	bc		;27c2
@@ -6869,8 +6884,8 @@ GIVDBL:	ld	a,l		;27ec
 ; ----------------------------------------------------------------------
 ; 27F5-27FD – LEVEL II BASIC POS() ROUTINE – “FNPOS”
 ; ----------------------------------------------------------------------
-FNPOS:
-	ld	a,(TTYPOS)	;27f5 - Load A with the current cursor line position.
+POS:
+FNPOS:	ld	a,(TTYPOS)	;27f5 - Load A with the current cursor line position.
 SNGFLT:	ld	l,a		;27f8 - Load Value into L
 	xor	a		;27f9 - Zero A
 GIVINT:	ld	h,a		;27fa - HL now contains the INT Value
@@ -6932,6 +6947,7 @@ IDERR:	ld	e,ERRID		;2831
 ;   On exit the VARPTR to the string created by this routine will be
 ;   found in the ACCUM, with the NTF set to 3
 ; ----------------------------------------------------------------------
+STRS:
 FNSTR:	call	FOUT		;2836
 	call	STRLIT		;2839
 	call	FREFAC		;283c
@@ -7316,6 +7332,7 @@ FRETMS:	ld	hl,(TEMPPT)	;29f5
 ; 2A03-2A0E – LEVEL II BASIC LEN ROUTINE– “FNLEN”
 ;   Get length (number of bytes) of a string to ACCUM
 ; ----------------------------------------------------------------------
+LEN:
 FNLEN:	ld	bc,SNGFLT	;2a03
 	push	bc		;2a06
 LEN1:	call	FRESTR		;2a07
@@ -7328,6 +7345,7 @@ LEN1:	call	FRESTR		;2a07
 ; 2A0F-2A1E – LEVEL II BASIC ASC ROUTINE – “FNASC”
 ;   Get ASCII value of first character of string to ACCUM
 ; ----------------------------------------------------------------------
+ASC:
 FNASC:	ld	bc,SNGFLT	;2a0f
 	push	bc		;2a12
 ASC2:	call	LEN1		;2a13
@@ -7342,6 +7360,7 @@ ASC2:	call	LEN1		;2a13
 ; 2A1F-2A2E – LEVEL II BASIC CHR$ ROUTINE – “FNCHR”
 ;   Make a one - character string - ASCII value in ACCUM
 ; ----------------------------------------------------------------------
+CHRS:
 FNCHR:	ld	a,$01		;2a1f
 	call	STRINI		;2a21
 	call	CONINT		;2a24
@@ -7388,6 +7407,7 @@ SPLPS:	ld	(hl),a		;2a5a
 ; ----------------------------------------------------------------------
 ; 2A61-2A90 – LEVEL II BASIC LEFT$( ROUTINE – “FNLEFT”
 ; ----------------------------------------------------------------------
+LEFTS:
 FNLEFT:	call	PREAM		;2a61
 ; ----------------------------------------------------------------------
 ; 2A64 - Make a string of the leftmost n characters of string (TAS)
@@ -7429,9 +7449,10 @@ ALLSTR:	ld	c,$00		;2a70
 	call	FRETMP		;2a8b
 	jp	PUTNEW		;2a8e
 ; ----------------------------------------------------------------------
-; 2A91-2A99 – LEVEL II BASIC RIGHT$ ROUTINE – “FNRGT”
+; 2A91-2A99 – LEVEL II BASIC RIGHT$ ROUTINE – “FNRIGT”
 ; ----------------------------------------------------------------------
-FNRGT:	call	PREAM		;2a91
+RIGHTS:
+FNRIGT:	call	PREAM		;2a91
 ; ----------------------------------------------------------------------
 ; 2A94 - Make a string of the rightmost n characters of string (TAS)
 ; ----------------------------------------------------------------------
@@ -7443,6 +7464,7 @@ FNRGT:	call	PREAM		;2a91
 ; ----------------------------------------------------------------------
 ; 2A9A-2AC4 – LEVEL II BASIC MID$ ROUTINE – “FNMID”
 ; ----------------------------------------------------------------------
+MIDS:
 FNMID:	ex	de,hl		;2a9a
 	ld	a,(hl)		;2a9b
 	call	PREAM2		;2a9c
@@ -7478,6 +7500,7 @@ MID2:	SYNTAX	(')')		;2ab0 - rst 08h
 ; ----------------------------------------------------------------------
 ; 2AC5-2ADE – LEVEL II BASIC VAL ROUTINE – “FNVAL”
 ; ----------------------------------------------------------------------
+VAL:
 FNVAL:	call	LEN1		;2ac5
 	jp	z,SNGFLT	;2ac8
 	ld	e,a		;2acb
@@ -7513,7 +7536,7 @@ PREAM2:	pop	bc		;2ae2
 	ld	b,e		;2ae5
 	ret			;2ae6
 ; ----------------------------------------------------------------------
-; 2AE7H-2AEE – Process a LEFT-HAND-SIDE MID$– “ISMID$”
+; 2AE7H-2AEE – Process a LEFT-HAND-SIDE MID$– “ISMIDS”
 ;
 ; This routine is designed to handle a left-size MID$ call.
 ; So check to see if the character at the location of the current BASIC
@@ -7522,7 +7545,7 @@ PREAM2:	pop	bc		;2ae2
 ; If A < the checked value, then the C FLAG is set.
 ; If A >= the checked value, the NC FLAG is set.
 ; ----------------------------------------------------------------------
-ISMID:	cp	TKMID-TKOFF	;2ae7 - Check the Mid Token.
+ISMIDS:	cp	TKMID-TKOFF	;2ae7 - Check the Mid Token.
 	jp	nz,SNERR	;2ae9
 	jp	DLHSMD		;2aec JUMP to DOS to see if DOS wants to deal with this.
 ;

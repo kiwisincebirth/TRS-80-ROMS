@@ -91,13 +91,13 @@ DEFC	MEMEND	= RAM+$200	; End of Reserved RAM Communications area
 ; 0000H-0004H – POWER UP ROUTINE – "_START"
 ; ----------------------------------------------------------------------
 _START:
-rst00:	di			;0000
+	di			;0000
 	xor	a		;0001
 	jp	INIT		;0002
 ;
 ; The BDOS (Basic Disk Operating System) entry point address in most CP/M systems
 ; Having this here may be coincidental, or this may never called
-	jp	mRST1		;0005
+	jp	RT1		;0005
 ;
 ; ======================================================================
 ; 0008H (RST 8H) - Compare Symbol - SYMBOL
@@ -111,23 +111,23 @@ rst00:	di			;0000
 ;   match, a syntax error message is given and control returns
 ;   to the Input Phase.
 ; ----------------------------------------------------------------------
-rst08:	jp	mRST1		;0008
+RST1:	jp	RT1		;0008
 ;
 ; ----------------------------------------------------------------------
-; 000BH-000CH – DISK ROUTINE – "_WHERE" ( RESOLVE RELOCATION ADDRESS )
+; 000BH-000CH – DISK ROUTINE – "WHERE" ( RESOLVE RELOCATION ADDRESS )
 ;   Same as a RET instruction except leaves return address in HL
 ;    A relocatable program can CALL 000BH and upon return the HL register
 ;    will contain hte current address of PC, thus can find itself in memory
 ; ----------------------------------------------------------------------
-_WHERE:	pop	hl		;000b
+WHERE:	pop	hl		;000b
 	jp	(hl)		;000c
 ;
 ; ----------------------------------------------------------------------
-; 000DH-000FH – DISK BOOTSTRAP – "_BOOT"
+; 000DH-000FH – DISK BOOTSTRAP – "DBOOT"
 ;   Does a "warm" system reboot, in that it reloads and executes the Disk
 ;    Operating System but does not re-initialize all system pointers, etc.
 ; ----------------------------------------------------------------------
-_BOOT:	jp	BOOT		;000d - Jump to Disk Bootstrap loader (069Fh)
+DBOOT:	jp	BOOT		;000d - Jump to Disk Bootstrap loader (069Fh)
 ;
 ; ======================================================================
 ; 0010H (RST 10) – GET A CHARACTER FROM THE BUFFER - GETCHR
@@ -142,7 +142,7 @@ _BOOT:	jp	BOOT		;000d - Jump to Disk Bootstrap loader (069Fh)
 ;   string address minus one. The string must be terminated by
 ;   a byte of zeros.
 ; ----------------------------------------------------------------------
-rst10:	jp	mRST2		;0010
+	jp	RT2		;0010
 ;
 ; ----------------------------------------------------------------------
 ; 0013H-0017H – INPUT ROUTINE – _GET
@@ -162,7 +162,7 @@ _GET:	push	bc		;0013
 ;   CARRY SET=HL<DE; NO CARRY=HL>DE; NZ=Unequal; Z=Equal).
 ;   Jumps to 1C90H through 4006H.
 ; ----------------------------------------------------------------------
-rst18:	jp	mRST3		;0018
+	jp	RT3		;0018
 ;
 ; ----------------------------------------------------------------------
 ; 001BH-001EH – DRIVER ENTRY ROUTINE – Part 1 – "_PUT"
@@ -179,7 +179,7 @@ _PUT:	push	bc		;001b
 ;   (S flag is valid also.). After execution of RST 20H or CALL 25D9H,
 ;   A will contain the value NTF-3, all other registers are unchanged.
 ; ----------------------------------------------------------------------
-rst20:	jp	mRST4		;0020
+	jp	RT4		;0020
 ;
 ; ----------------------------------------------------------------------
 ; 0023H-0027H – DISK ROUTINE – "_CTL"
@@ -191,7 +191,7 @@ _CTL:	push	bc		;0023
 	jr	CIOJ		;0026- BASIC driver entry routine at 0046H
 ;
 ; ======================================================================
-; 0028H (RST 28H) - DOS Function CALL - DOSCAL
+; 0028H (RST 28H) - DOS Function CALL - DOSCALL
 ;
 ;   Jumps to 400CH which contains C9H (RET) under Level II BASIC.
 ;   This vector is only used by Disk BASIC.
@@ -204,8 +204,7 @@ _CTL:	push	bc		;0023
 ;   by the RST instruction. After processing control will be returned
 ;   to the previous address on the STACK)
 ; ----------------------------------------------------------------------
-_DOSCAL:
-rst28:	jp	mRST5		;0028
+	jp	RT5		;0028
 ;
 ; ======================================================================
 ; 002BH – KEYBOARD ROUTINE – "_KBD" - Scan Keyboard
@@ -217,7 +216,7 @@ rst28:	jp	mRST5		;0028
 ;   Apart from the AF Register Pair the DE Register Pair is also used by the routine.
 ;   If you want to wait for a key to be pressed, you would use CALL 0049
 ; ----------------------------------------------------------------------
-_KBD:	ld	de,mKDCB	;002b
+_KBD:	ld	de,KDCB	;002b
 	jr	_GET		;002e
 ;
 ; ======================================================================
@@ -230,7 +229,7 @@ _KBD:	ld	de,mKDCB	;002b
 ;   This location passes control to 400FH which contains a RET (C9H)
 ;   under Level II. This location is only used by a Disk system
 ; ----------------------------------------------------------------------
-rst30:	jp	mRST6		;0030
+rst30:	jp	RT6		;0030
 ;
 ; ======================================================================
 ; 0033H – VIDEO ROUTINE – "_DSP" - Character print routine.
@@ -241,7 +240,7 @@ rst30:	jp	mRST6		;0030
 ;  The DE Register Pair is used by the routine.
 ; ----------------------------------------------------------------------
 VDCHAR:
-_DSP:	ld	de,mDDCB	;0033 - video device control block.
+_DSP:	ld	de,DDCB	;0033 - video device control block.
 	jr	_PUT		;0036
 ;
 ; ======================================================================
@@ -253,21 +252,21 @@ _DSP:	ld	de,mDDCB	;0033 - video device control block.
 ;  of a DI (disables further interrupts) followed by a RET
 ;  (returns to the point of interrupt) for non-disk systems
 ; ----------------------------------------------------------------------
-rst38:	jp	mRST7		;0038
+rst38:	jp	RT7		;0038
 ;
 ; ======================================================================
-; 003BH – PRINTER ROUTINE – "$PRT"
+; 003BH – PRINTER ROUTINE – "_PRT"
 ;  Waits until printer is ready then prints charatcter.
 ;  A = ASCII character. If BREAK is pressed, a return to caller is made
 ;  Character LPRINT routine. Same as 33H but outputs to line printer.
 ;  (Contents of A Register will be printed).
 ; ----------------------------------------------------------------------
 PRCHAR:
-_PRT:	ld	de,mPDCB	;003b
+_PRT:	ld	de,PDCB	;003b
 	jr	_PUT		;003e
 ;
 ; ----------------------------------------------------------------------
-; 0040H – INPUT ROUTINE – "$KEYIN" - GET A LINE FROM THE KEYBOARD
+; 0040H – INPUT ROUTINE – "_KEYIN" - GET A LINE FROM THE KEYBOARD
 ;  takes keyboard entry until a carriage return, a break, or buffer overrun occurs.
 ; ----------------------------------------------------------------------
 KBLINE:
@@ -283,7 +282,7 @@ _KEYIN:	jp	KEYIN		;0040
 CIOJ:	jp	CIO		;0046
 ;
 ; ======================================================================
-; 0049H – KEYBOARD ROUTINE – "$KEY" -  Wait For Keyboard Input
+; 0049H – KEYBOARD ROUTINE – "_KEY" -  Wait For Keyboard Input
 ;
 ;   Returns as soon as any key on keyboard is pressed. ASCII
 ;   value for character entered is returned in A- register. Uses
@@ -311,15 +310,15 @@ KEYTAB:	DEFB	ENTER,	ENTER	; ENTER
 	DEFB	SPACE,	SPACE	; Space
 ;
 ; ----------------------------------------------------------------------
-; 0060H-0065H – DELAY ROUTINE – "$DELAY"
+; 0060H-0065H – DELAY ROUTINE – "PAUSE"
 ;  This is a delay loop. The BC Register Pair is used as the loop counter.
 ;  The duration of the delay, in microseconds, is the value of BC times 14.66.
 ;  Register A is used.
 ; ----------------------------------------------------------------------
-DELAY:	dec	bc		;0060
+PAUSE:	dec	bc		;0060
 	ld	a,b		;0061
 	or	c		;0062
-	jr	nz,DELAY	;0063
+	jr	nz,PAUSE	;0063
 	ret			;0065
 ;
 ; ----------------------------------------------------------------------
@@ -377,7 +376,7 @@ INIT2:	ld	de,FDIVC	;0075 - Ram location - of Level II BASIC support routines.
 ;
 ; Fills the RAM locations pointing to all 28 DOS BASIC commands,
 ; set them to point to ?L3 ERROR, (4152-41A5)
-	ld	de,L3ERR	;008e - address of L3 error code
+	ld	de,NAVERR	;008e - address of L3 error code
 	ld	b,28		;0091 - there are 28 DOS BASIC commands
 	ld	hl,ERCALL	;0093 - address in RAM of lookup table
 ERLOPS:	ld	(hl),OPJPNN	;0096 - opcode (1st byte) for JP nnnn
@@ -561,7 +560,7 @@ SYSTEM:	call	SYSOUT		; Call the DOS exit for system command at 41E2H.
 #IFDEF FREHDBT
 ;
 FREHDBOOT:	call	CLS		;0069 - Clear Screen
-	call	DELAY		;006c - pause for a few seconds
+	call	PAUSE		;006c - pause for a few seconds
 	ld	a,ROM_MODEL_1	;00ff - ROM parameter to FreHD. 1 for Model1.
         out	(WRITEROM),a	;0101 - write the value
         in	a,(READROM)	;0103 - read response
@@ -611,16 +610,16 @@ OUTDO:	push	bc		;032a
 OUT2D:	push	de		;033a
 	call	_DSP		;033b
 	push	af		;033e
-	call	DSPPOS		;033f - Compute Line pos based on Vid Ram Cursor
+	call	VIDMOD		;033f - Compute Line pos based on Vid Ram Cursor
 	ld	(TTYPOS),a	;0342 - store current line pos
 	pop	af		;0345
 	pop	de		;0346
 	ret			;0347
 ; ----------------------------------------------------------------------
-; 0348H-0357H – VIDEO ROUTINE – “DSPPOS”
+; 0348H-0357H – VIDEO ROUTINE – “VIDMOD”
 ;   Works out horizontal cursor position based on (CURSOR) vid ram pointer
 ; ----------------------------------------------------------------------
-DSPPOS:	ld	a,(CAST)	;0348 - get shadow copy of cassette port
+VIDMOD:	ld	a,(CAST)	;0348 - get shadow copy of cassette port
 	and	CAST32		;034b - mask of the 32 char mode bit
 	ld	a,(CURSOR)	;034d - LSB of the current cursor position
 	jr	z,NT32PS	;0350 - 64 characters per line mode?
@@ -658,7 +657,7 @@ INLIN:	xor	a		;0361
 	ld	b,240		;036f - length of the input buffer
 	call	KEYIN		;0371 - keyboard input routine, until a CR, a BREAK
 	push	af		;0374
-	ld	c,b		;0375 - Move lenght of Input to C
+	ld	c,b		;0375 - Move length of Input to C
 	ld	b,0		;0376 - zero B, so BC has has length of Input
 	add	hl,bc		;0378 - end of the Input
 	ld	(hl),0		;0379 - Save an end of the input terminator
@@ -740,7 +739,7 @@ CIO:	push	hl		;03c2 - Save HL, IX, DE registers on the stack
 	ld	a,(de)		;03ce - device type code from the DCB
 	and	b		;03cf - Isolate device code bits, using B parameter
 	cp	b		;03d0 - check for equality with passed device type
-	jp	nz,CIOSS	;03d1 - if not same - jump to DOS device Driver (4033)
+	jp	nz,CIOEX	;03d1 - if not same - jump to DOS device Driver (4033)
 ; ----------------------------------------------------------------------
 ; 03D4H - Used by NewDos/80 - SYS0/SYS - to call a Driver defined by IX ($4B2F)
 ;
@@ -770,7 +769,7 @@ CIORTN:	pop	de		;03dd - restore registers from the stack
 ;   IX+3 IX+4 IX+5 are unused
 ;   IX+6 = “K”eyboard, and IX+7 = ”I"nput
 ; ----------------------------------------------------------------------
-KBDDRV:	ld	hl,KYBTSS	;03e3 - keyboard work area, Saved Rows (4036)
+KBDDRV:	ld	hl,KBROLT	;03e3 - keyboard work area, Saved Rows (4036)
 	ld	bc,kbdmatrix+1	;03e6 - first keyboard matrix row
 	ld	d,0		;03e9 - track the keyboard Row
 KEYLP:	ld	a,(bc)		;03eb - get keyboard Row
@@ -878,7 +877,7 @@ KEYTRN:	ld	c,a		;0446 - get the key offset address into BC
 ; ----------------------------------------------------------------------
 KEYRTN:	ld	d,a		;044b - save value for the key pressed from A
 KEYRT2:	ld	bc,3500		;044c - delay count (3500)
-	call	DELAY		;044f - delay about 51.3 ms
+	call	PAUSE		;044f - delay about 51.3 ms
 	ld	a,d		;0452 - restore value for the key pressed
 	cp	$01		;0453 - Check to see if the BREAK key was pressed
 	ret	nz		;0455 - Return if the BREAK key wasn’t pressed
@@ -913,7 +912,7 @@ DSPGRP:	ld	a,c		;0467 - convert and display the charater
 	cp	SPACE		;0468 - is it a control code <$20
 	jp	c,DSPCTL	;046a - display control code
 	cp	$80		;046d - is it a graphic >= $80
-	jr	nc,DSPGRC	;046f - display graphic
+	jr	nc,DSPGSC	;046f - display graphic
 #IFDEF LOWCASE
 	jr	DSPCHR		;0471 - Disable all Alpha CHR translation
 	DEFC 	LOWCASE_ENABLED = 1
@@ -967,7 +966,7 @@ DSPBOL:	ld	a,l		;04a1 - the LSB of the current position
 ; 04A6H – Handle graphic (NON ASCII) characters – “DSPHRC”
 ;   Called for characters $80 - $FF
 ; ----------------------------------------------------------------------
-DSPGRC:	cp	$C0		;04a6 - check for Space compression Character
+DSPGSC:	cp	$C0		;04a6 - check for Space compression Character
 	jr	c,DSPCHR	;04a8 - It is Not. It is normal graphic, so display graphic
 	sub	$C0		;04aa - convert into the number of spaces to display
 	jr	z,DSPSKP	;04ac - $C0 means display 0 spaces, so Finish
@@ -1183,7 +1182,7 @@ DSPERA:	ld	(hl),SPACE	;0580 - write a space to cursor
 ; ----------------------------------------------------------------------
 PRTDRV:	ld	a,c		;058d
 	or	a		;058e
-	jr	z,PRTSTA	;058f - If char=0 then get the printer status and return
+	jr	z,PRTAVL	;058f - If char=0 then get the printer status and return
 	cp	VERTAB		;0591 - is a skip to the top of the form Vertical Tab
 	jr	z,PRTVT		;0593 - Jump if it is a Vertical Tab
 	cp	FORMF		;0595 - is conditional skip to the top of the form Form Feed
@@ -1194,8 +1193,8 @@ PRTDRV:	ld	a,c		;058d
 PRTVT:	ld	a,(ix+3)	;059f - number of lines on the page
 	sub	(ix+4)		;05a2 - number of lines printed
 	ld	b,a		;05a5 - number of lines left to print
-PRTFF:	call	PRTSTA		;05a6 - Call the GET PRINTER STATUS routine
-	jr	nz,PRTFF	;05a9 - Loop back until the printer is ready
+PRTVT1:	call	PRTAVL		;05a6 - Call the GET PRINTER STATUS routine
+	jr	nz,PRTVT1	;05a9 - Loop back until the printer is ready
 	ld	a,LINEF		;05ab - We print line feed character(s)
 #IFDEF EACA80
 	nop
@@ -1203,13 +1202,13 @@ PRTFF:	call	PRTSTA		;05a6 - Call the GET PRINTER STATUS routine
 #ELSE
 	ld	(prtstat),a	;05ad - Send the character to the printer port 37E8H
 #ENDIF
-	djnz	PRTFF		;05b0 - Loop back until all of the lines have been skipped
+	djnz	PRTVT1		;05b0 - Loop back until all of the lines have been skipped
 	jr	PRTOP		;05b2 - all lines skipped, reset the line counter and ret
 ; ----------------------------------------------------------------------
 ; Printing of normal character starts here
 ; ----------------------------------------------------------------------
 PRTIT:	push	af		;05b4
-PRTIT2:	call	PRTSTA		;05b5 - Call the GET PRINTER STATUS routine
+PRTIT2:	call	PRTAVL		;05b5 - Call the GET PRINTER STATUS routine
 	jr	nz,PRTIT2	;05b8 - Loop back until the printer is ready
 	pop	af		;05ba
 #IFDEF EACA80
@@ -1229,12 +1228,12 @@ PRTOP:	ld	(ix+4),0	;05cc
 	ret			;05d0
 ;
 ; ======================================================================
-; 05D1H – Get printer status routine – “PRTSTA”
+; 05D1H – Get printer status routine – “PRTAVL”
 ;
 ;   Returns the status of the line printer in the status register as
 ;   zero if the printer is ready, and non-zero if not ready.
 ; ----------------------------------------------------------------------
-PRTSTA:
+PRTAVL:
 #IFDEF EACA80
 	nop
 	in	a,(prtport)	; On Dick Smith System-80 (EACA) use IO port
@@ -1350,7 +1349,7 @@ KLNETB:	ld	a,MODE32	;0641 - turn on the 32 character per line mode character
 ; 0646H – Part of the Display routine – “KLNHT”
 ;   Process a horizontal tab
 ; ----------------------------------------------------------------------
-KLNHT:	call	DSPPOS		;0646
+KLNHT:	call	VIDMOD		;0646
 	and	$07		;0649
 	cpl			;064b
 	inc	a		;064c
@@ -1454,7 +1453,7 @@ BOOT:	ld	a,$01		;069f - Drive 0
 	ld	de,diskdata	;06a7 - address of the disk data Register (37EFH)
 	ld	(hl),$03	;06aa - command 03H (RESTORE and POSITION TO TRACK 0)
 	ld	bc,0		;06ac
-	call	DELAY		;06af - delay (BC times 14.65) about 3 seconds
+	call	PAUSE		;06af - delay (BC times 14.65) about 3 seconds
 ;
 BOOTDL:	bit	0,(hl)		;06b2 - is the diskette controller is busy
 	jr	nz,BOOTDL	;06b4 - Wait until it is ready
@@ -1498,32 +1497,32 @@ RESETR:	ld	bc,STPRDY	;06cc - Address of 1A18
 ; ----------------------------------------------------------------------
 INITR:
 ; RST Code vectors, each is a 3 byte instruction
-	jp	SYNCHR		;4000 (mRST1) - RST 00H
-	jp	CHRGTR		;4003 (mRST2) - RST 10H
-	jp	DCOMPR		;4006 (mRST3) - RST 18H
-	jp	GETYPR		;4009 (mRST4) - RST 20H
-	ret			;400C (mRST5) - RST 28H
+	jp	SYNCHR		;4000 (RT1) - RST 00H
+	jp	CHRGTR		;4003 (RT2) - RST 10H
+	jp	DCOMPR		;4006 (RT3) - RST 18H
+	jp	GETYPR		;4009 (RT4) - RST 20H
+	ret			;400C (RT5) - RST 28H
 	NOP2
-	ret			;400F (mRST6) - RST 30H
+	ret			;400F (RT6) - RST 30H
 	NOP2
-	ei			;4012 (mRST7) - RST 38H (Interrupt)
+	ei			;4012 (RT7) - RST 38H (Interrupt)
 	ret
 	nop
 ; Keyboard DCB
-	DEFB	1		; 4015 (mKDCB) - Device Type = 1 for KB (Read only)
+	DEFB	1		; 4015 (KDCB) - Device Type = 1 for KB (Read only)
 	DEFW	KBDDRV		; 4016 - keyboard driver address
 	DEFB	0		; 4017 - Not used on Model 1
 	DEFB	0		; 4018 - Not used on Model 1
 	DEFB	0		; 4019 - Not used on Model 1
 	DEFB	"KI"
 ; Display DCB
-	DEFB	7		; 401D (mDDCB) - Device Type = 7 for VID
+	DEFB	7		; 401D (DDCB) - Device Type = 7 for VID
 	DEFW	DSPDRV		; 401E - DISPLAY driver address
 	DEFW	vidmem		; 4020 (CURSOR) - Cursor Position (3C00H to 3FFFH)
 	DEFB	0		; 4022 - Character "covered" on video by Cursor
 	DEFB	"DO"
 ; Printer DCB
-	DEFB	6		; 4025 (mPDCB) - Device Type = 6 for Printer
+	DEFB	6		; 4025 (PDCB) - Device Type = 6 for Printer
 	DEFW	PRTDRV		; 4026 - printer driver address
 	DEFB	67		; 4028 - lines per page
 	DEFB	0		; 4029 - Current Line Number
@@ -1537,7 +1536,7 @@ INITR:
 	rst	00h		; 4030 - DOS REQUEST CODE FOR SYS1
 	NOP2			; typically LD A,A3 followed by RST 28
 ; DOS Device Vectoring Routine
-	ld	a, 0		; 4033 (CIOSS) - CALL DOS DEVICE DRIVER (CIOSS)
+	ld	a, 0		; 4033 (CIOEX) - CALL DOS DEVICE DRIVER (CIOEX)
 	ret			; typically will JP 44BBh
 ;
 ; ======================================================================
@@ -1687,7 +1686,7 @@ DELETE:	call	SCNLINE		;2bc6
 	push	hl		;2bd4
 	CPDEHL			;2bd5
 FCERRG:	jp	nc,FCERR	;2bd6
-	ld	hl,m_REDDY	;2bd9
+	ld	hl,REDYTXT	;2bd9
 	call	STROUT		;2bdc
 	pop	bc		;2bdf
 	ld	hl,FINI		;2be0
@@ -1846,7 +1845,7 @@ INTNXTOVER:
 FOUNDBFIX:
 	call	SINGLEFIX	; apply the fix - See BUGFIX 2 for this routine
 	call	FOUNVC		;1222 - compare the ACCumulator to 999999.5
-	jp	FOUNDV1		; continue
+	jp	FOUNV1		; continue
 ; ----------------------------------------------------------------------
 	DEFC 	BUGFIX13_ENABLED = 1
 	PUBLIC 	BUGFIX13_ENABLED
@@ -1935,7 +1934,7 @@ SKIPMEMORY:
 ;
 KEYBOU:	push	bc		;011C Save Row Address in BC into the STACK
 	ld 	bc,$0500	;011D the debounce delay
-	call	DELAY		;0120 delay on delay count in BC (18.8 ms)
+	call	PAUSE		;0120 delay on delay count in BC (18.8 ms)
 	pop	bc		;0123 Restore the Row Address back to BC
 	ld	a,(bc)		;0124 Reload the original flags from active row
 	and	e		;0125 Combine the current flag lists with the original flag bits

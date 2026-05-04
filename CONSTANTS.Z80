@@ -209,35 +209,35 @@ DEFC	vidlin	= 64 		; Video RAM line Size (64 characters)
 ;
 DEFC	RAM	= $4000	; Start of RAM Communications area
 ;
-DEFC	mRST1	= RAM+$00	; RST 08h (Syntax Check) Vector
-DEFC	mRST2	= RAM+$03	; RST 10h (Get Next Character) Vector.
-DEFC	mRST3	= RAM+$06	; RST 18h (Cp HL, DE) Vector.
-DEFC	mRST4	= RAM+$09	; RST 20h (Get Current Type) Vector.
-DEFC	mRST5	= RAM+$0C	; RST 28h (Break Key; DOS Supervisor Call) Vector.
-DEFC	mRST6	= RAM+$0F	; RST 30h (DOS DEBUG entry point) Vector.
-DEFC	mRST7	= RAM+$12	; RST 38h (Interrupt Service) Vector.
+DEFC	RT1	= RAM+$00	; RST 08h (Syntax Check) Vector
+DEFC	RT2	= RAM+$03	; RST 10h (Get Next Character) Vector.
+DEFC	RT3	= RAM+$06	; RST 18h (Cp HL, DE) Vector.
+DEFC	RT4	= RAM+$09	; RST 20h (Get Current Type) Vector.
+DEFC	RT5	= RAM+$0C	; RST 28h (Break Key; DOS Supervisor Call) Vector.
+DEFC	RT6	= RAM+$0F	; RST 30h (DOS DEBUG entry point) Vector.
+DEFC	RT7	= RAM+$12	; RST 38h (Interrupt Service) Vector.
 ;
-DEFC	mKDCB	= RAM+$15	; Keyboard Device Block
+DEFC	KDCB	= RAM+$15	; Keyboard Device Block
 ;
-DEFC	mDDCB	= RAM+$1D	; Video Device Block
+DEFC	DDCB	= RAM+$1D	; Video Device Block
 DEFC	CURSOR	= RAM+$20	; Video Device Block - CURSOR
 ;
-DEFC	mPDCB	= RAM+$25	; Printer Device Block
+DEFC	PDCB	= RAM+$25	; Printer Device Block
 ;
-DEFC	CIOSS	= RAM+$33	; call device driver ala dos - CIO$
-DEFC	KYBTSS	= RAM+$36	; Keyboard driver work area (to 403C) - KYB$
+DEFC	CIOEX	= RAM+$33	; call device driver ala dos - CIO$
+DEFC	KBROLT	= RAM+$36	; Keyboard driver work area (to 403C) - KYB$
 				; Stores contents of keyboard rows to see if key just
 				; pressed or if it was pressed previously.
 ;
 ; Model 1 Specific
 DEFC	CAST	= RAM+$3D	; Video Display Control Attributes (shadow IO Port $FF)
-DEFC	CAST32= $08		; Cassette 32 Character Mode Bit
+DEFC	CAST32	= $08		; Cassette 32 Character Mode Bit
 ;
 ; Model 3 Specific
-DEFC	IVECT3	= RAM+$3D	; Interrupt Vector 3 - JP 35FAH
-DEFC	IVECT6	= RAM+$40	; Interrupt Vector 6 - JP 35FAH
-DEFC	IVECT7	= RAM+$43	; Interrupt Vector 7 - JP 35FAH
-DEFC	IVECT2	= RAM+$46	; Interrupt Vector 2 - JP 3529H
+DEFC	IODRVZ	= RAM+$3D	; Interrupt Vector 3 - JP 35FAH
+DEFC	POL6ZZ	= RAM+$40	; Interrupt Vector 6 - JP 35FAH
+DEFC	POL7ZZ	= RAM+$43	; Interrupt Vector 7 - JP 35FAH
+DEFC	CLKZZ	= RAM+$46	; Interrupt Vector 2 - JP 3529H
 DEFC	NMIVEC	= RAM+$49	; RST 0 NMI Vector (Reset If So)
 ;
 DEFC	TMPSTK	= RAM+$7D	; Stack pointer for initial DISK, bootstrap.
@@ -387,35 +387,35 @@ DEFC	SYSOUT	= DEXT+60	; (02B2) During SYSTEM command operation (41E2)
 ; ----------------------------------------------------------------------
 ; Model 3
 ; ----------------------------------------------------------------------
-DEFC	SERINP	= RAM+$1E5	; Serial RS-232 Driver Input DCB
-DEFC	SEROUT	= RAM+$1ED	; Serial RS-232 Driver Output DCB
-DEFC	SERINI	= RAM+$1F5	; Serial RS-232 Initialization DCB
+DEFC	RIDCB	= RAM+$1E5	; Serial RS-232 Driver Input DCB
+DEFC	RODCB	= RAM+$1ED	; Serial RS-232 Driver Output DCB
+DEFC	RNDCB	= RAM+$1F5	; Serial RS-232 Initialization DCB
 ;
-DEFC	RPTLSB	= RAM+$1FD	; Repeat key. LSB of keyboard buffer pointer (buffer at 4036H-403CH) when key is found depressed.
-DEFC	RPTROW	= RAM+$1FE	; Repeat key. Contents of current keyboard "row" when key is found depressed.
-DEFC	RPTDLY	= RAM+$1FF	; Repeat Key. Max repeat delay count (1500 decimal or 5DCH for first repeat delay, 150 decimal or 96H for subsequent repeats of same character).
-DEFC	RPTCNT	= RAM+$201	; Repeat Key. current repeat delay count, which is compared with value at 41FFH-4200H to determine if it is time to repeat the character.
+DEFC	LROW	= RAM+$1FD	; Repeat key. LSB of keyboard buffer pointer (buffer at 4036H-403CH) when key is found depressed.
+DEFC	LCOL	= RAM+$1FE	; Repeat key. Contents of current keyboard "row" when key is found depressed.
+DEFC	TDELAY	= RAM+$1FF	; Repeat Key. Max repeat delay count (1500 decimal or 5DCH for first repeat delay, 150 decimal or 96H for subsequent repeats of same character).
+DEFC	TCOUNT	= RAM+$201	; Repeat Key. current repeat delay count, which is compared with value at 41FFH-4200H to determine if it is time to repeat the character.
 ;
 DEFC	BRKVEC	= RAM+$203	; Break Key Vector, used during cass or serial. JP 022EH.
-DEFC	IVECT4	= RAM+$206	; Interrupt Vector 4
-DEFC	IVECT5	= RAM+$209	; Interrupt Vector 5
-DEFC	TAPEWR 	= RAM+$20C	; TAPE WRITE VECTOR, either Fast of Slow tape routines
-DEFC	TAPERD 	= RAM+$20E	; TAPE READ  VECTOR, either Fast of Slow tape routines
+DEFC	RSI11	= RAM+$206	; Interrupt Vector 4
+DEFC	RSO11	= RAM+$209	; Interrupt Vector 5
+DEFC	WRILOC 	= RAM+$20C	; TAPE WRITE VECTOR, either Fast of Slow tape routines
+DEFC	REDLOC 	= RAM+$20E	; TAPE READ  VECTOR, either Fast of Slow tape routines
 ;
-DEFC	SHADEC 	= RAM+$210	; CURRENT PORT 0ECH SHADOW OUTPUT BITS
+DEFC	IOSTAT 	= RAM+$210	; CURRENT PORT 0ECH SHADOW OUTPUT BITS
 DEFC	SHADM32	= $04		; PORT $EC 32 Character Mode Bit
 ;
-DEFC	TAPEBD	= RAM+$211	; Cassette Baud Rate Select (0=500 baud, not 0=1500 baud)
-DEFC	TPBLIN	= RAM+$212	; Cassette Blinker Counter.
-DEFC	TPINTV	= RAM+$213	; Cassette Default Interrupt Vector Setting.
-DEFC	VDSCPR	= RAM+$214	; Video scroll protect: # Video Lines To Protect (0-7).
+DEFC	CASDCB	= RAM+$211	; Cassette Baud Rate Select (0=500 baud, not 0=1500 baud)
+DEFC	BLINK	= RAM+$212	; Cassette Blinker Counter.
+DEFC	MSKSTA	= RAM+$213	; Cassette Default Interrupt Vector Setting.
+DEFC	SCRLCT	= RAM+$214	; Video scroll protect: # Video Lines To Protect (0-7).
 ;
-DEFC	CLKHRT	= RAM+$216	; Clock Data: Heartbeat Counter
-DEFC	CLKHRS	= RAM+$219	; Clock Data: Hours (Value: 00-23)
-DEFC	CLKMNT	= RAM+$21C	; Clock Data: Month (Value: 01-12)
+DEFC	TICKIT	= RAM+$216	; Clock Data: Heartbeat Counter
+DEFC	HOURS	= RAM+$219	; Clock Data: Hours (Value: 00-23)
+DEFC	MONTH	= RAM+$21C	; Clock Data: Month (Value: 01-12)
 ;
-DEFC	IOROUT	= RAM+$21D	; IO ROUTER DCB
-DEFC	KYBCTL	= RAM+$224	; Control key flag used by keyboard driver routine
+DEFC	ROUDCB	= RAM+$21D	; IO ROUTER DCB
+DEFC	CNTFLG	= RAM+$224	; Control key flag used by keyboard driver routine
 ;
 ; ======================================================================
 ;  Input Output Map
