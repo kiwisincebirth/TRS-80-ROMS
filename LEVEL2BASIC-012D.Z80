@@ -1,13 +1,20 @@
 ;
 ; ======================================================================
-; Shared LEVEL2 BASIC code for TRS-80 MODEL 1 & MODEL 3
-; ======================================================================
+;      Shared Level II BASIC code for TRS-80 Model I and III
+;		( Address Range : $012D - $01D9 )
 ;
-ASSERT $ == $012D, "Segment: Level 2 Basic - Should start at $012D"
+;     Source Code Created By : kiwisincebirth - 2025, 2026
+;     [https://github.com/kiwisincebirth/TRS-80-ROMS]
+;
+; ======================================================================
+;     NOTE: this code has been formatted with 8 spaces per tab
+; ----------------------------------------------------------------------
+;
+	ASSERT $ == $012D, "Segment: Level 2 Basic - Should start at $012D"
 ;
 ; DEFINES USED INTERNALLY
 ;
-; BUGFIX32 - No Dependancies (MODEL 3 ONLY)
+; BUGFIX32 - No Dependencies (MODEL 3 ONLY)
 ;
 ; ======================================================================
 ;

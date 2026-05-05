@@ -1,7 +1,14 @@
 ;
 ; ======================================================================
-; Shared LEVEL2 BASIC code for TRS-80 MODEL 1 & MODEL 3
+;      Shared Level II BASIC code for TRS-80 Model I and III
+;		( Address Range : $0708 - $2B29 )
+;
+;     Source Code Created By : kiwisincebirth - 2025, 2026
+;     [https://github.com/kiwisincebirth/TRS-80-ROMS]
+;
 ; ======================================================================
+;     NOTE: this code has been formatted with 8 spaces per tab
+; ----------------------------------------------------------------------
 ;
 	ASSERT $ == $0708, "Segment: Level 2 Basic - Should start at $0708"
 ;

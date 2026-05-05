@@ -3,12 +3,13 @@
 ;        TRS-80 Model III Level II BASIC ROM
 ;              "Modernised" Revision 1.4
 ;
-;     Source Code Created By : kiwisincebirth - 2025
-;     [https://github.com/kiwisincebirth/TRS-80]
+;     Source Code Created By : kiwisincebirth - 2025, 2026
+;     [https://github.com/kiwisincebirth/TRS-80-ROMS]
 ;
 ; ======================================================================
 ;     NOTE: this code has been formatted with 8 spaces per tab
 ; ----------------------------------------------------------------------
+;
 ; Rom Version Definition
 ; #DEFINE VIDEO50 ; Uncomment to Enable 50Hz Video Support (RTC)
 ;
@@ -54,7 +55,7 @@
 ; ======================================================================
 ;      REFERENCES
 ; ----------------------------------------------------------------------
-;   • Git Hub Repository - [https://github.com/kiwisincebirth/TRS-80]
+;   • Git Hub Repository - [https://github.com/kiwisincebirth/TRS-80-ROMS]
 ;   • Ira Goldlang, TRS-80 ROM Information - [https://www.trs-80.com/wordpress/roms/]
 ;   • TRS-80 ROM Errors - Vernon Hester - [https://www.trs-80.com/sub-rom-bugs.htm]
 ;   • Telemark Assembler - [https://www.cpcalive.com/docs/TASMMAN.HTM]

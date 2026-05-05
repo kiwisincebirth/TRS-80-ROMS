@@ -1,5 +1,16 @@
 ;
 ; ======================================================================
+;      Constants for TRS-80 Model I and III
+;		Level II BASIC ROM
+;
+;     Source Code Created By : kiwisincebirth - 2025, 2026
+;     [https://github.com/kiwisincebirth/TRS-80-ROMS]
+;
+; ======================================================================
+;     NOTE: this code has been formatted with 8 spaces per tab
+; ----------------------------------------------------------------------
+;
+; ======================================================================
 ; Special Purpose
 ; ======================================================================
 ;
@@ -37,10 +48,11 @@ DEFC	JPCNN	= $DA	; JP C,nnnn - skips 2 bytes
 DEFC	ORNN	= $F6	; OR nn - skip 1 byte
 DEFC	JPMNN	= $FA	; JP M,nnnn - skip 2 bytes
 DEFC	CPNN	= $FE	; CP nn - skip next bytye
-
+;
 ; ======================================================================
 ; BASIC
 ; ======================================================================
+;
 ; ----------------------------------------------------------------------
 ;   BASIC TOKENS IDS
 ;   (note: this is not complete, just constants used in code)

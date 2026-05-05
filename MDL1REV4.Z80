@@ -3,8 +3,8 @@
 ;          TRS-80 Model I Level II BASIC ROM
 ;              "Modernised" Revision 1.4
 ;
-;     Source Code Created By : kiwisincebirth - 2025
-;     [https://github.com/kiwisincebirth/TRS-80]
+;     Source Code Created By : kiwisincebirth - 2025, 2026
+;     [https://github.com/kiwisincebirth/TRS-80-ROMS]
 ;
 ; ======================================================================
 ;     NOTE: this code has been formatted with 8 spaces per tab
@@ -60,7 +60,7 @@
 ; ======================================================================
 ;      REFERENCES
 ; ----------------------------------------------------------------------
-;   • Git Hub Repository - [https://github.com/kiwisincebirth/TRS-80]
+;   • Git Hub Repository - [https://github.com/kiwisincebirth/TRS-80-ROMS]
 ;   • Ira Goldlang, TRS-80 ROM Information - [https://www.trs-80.com/wordpress/roms/]
 ;   • TRS-80 ROM Errors - Vernon Hester - [https://www.trs-80.com/sub-rom-bugs.htm]
 ;   • Telemark Assembler - [https://www.cpcalive.com/docs/TASMMAN.HTM]
@@ -1419,7 +1419,7 @@ CLRAM:	ld	(de),a		;0687 - zero byte in memory starting at 4036h
 #IFDEF NOMEMSIZE
 	ld	a,(kmatrix7+2)	; check BREAK or "M" while waiting
 	and	$24		; the BREAK key or M Key
-	jp	nz,INIT2	; if break, Level2 basic INIT
+	jp	nz,INIT2	; if break, Level II BASIC INIT
 #ELSE
 	ld	a,(kmatrix7)	;068b - value at keyboard BREAK KEY
 	and	$04		;068e - if the BREAK key is being pressed
@@ -1873,11 +1873,11 @@ NB_BOOTLP1:
 #IFDEF NOMEMSIZE
 	ld	a,(kmatrix7+2)	; check BREAK or "M" while waiting
 	and	$24		; the BREAK key or M Key
-	jp	nz,INIT2	; if break, Level2 basic INIT
+	jp	nz,INIT2	; if break, Level II BASIC INIT
 #ELSE
 	ld	a,(kmatrix7) ; check BREAK while waiting
 	and	$04		; the BREAK key
-	jp	nz,INIT2	; if break, Level2 basic INIT
+	jp	nz,INIT2	; if break, Level II BASIC INIT
 #ENDIF
 ;
 	dec	bc		; countdown until we restart BOOT
