@@ -30,6 +30,7 @@
 ; #DEFINE NMIHARD ; Uncomment to set NMI Reset as always hard reset. (0066h)
 ; #DEFINE LOWCASE ; Uncomment to Disable Alpha Character Translation (0471h)
 ; #DEFINE FASTMEM ; Uncomment to enable Fast Memory Size Check (00C4)
+; #DEFINE LEV1DOT ; Uncomment to enable Level 1 like Keyword Dot postfix (1C24)
 ; #DEFINE FREHDBT ; Uncomment to enable FreHD Auto boot at startup (incl VER13, NMIHARD)
 
 ; Build Features
@@ -43,6 +44,7 @@
   #DEFINE NMIHARD
   #DEFINE LOWCASE
   #DEFINE FASTMEM
+  #DEFINE LEV1DOT
   ; But Not FreHD, added manually
 #ENDIF
 ;

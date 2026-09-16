@@ -33,6 +33,7 @@
 #DEFINE NOMEMSIZE ; Skip Memory Size? prompt
 #DEFINE LOWCASE ; Disable Alpha Character Translation (0471h)
 #DEFINE FASTMEM ; Fast Memory Size Check
+#DEFINE LEV1DOT ; Level 1 like Keyword Dot postfix (1C24)
 #DEFINE FREHDBT ; Enable FreHD Auto boot at startup (069Ch)
 #DEFINE NMIHARD ; Set NMI Reset as always hard reset. (0066h)
 #DEFINE MSGSTART ; Enhanced Startup Message (0102)
@@ -1972,7 +1973,7 @@ ASSERT $ == $2FFB, "Segment: Continuation at $2FFB"
 ; 2FFB - 2FFF - ROM VERSION STAMP - Previously unused
 	DEFB	0 		; Reserved for CRC injected here
 	DEFB	$01, $04	; Identifier Model 1 Rev (1.)4
-	DEFB	$26, $05	; DateStamp Year, Week
+	DEFB	$26, $38	; DateStamp Year, Week
 ;
 ; ======================================================================
 ; THE END OF THE LEVEL II BASIC ROMS

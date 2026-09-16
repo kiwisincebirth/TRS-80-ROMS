@@ -50,6 +50,8 @@ And some smaller improvements
 * `#DEFINE NOMEMSIZE` - Skip user input of Memory Size? override at startup with `M` key. (Credit : John Swiderski)
 * `#DEFINE FASTMEM` - Speed up startup memory size check by checking first byte of every 256 page,
   rather than every byte.
+* `#DEFINE LEV1DOT` - Enables a Level 1 Like autocomplete feature for keywords where a partial keyword followed by a
+  period `.` will autocomplete that keyword. `GO TO` with spaces is no longer supported. (Credit : George Phillips)
 
 The base ROM can also be customised to hardware.
 * `#DEFINE VIDEO50` - (OPTIONAL) Enable 50Hz Video Support (Affects RTC)

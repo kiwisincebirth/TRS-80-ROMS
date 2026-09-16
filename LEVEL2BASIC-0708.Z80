@@ -4399,6 +4399,7 @@ LOPPSI:	inc	de		;1c1d - Bump the value of the reserved words list pointer
 ; and we are still in the middle of a reserved word that might be a potential match.
 ; ----------------------------------------------------------------------
 	ld	c,a		;1c23 - the current reserved word list character
+#IFNDEF LEV1DOT
 	ld	a,b		;1c24 - reserved words counter
 ; ----------------------------------------------------------------------
 ; The GOTO reserved word is the only one which allows for spaces to be inside it,
@@ -4407,10 +4408,20 @@ LOPPSI:	inc	de		;1c1d - Bump the value of the reserved words list pointer
 ; ----------------------------------------------------------------------
 	cp	TKGOTO		;1c25 - compare - reserved word is GOTO
 	jr	nz,NTGOTO	;1c27 - skip if NOT a GOTO
+#ENDIF
 	GETCHR			;1c29 - rst 10h
 	dec	hl		;1c2a - DEC input buffer pointer to offset next instruction
 NTGOTO:	inc	hl		;1c2b - Bump input buffer pointer to the next character
 	ld	a,(hl)		;1c2c - next character in input buffer
+#IFDEF LEV1DOT
+;
+	DEFC 	LEV1DOT_ENABLED = 1
+	PUBLIC 	LEV1DOT_ENABLED
+;
+	cp	'.'		; Level 1 like '.' following keyword
+	jr	z,FOUND		; found a '.' so process keyword
+	nop
+#ENDIF
 	cp	'a'		;1c2d - Check to see if the character is lower-case
 	jr	c,NOTLW1	;1c2f - jump forward if uppercase
 	and	$5F		;1c31 - Make character uppercase

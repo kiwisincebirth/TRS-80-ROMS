@@ -30,6 +30,7 @@
 ; Rom Additional Features
 ; #DEFINE FREHDBT ; Uncomment to enable FreHD Auto boot at startup.
 ; #DEFINE FASTMEM ; Uncomment to enable Fast Memory Size Check (00C4)
+; #DEFINE LEV1DOT ; Uncomment to enable Level 1 like Keyword Dot postfix (1C24)
 ;
 ; Build Features
 ; #DEFINE SIZE16K ; Uncomment to build a $FF padded 16K Image for banked ROM
@@ -44,6 +45,7 @@
   #DEFINE BUGFIX32
   #DEFINE BUGFIX40
   #DEFINE FASTMEM
+  #DEFINE LEV1DOT
 #ENDIF
 ;
 ; ======================================================================

@@ -32,6 +32,8 @@ There are several optional features.
 * `#DEFINE FREHDBT` - Enables the FreHD auto boot ROM feature, ie load fre HD at start
 * `#DEFINE FASTMEM` - Speed up startup memory size check by checking first byte of every 256 page,
   rather than every byte.
+* `#DEFINE LEV1DOT` - Enables a Level 1 Like autocomplete feature for keywords where a partial keyword followed by a
+  period `.` will autocomplete that keyword. `GO TO` with spaces is no longer supported. (Credit : George Phillips)
 
 Bug Fixes can be applied
 * `#DEFINE BUGFIX5` - Fix Error 5 - 08A7H - INT(DoubleValue) rounding issue
@@ -41,7 +43,7 @@ Bug Fixes can be applied
 * `#DEFINE BUGFIX40` - Fix Error 40 - 05D1H - Broken "RON" Printer Status Routine
 
 And the following grouped define
-* `#DEFINE PATCH` - Includes `FASTMEM` and `BUGFIX5` thru `BUGFIX40`
+* `#DEFINE PATCH` - Includes `FASTMEM`, `LEV1DOT` and `BUGFIX5` thru `BUGFIX40`
 
 Some additional defines, which are build options rather than features
 * `#DEFINE SIZE16K` - Will pad the end of the rom with $FF to 16KB size. useful if want to append multiple ROM

@@ -28,6 +28,7 @@ https://github.com/kiwisincebirth/TRS-80/blob/main/MODEL1.md
 Patches Included Are:
 * Lower Case Support with no character translation
 * Faster Memory Size? check during startup
+* Level 1 like Keyword entry using Dot postfix, e.g. PR. -> PRINT
 * NMI Reset (button) forces full reset.
 * Bug Fixes 5,8
 
@@ -49,6 +50,7 @@ https://github.com/kiwisincebirth/TRS-80/blob/main/MODEL1.md
 Patches Included Are:
 * Lower Case Support with no character translation
 * Faster Memory Size? check during startup
+* Level 1 like Keyword entry using Dot postfix, e.g. PR. -> PRINT
 * NMI Reset (button) forces full reset.
 * Bug Fixes 5,8
 * Model I V1.3 improvements e.g. Keyboard debounce.
@@ -63,6 +65,7 @@ Unlike other ROM's All features are enabled by default:
 * New "Diskette?" boot capability, similar to Model III
 * Skips "Memory Size?" prompt unless M key pressed
 * Faster Memory Size? check during startup
+* Level 1 like Keyword entry using Dot postfix, e.g. PR. -> PRINT
 * FreHD auto-boot support
 * Lower Case Support with no character translation
 * NMI Reset (button) forces full reset.
@@ -94,6 +97,7 @@ https://github.com/kiwisincebirth/TRS-80/blob/main/MODEL3.md
 
 Patches Included Are:
 * Faster Memory Size? check during startup
+* Level 1 like Keyword entry using Dot postfix, e.g. PR. -> PRINT
 * Bug Fixes 5, 8
 * Bug Fixes 28, 30, 32, 40 (specific to Model III)
 
@@ -107,6 +111,7 @@ Unlike other ROM's All features are enabled by default:
 * FreHd autoboot support included
 * Skips "Memory Size?" prompt unless M key pressed
 * Faster Memory Size? check during startup
+* Level 1 like Keyword entry using Dot postfix, e.g. PR. -> PRINT
 * Bug Fixes 1, 2, 5, 7, 7C, 8, 11, 13
 * Bug Fixes 27, 28, 29, 30, 31, 32, 40 (specific to Model III)
 
