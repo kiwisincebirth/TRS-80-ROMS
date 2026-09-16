@@ -210,7 +210,7 @@ _GET:	push	bc		;0013
 ;   CARRY SET=HL<DE; NO CARRY=HL>DE; NZ=Unequal; Z=Equal).
 ;   Jumps to 1C90H through 4006H.
 ; ----------------------------------------------------------------------
-rst18:	jp	RT3		;0018
+	jp	RT3		;0018
 ;
 ; ----------------------------------------------------------------------
 ; 001BH-001EH – DRIVER ENTRY ROUTINE – Part 1 – "_PUT"
@@ -227,7 +227,7 @@ _PUT:	push	bc		;001b
 ;   (S flag is valid also.). After execution of RST 20H or CALL 25D9H,
 ;   A will contain the value NTF-3, all other registers are unchanged.
 ; ----------------------------------------------------------------------
-rst20:	jp	RT4		;0020
+	jp	RT4		;0020
 ;
 ; ----------------------------------------------------------------------
 ; 0023H-0027H – DISK ROUTINE – "_CTL"
@@ -239,7 +239,7 @@ _CTL:	push	bc		;0023
 	jr	CIOJ		;0026- BASIC driver entry routine at 0046H
 ;
 ; ======================================================================
-; 0028H (RST 28H) - DOS Function CALL - DOSCAL
+; 0028H (RST 28H) - DOS Function CALL - DOSCALL
 ;
 ;   Jumps to 400CH which contains C9H (RET) under Level II BASIC.
 ;   This vector is only used by Disk BASIC.
@@ -252,8 +252,7 @@ _CTL:	push	bc		;0023
 ;   by the RST instruction. After processing control will be returned
 ;   to the previous address on the STACK)
 ; ----------------------------------------------------------------------
-DOSCAL:
-rst28:	jp	RT5		;0028
+	jp	RT5		;0028
 ;
 ; ======================================================================
 ; 002BH – KEYBOARD ROUTINE – "_KBD" - Scan Keyboard

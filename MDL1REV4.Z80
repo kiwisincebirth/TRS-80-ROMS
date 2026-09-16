@@ -216,7 +216,7 @@ _CTL:	push	bc		;0023
 ;   Apart from the AF Register Pair the DE Register Pair is also used by the routine.
 ;   If you want to wait for a key to be pressed, you would use CALL 0049
 ; ----------------------------------------------------------------------
-_KBD:	ld	de,KDCB	;002b
+_KBD:	ld	de,KDCB		;002b
 	jr	_GET		;002e
 ;
 ; ======================================================================
@@ -240,7 +240,7 @@ rst30:	jp	RT6		;0030
 ;  The DE Register Pair is used by the routine.
 ; ----------------------------------------------------------------------
 VDCHAR:
-_DSP:	ld	de,DDCB	;0033 - video device control block.
+_DSP:	ld	de,DDCB		;0033 - video device control block.
 	jr	_PUT		;0036
 ;
 ; ======================================================================
@@ -262,7 +262,7 @@ rst38:	jp	RT7		;0038
 ;  (Contents of A Register will be printed).
 ; ----------------------------------------------------------------------
 PRCHAR:
-_PRT:	ld	de,PDCB	;003b
+_PRT:	ld	de,PDCB		;003b
 	jr	_PUT		;003e
 ;
 ; ----------------------------------------------------------------------
@@ -892,7 +892,7 @@ KEYRT2:	ld	bc,3500		;044c - delay count (3500)
 ;   at the cursor (if called for an INPUT). This routine handles scrolling etc.
 ;
 ;   Register IX points to the DCB, so
-;   IX+0 = the DCB type, ($07), Can be used for output.
+;   IX+0 = the DCB type, ($07), Video display can be used for output.
 ;   IX+1 = LSB of the Driver Address, IX+2 = MSB of the Driver Address,
 ;   IX+3 = LSB of the Cursor Position, IX+4 = MSB of the Cursor Position,
 ;   IX+5 = Cursor Character, cursor on off flag

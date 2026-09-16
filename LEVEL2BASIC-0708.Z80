@@ -4403,7 +4403,7 @@ LOPPSI:	inc	de		;1c1d - Bump the value of the reserved words list pointer
 ; ----------------------------------------------------------------------
 ; The GOTO reserved word is the only one which allows for spaces to be inside it,
 ; so . if we find that we have GO so far, we will call the RST 10H to strip out
-; any intevening spaces before continuing.
+; any intervening spaces before continuing.
 ; ----------------------------------------------------------------------
 	cp	TKGOTO		;1c25 - compare - reserved word is GOTO
 	jr	nz,NTGOTO	;1c27 - skip if NOT a GOTO

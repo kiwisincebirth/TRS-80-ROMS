@@ -20,12 +20,14 @@
 ;
 ; ----------------------------------------------------------------------
 ; 012DH – ?L3 ERROR ENTRY POINT – "NAVERR"
+;   BASIC error when a Disk BASIC command is attempted on a non-disk system
 ; ----------------------------------------------------------------------
 NAVERR:	ld	e,ERRL3		;012d - Load Register E with the ?L3 ERROR code of 2CH
 	jp	ERROR		;012f
 ;
 ; ----------------------------------------------------------------------
 ; 0132H-0134H –	LEVEL II BASIC POINT COMMAND ENTRY POINT – "POINT"
+;   Entry point for BASIC POINT(x,y) function, test if graphic bit is set.
 ; ----------------------------------------------------------------------
 POINT:	GETCHR			;0132 - rst 10h
 	xor	a		;0133
@@ -39,18 +41,22 @@ POINT:	GETCHR			;0132 - rst 10h
 ;
 ; ----------------------------------------------------------------------
 ; 0135H-0137H – LEVEL II BASIC SET COMMAND ENTRY POINT – “SETS”
+;   Entry point for the BASIC SET(x,y) statement -
+;   illuminate a graphics pixel at screen coordinates (x,y)
 ; ----------------------------------------------------------------------
 SETS:	ld	a,$80		;0135
 	DEFB	LDBCNN		;0137 - See comment above about what this does
 ;
 ; ----------------------------------------------------------------------
 ; 0138H-0139H – LEVEL II BASIC RESET COMMAND ENTRY POINT – “RESET”
+;   Entry point for the BASIC RESET(x,y) statement -
+;   Clear a graphics pixel at screen coordinates (x,y)
 ; ----------------------------------------------------------------------
 RESET:	ld	a,$01		;0138
 ;
 ; ----------------------------------------------------------------------
 ; 013AH-019CH GRAPHICS ROUTINE - Common Code for SET RESET and POINT
-;   A will be 0 if POINT, 80H if SET and 1 for RESET.
+;   A will be 0 if POINT, 80H if SET, and 1 for RESET.
 ; ----------------------------------------------------------------------
 ;
 	push	af		;013a
@@ -64,6 +70,9 @@ RESET:	ld	a,$01		;0138
 	cp	48		;014b - compare Y coordinate with 48
 	jp	nc,FCERR	;014d - if greater equal to 48 then an error
 	ld	d,$FF		;0150
+; ----------------------------------------------------------------------
+; Inner loop of the Y-coordinate divide-by-3 calculation
+; ----------------------------------------------------------------------
 LOPMD3:	inc	d		;0152
 	sub	$03		;0153
 	jr	nc,LOPMD3	;0155
@@ -94,6 +103,9 @@ SHFTW:	ld	a,d		;015f
 	ld	b,a		;016a
 	xor	a		;016b
 	scf			;016c
+; ----------------------------------------------------------------------
+; Builds byte with exactly one bit set at the pixel's sub-character position
+; ----------------------------------------------------------------------
 PWR2:	adc	a,a		;016d
 	djnz	PWR2		;016e
 	ld	c,a		;0170
@@ -139,11 +151,17 @@ FND4:	ld	b,a		;017c - saving it into B
 	ld	c,a		;0188
 	ld	a,(de)		;0189
 	and	c		;018a
-FINSTB:	ld	(de),a		;018b
+FINSTB:	ld	(de),a		;018b - Save the adjusted graphic character into video memory
+; ----------------------------------------------------------------------
+; Common closing-parenthesis syntax check for SET, RESET, and POINT.
+; ----------------------------------------------------------------------
 FINPTB:	SYNTAX	(')')		;018c - rst 08h
 	ret			;018e
-SBIT:	or	c		;018f
+SBIT:	or	c		;018f - SET - Combining the graphic mask with the char
 	jr	FINSTB		;0190
+; ----------------------------------------------------------------------
+; POINT-mode bit test - produces the result (0 or ?1) for POINT(x,y) function
+; ----------------------------------------------------------------------
 TBIT:	and	c		;0192
 	add	a,$FF		;0193
 	sbc	a,a		;0195
@@ -154,19 +172,21 @@ TBIT:	and	c		;0192
 ;
 ; ----------------------------------------------------------------------
 ; 019DH-01C8H – LEVEL II BASIC INKEY$ ROUTINE – “INKEY”
+;   Entry point for the BASIC INKEY$ function, return 1 char or empty string
+;
 ASSERT $ = $019D, "Routine INKEY$ should have correct entry point"
 ; ----------------------------------------------------------------------
-INKEY:	GETCHR			;019d - rst 10h
+INKEY:	GETCHR			;019d - bump the program pointer
+	push	hl		;019e - save this address
+	ld	a,(CHARC)	;019f - last key pressed
+	or	a		;01a2 - set flags
+	jr	nz,BUFCIN	;01a3 - skip scan if char found
+	call	ISCHAR		;01a5 - perform an instantaneous keyboard scan.
+	or	a		;01a8 - set flags
+	jr	z,NULRT		;01a9 - nothing pressed
 ; ----------------------------------------------------------------------
-; 019E - Create 1 character string from keyboard input (TAS)
+; Builds the 1-character string result for INKEY$ from the key code in A
 ; ----------------------------------------------------------------------
-	push	hl		;019e
-	ld	a,(CHARC)	;019f
-	or	a		;01a2
-	jr	nz,BUFCIN	;01a3
-	call	ISCHAR		;01a5
-	or	a		;01a8
-	jr	z,NULRT		;01a9
 BUFCIN:	push	af		;01ab
 	xor	a		;01ac
 	ld	(CHARC),a	;01ad
@@ -176,6 +196,9 @@ BUFCIN:	push	af		;01ab
 	ld	hl,(DSCTMP+1)	;01b5
 	ld	(hl),a		;01b8
 	jp	PUTNEW		;01b9
+; ----------------------------------------------------------------------
+; Returns an empty string for INKEY$ when no key is currently pressed.
+; ----------------------------------------------------------------------
 NULRT:	ld	hl,INTXT+4	;01bc - An address containing a 0 terminator - IN message
 	ld	(FACLO),hl	;01bf
 	ld	a,VTSTR		;01c2 - String Value Type
