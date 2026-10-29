@@ -40,6 +40,9 @@
 ;
 ; Rom 1.3 Features (can be disabled to save space)
 #DEFINE KEYBOUNCE ; Enable 1.3 Keyboard Debounce (03FBh)
+;
+; Uncomment to add additional Features
+;#DEFINE ANSIKEYBOARD ; Enable the enhanced ANSI Keyboard support
 ;#DEFINE SYSTEMCMD ; Enable the BASIC SYSTEM (limited) Command
 ;
 ; Build Features
@@ -577,7 +580,63 @@ FREHDBOOT:	call	CLS		;0069 - Clear Screen
 	DEFC 	FREHDBT_BYTES = $ - FREHDBOOT
 	PUBLIC 	FREHDBT_BYTES
 #ENDIF
-
+;
+; ----------------------------------------------------------------------
+; ANSI Keyboard
+; KEYBOARD LOOKUP TABLE
+; Translation table for non - alpha, numeric and shifter numeric
+; ----------------------------------------------------------------------
+#IFDEF ANSIKEYBOARD
+;
+KB_NUMBTR:
+	; Keys for 4th Row
+	DEFB	'='
+	; Keys for 5th Row
+	DEFB	'0'	; 0
+	DEFB	'1' 	; 1
+	DEFB	'2' 	; 2
+	DEFB	'3' 	; 3
+	DEFB	'4' 	; 4
+	DEFB	'5' 	; 5
+	DEFB	'6' 	; 6
+	DEFB	'7' 	; 7
+	; Keys for 6th Row
+	DEFB	'8' 	; 8
+	DEFB	'9' 	; 9
+	DEFB	SQUOTE 	; Single Quote
+	DEFB	';' 	;
+	DEFB	',' 	;
+	DEFB	'-'  	;
+	DEFB	'.' 	;
+	DEFB	'/' 	;
+	; --------------------------
+	; Keys for 4th Row (SHIFTED)
+	DEFB	'+'
+	; Keys for 5th Row (SHIFTED)
+	DEFB	')'	; 0
+	DEFB	'!' 	; 1
+	DEFB	'@' 	; 2
+	DEFB	'#' 	; 3
+	DEFB	'$' 	; 4
+	DEFB	'%' 	; 5
+	DEFB	'^' 	; 6
+	DEFB	'&' 	; 7
+	; Keys for 6th Row (SHIFTED)
+	DEFB	'*' 	; 8
+	DEFB	'(' 	; 9
+	DEFB	DQUOTE 	; Double Quote
+	DEFB	':' 	;
+	DEFB	'<' 	;
+	DEFB	'_'  	;
+	DEFB	'>' 	;
+	DEFB	'?' 	;
+	;
+	DEFC 	ANSIKEYBOARD_ENABLED = 1
+	PUBLIC 	ANSIKEYBOARD_ENABLED
+	DEFC 	ANSIKEYBOARD_BYTES = $ - KB_NUMBTR
+	PUBLIC 	ANSIKEYBOARD_BYTES
+#ENDIF
+;
 ; ======================================================================
 ; END ROM REGION 1
 ;
@@ -829,7 +888,12 @@ KEYFND:	ld	a,(kbdmatrix+$80);040b - Value from SHIFT Matrix Row 3880H
 	ld	b,a		;040e - Save the Shift Row
 	ld	a,d		;040f - Matrix Character in range ($00-$3F)
 	add	a,$40		;0410 - Offset it by 64 ($40-$7F)
+#IFDEF ANSIKEYBOARD
+	cp	$5F		; Check to see if is non-alpha character
+				; we treat last column on Row 4 as non-alpha
+#ELSE
 	cp	$60		;0412 - Check to see which half of the matrix
+#ENDIF
 	jr	nc,KEYNAL	;0414 - if in upper half of matrix Non-alpha
 	rrc	b		;0416 - Get saved Shift Key rotated into C flag
 	jr	nc,KEYRTN	;0418 - Shift not pressed, return alpha ($40-$5F)
@@ -849,6 +913,15 @@ KEYFND:	ld	a,(kbdmatrix+$80);040b - Value from SHIFT Matrix Row 3880H
 ; ----------------------------------------------------------------------
 KEYNAL:	sub	$70		;0429 - Which half of Matrix Rows 5-6 or 7-8
 	jr	nc,KEYSPL	;042b - If Rows 7-8 then special character
+#IFDEF ANSIKEYBOARD
+	add	a,$11		; Re-Adjust A to contain ($00-$10)
+	ld	hl,KB_NUMBTR	; Translation Table address
+	rrc	b		; Get saved Shift Key rotated into C flag
+	jr	nc,KEYTRN	; If Not Shifted Ret with key translation
+	add	a,$11		; Use shifted Key Codes, in trns table
+	jr	KEYTRN		; Return after key translation
+	NOP3
+#ELSE
 	add	a,$40		;042d - Re-Adjust A down to contain ($30-$3F)
 	cp	$3C		;042f - Check if one of the last 4 characters
 	jr	c,KEYINV	;0431 - skip if "0123456789" i.e. leave unchanged
@@ -858,6 +931,7 @@ KEYINV:	rrc	b		;0435 - Get saved Shift Key rotated into C flag
 	xor	$10		;0439 - Apply the Shift to the Character
 	jr	KEYRTN		;043b - If Shifted Return ($20-2F)
 				;noting Shift "0" returns a <space> $20
+#ENDIF
 ; ----------------------------------------------------------------------
 ; 043DH – Part of the Keyboard routine – “KEYSPL”
 ;    This routine does a special key conversion via a table
